@@ -56,6 +56,29 @@ Tieftauchen funktioniert. Konfiguration als deklarativer Text (Agent-first) mit
 schema-getriebener, kontextsensitiver UI statt tiefer, elementabhängiger Menübäume.
 Datenarchiv-Anbindung („dieser Wert in dieses Archiv") muss **ein** Schritt sein, nicht fünf.
 
+### R-8: Mehrere Datenpunkt-Bindungen pro Element mit klaren Rollen
+Ein Element bindet oft an **mehrere** Datenpunkte in unterschiedlichen Rollen — anzeigen,
+bei Interaktion setzen, und den **Status** (für dynamische Darstellung) lesen. Fachwerk:
+benannte Binding-Rollen (z. B. `display`, `set`, `status`) statt kryptischer nummerierter
+Slots; deklarativ, für Mensch und Agent lesbar.
+
+### R-9: Dynamische Darstellung (Style je Wert)
+Aussehen (Farbe, Icon, Design) soll sich **automatisch nach einem Datenpunkt-Wert** ändern
+(z. B. an=hell/aus=dunkel, Schwellwerte). Deklarative Wert→Style-Zuordnung — der Standardweg
+für Statusanzeige, ohne Code.
+
+### R-10: Wertformatierung — einfach im Standardfall, mächtig bei Bedarf
+Häufige Fälle (Einheit, Nachkommastellen, Faktor) sind **Felder** (Einheit `°C`, Dezimalen,
+Skalierung), kein Ausdruck nötig. Für Fortgeschrittene optional eine kompakte
+Ausdruckssyntax (Wert-Platzhalter + Funktionen/Arithmetik). Bewusster Gegenentwurf zur
+„für alles ein Template"-Kritik an anderen Systemen.
+
+### R-11: Struktur — Gruppen/Ebenen und Seitentypen
+Elemente in **Gruppen** (benannte Layer/Container) organisierbar, mit Ebenenreihenfolge
+(Z-Index). Seitentypen: normale Seite, **Popup/Overlay**, und **Include-/Master-Seite**
+(gemeinsames Layout, in andere Seiten eingebunden). Navigation (Seite/Popup öffnen/schließen)
+direkt an Elementen konfigurierbar.
+
 ## Offene Fragen (Zielkatalog ausarbeiten)
 
 - F-1: Zielkatalog der Elementtypen für Fachwerk v1 (Taster, Dimmer, Jalousie, Wert,
