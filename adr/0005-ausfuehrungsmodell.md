@@ -99,7 +99,10 @@ Nutzer wird zur Bauzeit gewarnt, statt dass der Konflikt unsichtbar bleibt.
 ### E-8: Zeitbausteine
 Timer/Verzögerungen planen zukünftige Ereignisse **in dieselbe Queue** (einheitliches
 Modell). Persistenz des Timer-Zustands über Neustart und Verhalten bei Zeitsprüngen werden
-spezifiziert und in CI reproduzierbar gemacht.
+spezifiziert und in CI reproduzierbar gemacht. **Nicht verhandelbar:** Ein Neustart darf
+keinen timergesteuerten Ausgang in einem hängenden Zustand hinterlassen (z. B. ein
+Treppenlicht, das nie wieder ausgeht) — entweder Timer-Zustand persistieren und fortsetzen,
+oder beim Start definiert in einen sicheren Zustand bringen. Nie stilles Dauer-An.
 
 ## Konsequenzen
 
