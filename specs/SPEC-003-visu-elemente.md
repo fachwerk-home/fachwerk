@@ -25,10 +25,15 @@ Elementen, Bausteinen, Datenpunkten. Fachwerk-Editor: Palette → Ziehen, Verbin
 ziehen, Datenpunkt per Drag zuweisen, Mehrfachauswahl, Raster/Snap, Ausrichten. Direkte
 Manipulation als Default, Kontextmenü nur ergänzend.
 
-### R-3: Responsive (★★)
-Pixelfixe Visus müssen je Endgerät nachgebaut werden. Fachwerk braucht
-Responsive-Varianten/Breakpoints oder ein flexibles Layoutmodell, ohne die pixelgenaue
-Kontrolle aufzugeben („pixelgenau UND HTML5-flexibel").
+### R-3: Responsive (★★) — Modell festgelegt in ADR-0010
+Pixelfixe Visus müssen je Endgerät nachgebaut werden. Fachwerks Antwort (ADR-0010):
+**Element-Identität von Platzierung trennen** — ein Element existiert einmal (Bindungen/
+Verhalten), trägt aber 0..n **Platzierungen** je Breakpoint (Position/Größe/Sichtbarkeit/
+Format). Zwei Modi über demselben Modell: **Canvas/Pinned** (Power-BI-Weg, v1-Primär:
+Tablet bauen → auf Smartphone vorhandene Elemente übernehmen und anpassen → zweites Gerät ist
+Derivat, kein Nachbau) und **Flow/Auto** (Model-driven-Weg, Container/Raster, automatisch
+responsiv, Nachzügler). Mischbar (Auto-Default + einzelne gepinnte Elemente). So bleibt
+pixelgenaue Kontrolle erhalten UND „pro Gerät neu bauen" entfällt.
 
 ### R-4: Templates / Objekt-Instanzen mit globaler Änderung (★★)
 Ein Element/Baustein als Vorlage, viele Instanzen; Änderung an der Vorlage wirkt global.
@@ -67,11 +72,15 @@ Aussehen (Farbe, Icon, Design) soll sich **automatisch nach einem Datenpunkt-Wer
 (z. B. an=hell/aus=dunkel, Schwellwerte). Deklarative Wert→Style-Zuordnung — der Standardweg
 für Statusanzeige, ohne Code.
 
-### R-10: Wertformatierung — einfach im Standardfall, mächtig bei Bedarf
-Häufige Fälle (Einheit, Nachkommastellen, Faktor) sind **Felder** (Einheit `°C`, Dezimalen,
-Skalierung), kein Ausdruck nötig. Für Fortgeschrittene optional eine kompakte
-Ausdruckssyntax (Wert-Platzhalter + Funktionen/Arithmetik). Bewusster Gegenentwurf zur
-„für alles ein Template"-Kritik an anderen Systemen.
+### R-10: Wertformatierung — Kaskade, festgelegt in ADR-0011
+Format **kaskadiert Datenpunkt → Element → Platzierung** (spezifischere Ebene gewinnt):
+Der **Datenpunkt** ist die Heimat des Defaults (Einheit, Dezimalstellen, Skalierung/Offset,
+Enum-/Bool-Map — Power-BI-Prinzip „einmal setzen, überall gleich", siehe SPEC-001). Ein
+**Element** und eine **Platzierung** (Breakpoint) dürfen einzelne Aspekte überschreiben —
+z. B. Tablet 1 Nachkommastelle, Smartphone ganzzahlig. Alles über **Felder**, kein Ausdruck
+im Normalfall. Für echte Komposition (Textverkettung, bedingter Text) gibt es eine kleine,
+dokumentierte Ausdruck-Teilmenge als Fluchtweg (FMT-3) — bewusster Gegenentwurf zur „für
+alles ein Template"-Kritik. Format wirkt nur auf die Anzeige, nie auf den Semantikwert.
 
 ### R-11: Struktur — Gruppen/Ebenen und Seitentypen
 Elemente in **Gruppen** (benannte Layer/Container) organisierbar, mit Ebenenreihenfolge

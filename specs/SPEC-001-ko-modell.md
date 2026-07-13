@@ -24,8 +24,15 @@ zwischen Treibern (Bus/Fremdsysteme), Logik und Visualisierung.
 - **Initialwert**.
 - **Remanenz-Flag** — steuert, ob der Wert einen Neustart überlebt (Persistenz pro
   Datenpunkt); nicht-remanente Werte leben nur im Speicher.
-- **Filter/Normalisierung** an der Datenpunkt-Grenze (greifen VOR der Logik):
-  Minimum/Maximum, Raster (Quantisierung), Nachkommastellen, Wertliste.
+- **Filter/Normalisierung** an der Datenpunkt-Grenze (greifen VOR der Logik, verändern den
+  **semantischen** Wert): Minimum/Maximum, Raster (Quantisierung), Nachkommastellen, Wertliste.
+- **Darstellungs-Format** (nur Anzeige, verändert den Wert NICHT — ADR-0011, FMT-4): der
+  Datenpunkt ist die **Heimat** des Formats (Power-BI-Prinzip „einmal setzen, überall gleich").
+  Deklarative Felder statt Formel: `einheit` · `dezimalstellen` · `skalierung`/`offset`
+  (Roh→Anzeige) · `tausendertrenner` · `enum-map` (Wert→Text) · `bool-map` (true/false→Text/
+  Icon). Element und Platzierung (Breakpoint) dürfen einzelne Aspekte überschreiben
+  (Kaskade Datenpunkt → Element → Platzierung, siehe SPEC-003 R-10 / ADR-0010 L-1). Der
+  Roh-/Semantikwert (Logik, Archive, Bus) bleibt davon unberührt.
 - **`protected`** — Klasse für Schlösser/Alarm/Tore/Zutritt: nie durch Agenten oder
   Bausteine schreibbar, Freigabe nur über Admin-Rolle (Plan § 4.2, ADR-0008/0009).
 - **Typvalidierung:** Eingehende Werte werden gegen den Typ geprüft; Abweichungen sind
@@ -35,6 +42,10 @@ zwischen Treibern (Bus/Fremdsysteme), Logik und Visualisierung.
 ## Akzeptanzkriterien
 
 - Datenpunkt-Schema (JSON) mit: key, name, klasse, typ, initial, remanent,
-  filter{min,max,raster,decimals,valuelist}, protected, notizen.
+  filter{min,max,raster,decimals,valuelist},
+  format{einheit,dezimalstellen,skalierung,offset,tausendertrenner,enum-map,bool-map},
+  protected, notizen.
+- Format-Kaskade greift wie spezifiziert (Datenpunkt-Default, ohne Element-/Platzierungs-
+  Override); Roh-/Semantikwert bleibt unverändert.
 - Round-trip-Test: anlegen → Wert setzen → lesen → Filter/Validierung greifen wie
   spezifiziert.
