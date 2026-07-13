@@ -1,0 +1,13 @@
+# Fachwerk Bus-Simulator (KNXnet/IP, M1) — Deployment via Portainer-Stack o. docker compose.
+#
+# KNXnet/IP ist NAT-empfindlich → network_mode: host (kein Docker-UDP-NAT).
+# BIND_IP auf die LAN-IP des Docker-Hosts setzen, damit der Server im Handshake
+# den korrekten Endpunkt annonciert (z. B. <sim-host>).
+services:
+  bussim:
+    build: .
+    image: fachwerk-bussim:latest
+    container_name: bussim
+    network_mode: host
+    restart: unless-stopped
+    command: ["--bind", "${BIND_IP:-0.0.0.0}", "--port", "${PORT:-3671}", "-v"]

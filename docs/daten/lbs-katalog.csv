@@ -1,0 +1,849 @@
+id,name,kategorie,autor,version,aktualisiert,eingestellt
+19002810,Siemens Home Connect v1.14,Webservice,Schmidt Andre (eXec),V 1.14,2026-07-03 08:26:48,2026-06-30 14:22:03
+19002762,Modbus TCP :: Connector,Modbus,Nima Ghassemi (sipiyou),V 1.10,2026-07-02 19:15:56,2026-04-11 00:17:23
+19001508,TV Anti Glare Controller v1.3,Jalousie-Rolladen-Trennwand,Schmidt Andre (eXec),V 1.3,2026-07-02 11:33:00,2026-05-21 15:30:08
+19002763,MQTT :: Connector,Kommunikation,Nima Ghassemi (sipiyou),V 1.10,2026-07-01 21:22:09,2026-05-25 14:57:50
+19002791,Landesapothekenkammer - Notfallapotheken v2.0,Webservice,Schmidt Andre (eXec),V 2.0,2026-07-01 13:11:11,2026-06-10 09:47:49
+19002802,Hoymiles Wechselrichter DTUBI API V1.0 (lokal TCP),Zähler,Schmidt Andre (eXec),V 1.0,2026-06-23 19:27:09,2026-06-22 14:05:44
+19000690,geordnete Liste von Jahrestagen aus Textdatei - deprecated,Alarmierung,Staud Marco (mars),V 0.6,2026-06-23 19:08:47,2016-10-31 00:00:00
+19002801,Jahrestage/Erinnerungen Viewer v2.0,Listeneingang + Listenausgang,Schmidt Andre (eXec),V 2.0,2026-06-22 13:32:14,2026-06-18 11:09:36
+19002800,Jahrestage/Erinnerungen Editor v2.1,Listeneingang + Listenausgang,Schmidt Andre (eXec),V 2.1,2026-06-22 13:13:06,2026-06-18 10:12:14
+19002805,Sommer Heat Shutter Closer,Jalousie-Rolladen-Trennwand,Schmidt Andre (eXec),V 1.7,2026-06-22 12:46:11,2026-06-21 11:56:10
+19002781,Energy Meter,Zähler,Schmidt Andre (eXec),V 1.5,2026-06-17 13:51:26,2026-06-02 12:40:27
+19002799,WUnderground JSON/PIPE-Splitter v1.2,Wandler,Schmidt Andre (eXec),V 1.2,2026-06-17 09:09:33,2026-06-16 13:59:31
+19002798,WUnderground Weather Forecast NextGen v1.2,Webservice,Schmidt Andre (eXec),V 1.2,2026-06-17 09:09:26,2026-06-16 11:32:47
+19002784,GIRA™ Rauchmelder Monitor v1.0.1,Alarmierung,Schmidt Andre (eXec),V 1.1,2026-06-10 06:05:40,2026-06-06 03:00:16
+19002789,Rauchmelder Binär to Icon-URL 10-Kanal v1.0,Alarmierung,Schmidt Andre (eXec),V 1.0,2026-06-09 11:43:07,2026-06-09 09:38:32
+19002788,Grafana URL Generator v1.0,Ohne,Schmidt Andre (eXec),V 1.0,2026-06-08 22:07:56,2026-06-08 21:19:19
+19001105,Pollenflugprognose HTML v1.2,Webservice,Schmidt Andre (eXec),V 1.2,2026-06-06 23:23:55,2017-11-17 10:14:01
+19002783,Heatmap Timer v1.0,Alarmierung,Schmidt Andre (eXec),V 1.0,2026-06-06 01:31:41,2026-06-06 00:44:16
+19002782,Sektorstrahlung aus Globalstrahlung v1.0,Wetter,Schmidt Andre (eXec),V 1.0,2026-06-05 23:31:05,2026-06-05 12:58:52
+19001106,Eierkonto,Weitere Bausteine,Schmidt Andre (eXec),V 1.2,2026-06-04 07:54:40,2017-11-24 12:40:38
+19002780,REOLINK PTZ Manager,Video,Schmidt Andre (eXec),V 1.1,2026-06-02 12:23:41,2026-06-02 06:30:01
+19001108,Reolink PTZ Zonenmanager,Video,Schmidt Andre (eXec),V 1.1,2026-06-02 10:00:53,2018-01-29 07:09:52
+19002625,Samsung NASA-Schnittstellen-Anbindung,Kommunikation,Nima Ghassemi (sipiyou),V 1.05,2026-06-01 23:00:15,2026-03-29 09:29:18
+19002629,Hue V2-API Connector,DALI und Lichtsteuerung,Nima Ghassemi (sipiyou),V 1.01,2026-06-01 22:50:24,2023-09-09 23:18:18
+19002760,Govee LAN :: Connector,DALI und Lichtsteuerung,Nima Ghassemi (sipiyou),V 1.03,2026-06-01 22:49:29,2026-04-03 21:51:13
+19001107,Impulskaskade variabel,Zeit-Funktionen,Schmidt Andre (eXec),V 1.0,2026-06-01 12:52:21,2018-01-29 07:00:15
+19001507,Ein/Aus-Verzögerung Advanced,Verzögerung,Schmidt Andre (eXec),V 1.4,2026-05-31 21:32:00,2026-05-21 15:32:54
+19001509,Shinobi CCTV Motion Trigger,Alarmierung,Schmidt Andre (eXec),V 1.0,2026-05-31 16:42:13,2018-03-09 09:49:10
+19001501,Hysterese PLUS,Vergleicher,Schmidt Andre (eXec),V 1.2,2026-05-31 15:21:36,2018-07-03 08:04:31
+19001101,Tag/Nachtschaltung mit Abschaltung v1.3,DALI und Lichtsteuerung,Schmidt Andre (eXec),V 1.3,2026-05-31 14:48:05,2017-08-08 22:48:44
+19001104,Watchdog PLUS,Zeit-Funktionen,Schmidt Andre (eXec),V 1.7,2026-05-28 16:02:20,2017-10-10 12:38:00
+19001103,Wertumschalter,Vergleicher,Schmidt Andre (eXec),V 1.2,2026-05-27 15:21:44,2017-09-22 13:13:40
+19001102,Tür-/Fensterstatus mit Kippüberwachung,Weitere Bausteine,Schmidt Andre (eXec),V 1.0,2026-05-26 10:45:36,2017-09-05 10:51:50
+19002714,Forecast Wiggal,Wetter,Thorsten Gehrig (ThorstenGehrig),V 0.1,2026-05-25 20:06:21,2026-05-24 18:04:56
+19001506,Strings alternierend verbinden,Listeneingang + Listenausgang,Schmidt Andre (eXec),V 1.0,2026-05-22 11:06:33,2026-05-21 15:46:36
+19002619,Shelly plus Smoke Cloud (0.2),Alarmierung,Winfried Winkler (Winni),V 0.2,2026-05-08 17:04:01,2026-05-08 17:04:01
+19002771,EcoFlow IoT Cloud,xxAPI,Degner Michael (derwombat),V 1.0,2026-04-28 15:46:13,2026-04-28 15:38:49
+19002770,E-Meter Shelly Pro 3 EM,Lastmanagement,Degner Michael (derwombat),V 1.0,2026-04-28 15:39:56,2026-04-15 18:57:19
+19001927,SNMP Abfrage,Datenaustausch,Nima Ghassemi (sipiyou),V 0.3,2026-04-19 21:33:20,2019-10-26 22:57:26
+19002761,Lepro Cloud :: Connector,DALI und Lichtsteuerung,Nima Ghassemi (sipiyou),V 1.01,2026-04-12 00:13:36,2026-04-07 20:16:23
+19002614,BBQKees EMS für Buderus WLW186i (0.3),Heizung-Lueftung-Klima,Winfried Winkler (Winni),V 0.3,2026-04-11 22:18:29,2026-04-11 22:18:20
+19002616,Tado API (0.2),HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2026-04-11 22:03:57,2026-04-11 22:03:57
+19002615,NUKI WEB API (0.1),HS-Webabfragen,Winfried Winkler (Winni),V,2026-04-11 22:00:26,2026-04-11 22:00:26
+19002617,Stromkosten täglich (0.1),Heizung-Lueftung-Klima,Winfried Winkler (Winni),V 0.1,2026-04-11 21:58:10,2026-04-11 21:58:10
+19002618,Octopus Energy (0.1),HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2026-04-11 21:49:42,2026-04-11 21:49:42
+19001928,Abfall Wirtschaft ics Poll,Datenaustausch,Nima Ghassemi (sipiyou),V 1.4,2026-04-10 23:36:49,2019-12-30 22:43:01
+19001920,Zeitschalter mit Abhängigkeiten,Verzögerung,Nima Ghassemi (sipiyou),V 1.6,2026-04-09 10:41:09,2019-06-10 12:13:09
+19000793,Fronius Gen24 Solar API (ID 19000793) ],Datenaustausch,Reinhard Socha (timberland),V 1.7,2026-01-25 22:35:42,2026-01-25 18:40:56
+19000792,EPEX Spot Preis (aWATTar + smartENERGY),Datenaustausch,Reinhard Socha (timberland),V 1.4,2026-01-24 22:05:48,2026-01-24 19:35:14
+19000504,Netatmo Wetterstation,Wetter,Reinhard Socha (timberland),V 1.0,2026-01-19 20:39:02,2026-01-19 20:39:02
+19000502,Netatmo Healthy Home Coach,Wetter,Reinhard Socha (timberland),V 1.1,2026-01-18 21:27:47,2026-01-18 21:27:47
+19000501,OAuth2 TokenManager (Netatmo) AuthCode+Refresh,Wetter,Reinhard Socha (timberland),V 1.3,2026-01-18 21:25:38,2017-02-18 10:12:21
+19000027,SONOS Controller,Audio,Reinhard Socha (timberland),V 8.5,2026-01-14 22:49:27,2016-11-30 20:30:19
+19002670,ECOWITT GW1200 + WS90,Wetter,Reinhard Socha (timberland),V 1.2,2026-01-11 12:08:32,2026-01-11 12:08:32
+19002628,solcast.com,Kommunikation,Nima Ghassemi (sipiyou),V 1.07,2025-09-03 04:53:17,2022-11-09 22:45:19
+19002703,Victron SmartSolar MPPT,Kommunikation,Marco Wörz (leppenraub),V 0.9,2025-08-25 13:46:55,2025-05-30 13:35:00
+19002702,Shelly,Kommunikation,Marco Wörz (leppenraub),V 0.9,2025-08-25 13:28:04,2025-05-30 13:34:36
+19002626,Innenlichtsteuerung nach Aussensensor,DALI und Lichtsteuerung,Nima Ghassemi (sipiyou),V 1.1,2025-08-15 16:32:12,2025-07-31 18:27:53
+19002627,Dropbox Backup,Datenaustausch,Nima Ghassemi (sipiyou),V 1.3,2025-08-15 14:43:02,2025-07-09 05:00:42
+19001094,Konstantlichtregelung,Regler,Johannes Häfner (johannes2912),V 1.12,2025-06-30 10:07:46,2025-06-30 10:06:18
+19001929,Xiaomi Roboroc Integration,Datenaustausch,Nima Ghassemi (sipiyou),V 1.22,2025-06-27 22:39:06,2020-05-17 13:03:42
+19002173,Ergänzung zu LBS19002172 RainMachine Program,Weitere Bausteine,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:07:20,2020-08-02 23:46:02
+19002172,RainMachine,Weitere Bausteine,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:07:12,2020-08-02 10:13:03
+19001849,Alexa Wecker auswerten,Weitere Bausteine,Otterstätter (Panzaeron),V 0.4.5,2025-05-15 13:06:59,2019-12-30 10:06:19
+19001848,Holt Songtexte von Mourits Lyrics,Audio,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:06:49,2019-12-15 11:52:19
+19001847,Sendet bis zu 10 Werte nacheinander auf den Ausgang,Verzögerung,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:06:44,2019-11-17 20:25:59
+19001844,WallPanel control,Netzwerk,Otterstätter (Panzaeron),V 0.3,2025-05-15 13:06:25,2019-11-12 22:22:36
+19001842,Nuki Türschloss,Türkommunikationusatzbausteine,Otterstätter (Panzaeron),V 0.6,2025-05-15 13:06:05,2019-07-30 22:19:33
+19001841,Umrechnung 0-255 auf 0-100 mit SBC,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:05:49,2019-04-12 15:13:17
+19001840,Umrechnung 0-100 auf 0-255 mit SBC,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:05:43,2019-04-12 15:12:24
+19001679,Wert erhöhen oder verringern,Math. Funktionen,Otterstätter (Panzaeron),V 0.3,2025-05-15 13:05:37,2019-07-25 10:17:57
+19001678,Schwellwertschalter mit Totzeit,Weitere Bausteine,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:05:26,2019-05-28 22:46:06
+19001677,Ermittelt ob die Fassade in direkter  Sonne ist,Astro,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:05:19,2019-04-12 19:25:02
+19001672,Steuerung eines Rollladens in Abhängigkeit verschiedener Bedingungen,Jalousie-Rolladen-Trennwand,Otterstätter (Panzaeron),V 3.1.6,2025-05-15 13:05:09,2019-01-05 15:03:52
+19001671,Umrechnung  0-100 <-> 0-255,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:04:58,2018-10-08 22:19:06
+19001670,Dimmbereich umrechnen,DALI und Lichtsteuerung,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:04:52,2018-08-21 23:19:59
+19001236,Sommer/Winter-Umschaltung nach DIN,Zeit-Funktionen,Otterstätter (Panzaeron),V 0.3.1,2025-05-15 13:04:46,2018-06-26 21:11:33
+19000679,Einen Eingangswert zufällig auf dem Ausgang ausgeben,Textfunktionen,Otterstätter (Panzaeron),V 0.3,2025-05-15 13:04:36,2018-08-19 13:32:34
+19000675,Wiregate Busmaster PBM01 Status,1 Wire,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:04:30,2018-03-20 20:01:17
+19000674,Send by Change mit Wert-Differenz und Zeit,Vergleicher,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:04:23,2018-03-20 00:21:06
+19000673,Füllstand einer Zisterne mit Drucksensor (icaplan),1 Wire,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:04:17,2018-03-19 19:50:05
+19000671,Rel. Feuchtigkeit in abs. Feuchtigkeit und Taupunkt umrechnen,1 Wire,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:04:11,2018-03-19 17:08:16
+19000670,Tage bis zur Müllabfuhr,Weitere Bausteine,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:04:05,2018-02-16 17:54:45
+19000668,Konvertiert WW Codes in WU Codes,Wetter,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:03:57,2018-02-02 02:09:56
+19000667,Rollladen mit einem Button steuern,Jalousie-Rolladen-Trennwand,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:03:50,2018-01-20 03:14:38
+19000666,Cover URI und Infos von Last.fm holen,Audio,Otterstätter (Panzaeron),V 0.5,2025-05-15 13:03:44,2018-01-13 23:58:23
+19000665,Resol VBus (Regler Resol DeltaSol SLL und Stiebel Eltron SOM 7 E plus),Heizung-Lueftung-Klima,Otterstätter (Panzaeron),V 0.3,2025-05-15 13:03:37,2017-10-11 14:16:17
+19000664,Mehrfachbetätigung (Doppelklick),Ohne,Otterstätter (Panzaeron),V 0.2.1,2025-05-15 13:03:29,2017-07-22 12:03:23
+19000409,Denon/Marantz Lautstärke-Steuerung,Audio,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:03:17,2017-04-01 13:24:39
+19000408,Wake on LAN (WOL) Schalter,Netzwerk,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:03:11,2017-02-19 00:16:57
+19000407,Audiosteuerung: Defaultwerte setzen in Abhängigkeit eines Zeitraums,Audio,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:03:04,2016-10-27 07:46:21
+19000404,Gibt den aktuellen Wochentag und das Datum aus,Textfunktionen,Otterstätter (Panzaeron),V 0.3,2025-05-15 13:02:36,2016-10-05 00:00:00
+19000401,HTML-Datei mit einem Link erzeugen,Weitere Bausteine,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:02:20,2016-09-23 00:00:00
+19000400,Klingeln über SIP auslösen (z. B. für eine Haustürklingel),TürkommunikationSenden,Otterstätter (Panzaeron),V 0.4,2025-05-15 13:02:14,2016-10-02 15:49:13
+19000399,Zeitpunkt in Text umwandeln,Zeit-Funktionen,Otterstätter (Panzaeron),V 0.3,2025-05-15 13:02:04,2016-09-12 19:06:08
+19000398,Daten in eine Influx-Datenbank schreiben,Ohne,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:01:57,2016-09-23 23:25:29
+19000397,Aktionen im Kiosk Browser ausführen,Ohne,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:01:49,2016-08-31 00:00:00
+19000395,Wandelt eine Zeitdifferenz in Sekunden in Text um (2 Tage 10 Stunden...),Zeit-Funktionen,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:01:34,2016-11-12 18:09:08
+19000394,Konfigurierbare Sperre,Filter,Otterstätter (Panzaeron),V 0.2.1,2025-05-15 13:01:23,2016-07-12 11:10:29
+19000393,Mittelwert von acht Eingängen berechnen,Math. Funktionen,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:01:16,2016-05-16 00:00:00
+19000392,Mittelwert an vier Eingängen berechnen,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:01:09,2016-05-16 00:00:00
+19000391,Anzahl von Werten an acht Eingängen ausgeben,Math. Funktionen,Otterstätter (Panzaeron),V 0.2,2025-05-15 13:01:02,2016-11-05 20:07:39
+19000390,Anzahl von Werten an vier Eingängen ausgeben,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:00:54,2016-05-16 00:00:00
+19000128,Von acht Eingangswerten den kleinsten Wert ausgeben,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:00:25,2016-05-16 00:00:00
+19000127,Von vier Eingangswerten den kleinsten Wert ausgeben,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:00:18,2016-05-16 00:00:00
+19000126,Von acht Eingangswerten den größten Wert ausgeben,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:00:12,2016-05-16 00:00:00
+19000125,Von vier Eingangswerten den größten Wert ausgeben,Math. Funktionen,Otterstätter (Panzaeron),V 0.1,2025-05-15 13:00:05,2016-05-16 00:00:00
+19000124,Vorgänger von LBS 19000402 (Multiroom Radiostreams speichern),Audio,Otterstätter (Panzaeron),V 1.2,2025-05-15 12:59:58,2016-10-03 00:00:00
+19000122,Nachtschaltung einer Beleuchtung mit Präsenzmeldern,DALI und Lichtsteuerung,Otterstätter (Panzaeron),V 1.0,2025-05-15 12:59:43,2016-05-05 00:00:00
+19000121,Steuerung eines Rollladens in Abhängigkeit verschiedener Bedingungen,Jalousie-Rolladen-Trennwand,Otterstätter (Panzaeron),V 2.7,2025-05-15 12:59:32,2016-07-30 09:20:53
+19000120,Fenster/Türstatus aus zwei Kontakten (oben und unten) pro Flügel ermitteln,Jalousie-Rolladen-Trennwand,Otterstätter (Panzaeron),V 1.4,2025-05-15 12:59:19,2016-04-25 00:00:00
+19002739,Spezial-UND-Gatter E1=0 & E2≠0,Gatter,Hardi (elkomaster91),V 1.0,2025-04-05 09:14:37,2025-04-05 09:14:37
+19002477,Wertvergleich mit Mittelwert,Vergleicher,Hardi (elkomaster91),V 0.1,2025-01-27 17:14:55,2025-01-27 16:55:23
+19001341,PID-Regler (generisch),Regler,Tobi (JonDonSponky),V 0.7,2025-01-08 19:44:57,2017-12-04 19:08:47
+19002712,Google GeminiAPI,Weitere Bausteine,Thorsten Gehrig (ThorstenGehrig),V 0.1,2024-12-18 18:38:32,2024-12-18 17:49:54
+19002711,Filter erste 0,Filter,Thorsten Gehrig (ThorstenGehrig),V 1.0,2024-07-22 17:44:41,2024-07-22 17:44:24
+19001875,ModBus TCP Master Read Huawei Smartdongle Edition,Modbus,Tobi M. (blaky),V 0.7,2024-07-08 15:11:11,2023-06-27 08:34:16
+19002710,OpenAI-API,Weitere Bausteine,Thorsten Gehrig (ThorstenGehrig),V 0.2,2024-05-31 13:45:20,2024-05-29 21:15:35
+19002433,ntfy - Push Nachrichten senden,Kommunikation,Matthias Quernheim (maque),V 1.1.2,2024-05-24 05:53:09,2023-11-26 10:50:38
+19000828,OneCall API 3.0 für Openweather.org,Wetter,Matthias Quernheim (maque),V 1.2.1,2024-05-06 19:18:46,2019-01-01 20:14:28
+19002700,Victron GX,Lastmanagement,Marco Wörz (leppenraub),V 0.91,2024-04-17 07:00:19,2024-04-10 13:44:36
+19002701,TelegramSend,Kommunikation,Marco Wörz (leppenraub),V 0.9,2024-04-14 14:22:41,2024-04-14 07:21:14
+19002346,Jaguar/Landrover InControl Abfrage,HS-Webabfragen,Winfried Winkler (Winni),V 0.3,2024-04-10 10:37:35,2022-05-05 10:58:35
+19000215,easee Wallbox,Kommunikation,Frank Endt (basaltnischl),V 1.1,2024-03-11 19:29:43,2021-04-18 11:10:46
+19002692,Strommarktpreise Verarbeiten,Webservice,Götter Thomas (bubi2401),V 1.1,2024-03-10 15:39:53,2024-02-13 17:07:49
+19002705,Strompreise Tibber,Webservice,Götter Thomas (bubi2401),V 1.0,2024-03-06 16:37:36,2024-03-06 15:49:28
+19002694,Hilfsbaustein für Strommarktpreise,Webservice,Götter Thomas (bubi2401),V 1.0,2024-03-05 15:21:31,2024-03-01 17:00:45
+19002693,Strommarktpreise Fraunhofer Institut,Webservice,Götter Thomas (bubi2401),V 1.0,2024-03-05 15:21:23,2024-02-13 17:17:52
+19002691,Strommarktpreise über aWATTar,Webservice,Götter Thomas (bubi2401),V 1.1,2024-03-05 15:21:04,2024-01-26 19:17:30
+19002690,Sonnenbatterie API v2,Kommunikation,Götter Thomas (bubi2401),V 1.0,2024-01-26 19:21:03,2024-01-25 19:08:18
+19002380,InfluxDB 2.0 Writer,Datenaustausch,Jens Meier (McJameson),V 0.3.1,2023-12-21 20:02:51,2021-01-21 20:03:36
+19002382,Umwandlung eines WORD in 16 bit,Bit und Byte,Jens Meier (McJameson),V 0.1,2023-12-17 19:13:11,2023-12-13 19:03:41
+19000347,SendByTolerance,Filter,Winfried Winkler (Winni),V 0.4,2023-12-15 20:24:46,2016-08-18 20:13:28
+19000334,Rolladenposition extern,Jalousie-Rolladen-Trennwand,Winfried Winkler (Winni),V 0.3,2023-12-15 20:17:29,2016-04-24 00:00:00
+19000716,Telnet Client - send2TelnetHost,Netzwerk,Matthias Quernheim (maque),V 0.4,2023-11-26 22:09:18,2019-01-01 20:13:25
+19000935,Husqvarna Automower Connect API,xxAPI,Stefan Ladisch (MrIcemanLE),V 0.6.3,2023-11-17 07:54:25,2018-06-26 14:34:35
+19000936,DWD Vorhersage in Datenarchive,Wetter,Stefan Ladisch (MrIcemanLE),V 0.5,2023-11-03 07:49:30,2018-11-13 11:17:01
+19002663,Elektrofahrzeug Überschussladung,Lastmanagement,Wolfgang (wolfib),V 1.0,2023-10-28 12:40:38,2023-10-28 12:28:55
+19002660,ModBus TCP Master Write,Modbus,Wolfgang (wolfib),V 0.21,2023-10-28 11:16:37,2023-03-16 21:28:02
+19002662,Sungrow Modbus API,Datenaustausch,Wolfgang (wolfib),V 1.0,2023-10-28 11:07:18,2023-10-28 09:01:59
+19002661,Waterkotte EcoTouch Web-API Read/Write,Heizung-Lueftung-Klima,Wolfgang (wolfib),V 0.2,2023-10-28 10:59:14,2023-03-22 22:22:45
+19002166,Alexa Smarthome Device,Webservice,Philipp (philipp900),V 1.6,2023-09-11 11:31:31,2021-01-12 13:46:51
+19002165,Alexa Smarthome Gateway,Webservice,Philipp (philipp900),V 1.7,2023-09-11 11:29:59,2021-01-12 13:46:57
+19000189,AWTRIX Light (Ulanzi) by RD,Weitere Bausteine,Deckard Rick (rdeckard),V 1.0,2023-09-09 16:40:43,2023-07-16 10:56:49
+19000714,Search and replace,Textfunktionen,Matthias Quernheim (maque),V 0.2,2023-08-26 12:20:24,2016-12-10 00:00:00
+19002611,Shelly Flood Cloud,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2023-08-09 21:03:53,2023-08-09 21:03:53
+19002610,Teltonika FOTA WEB Zugriff,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2023-07-30 10:20:24,2023-07-30 10:20:24
+19002408,Kostal Piko,Weitere Bausteine,Marco Wörz (leppenraub),V 1.0,2023-07-28 11:40:11,2023-06-10 13:25:06
+19001424,Verdichten eines Archivs,Weitere Bausteine,Winfried Winkler (Winni),V 0.7,2023-07-26 09:28:25,2019-02-08 13:33:56
+19000119,Wenn-Dann-Sonst VARIABEL,Vergleicher,Carsten Milzarek (saegefisch),V 0.7,2023-07-25 23:46:24,2018-05-07 23:25:50
+19001586,ModBus Read GENERIC,Modbus,Carsten Milzarek (saegefisch),V 0.6,2023-07-17 20:31:27,2021-05-17 21:41:37
+19000339,Prüfe auf neue Erinnerungen,Zeit-Funktionen,Winfried Winkler (Winni),V 0.5,2023-07-17 07:42:49,2016-08-18 20:14:47
+19002350,Wetterdaten der Schweizerischen Radio- und Fernsehgesellschaft (SRG).,Wetter,Raphaela  (raphaela),V 2.05,2023-07-17 00:28:14,2020-12-21 18:36:12
+19001640,Fronius Wechselrichter inkl. Smartmeter,Kommunikation,Thomas Willi (twi127),V 1.52,2023-07-16 15:47:56,2018-06-09 22:52:45
+19002348,Teltonika UDP Receiver,Datenaustausch,Winfried Winkler (Winni),V 0.1,2023-07-14 21:38:51,2022-07-09 22:28:33
+19002349,Teltonika FMB003 Decoder,Datenaustausch,Winfried Winkler (Winni),V 0.6,2023-07-14 21:37:14,2023-07-14 21:37:14
+19000342,Füllen der Erinnerungsdatenbank von Datei,Zeit-Funktionen,Winfried Winkler (Winni),V 0.4,2023-07-14 21:05:35,2016-08-18 20:17:03
+19000341,Erinnerungen aus Datenbank für Listelement lesen,Zeit-Funktionen,Winfried Winkler (Winni),V 0.5,2023-07-14 21:04:35,2016-08-18 20:16:15
+19000343,einzelne Erinnerung lesen / löschen,Zeit-Funktionen,Winfried Winkler (Winni),V 0.4,2023-07-14 21:02:23,2016-08-18 20:17:43
+19002271,Forecast Solar,Wetter,Benjamin Bretz (benji),V 0.41,2023-07-03 11:19:27,2021-03-31 20:11:09
+19001876,Formelberechnung nur E8 getriggert,Math. Funktionen,Tobi M. (blaky),V 1.0,2023-07-03 10:32:20,2023-07-03 10:32:20
+19002405,Tesla PV-Überschussladen,Weitere Bausteine,Marco Wörz (leppenraub),V 0.8,2023-06-25 17:50:28,2022-09-12 13:00:14
+19001921,TVZ 370+,Heizung-Lueftung-Klima,Nima Ghassemi (sipiyou),V 1.2,2023-06-18 13:33:48,2019-06-11 23:04:25
+19000707,Beschattungssteuerung (Rollo),Astro,Yves Schumann (starwarsfan),V 0.7,2023-05-29 16:07:19,2017-06-28 21:55:56
+19000162,Stiebel Eltron ISG Modbus Steuerung WPL/WPF,Datenaustausch,Benjamin Bretz (benji),V 0.3,2023-05-04 10:56:09,2019-02-23 12:22:45
+19000149,Landis Gyr E350 auslesen,Zähler,Yves Schumann (starwarsfan),V 1.4,2023-04-29 00:02:11,2016-11-20 00:00:00
+19002486,WeatherKit LBS,Wetter,Hendrik Später (ghemor),V 0.11,2023-04-25 12:24:26,2023-04-25 12:19:59
+19002170,Husqvarna Automower Auswertung der Statusmeldung,Wandler,Otterstätter (Panzaeron),V 0.5.1,2023-04-22 23:24:30,2020-04-12 12:54:24
+19000516,Fritzbox Anwesenheitsstatus,Weitere Bausteine,Winfried Winkler (Winni),V 0.5,2023-04-10 22:39:04,2017-04-06 08:39:47
+19001631,Pirate Weather/DarkSky Tages-/Wochenabfrage inkl. Denro ONE,Wetter,Michael Werski (wintermute),V 0.6,2023-04-10 20:51:32,2018-06-09 01:15:49
+19001630,Pirate Weather/DarkSky Aktuell,Wetter,Michael Werski (wintermute),V 0.4,2023-04-10 20:50:06,2018-05-29 17:42:00
+19001632,Pirate Weather/DarkSky Wochenvorhersage in Datenarchive,Wetter,Michael Werski (wintermute),V 0.4,2023-04-10 13:48:44,2018-12-30 14:01:16
+19001602,Wettervorhersage (4 Tage je 4 Werte) von pirateweather.net,Wetter,Staud Marco (mars),V 0.4,2023-04-09 20:20:40,2019-03-14 19:11:27
+19000451,pirateweather.net Datenausgabe,Wetter,Winfried Winkler (Winni),V 0.2,2023-04-06 12:26:31,2016-08-18 00:00:00
+19000452,pirateweather.net Listausgabe Aufbereitung,Wetter,Winfried Winkler (Winni),V 0.4,2023-04-06 12:06:52,2016-08-18 22:53:08
+19000450,pirateweather.net Datenermittlung,Wetter,Winfried Winkler (Winni),V 0.2,2023-04-06 12:02:57,2016-08-18 00:00:00
+19002021,Eingänge zufällig,Weitere Bausteine,Winfried Winkler (Winni),V 0.3,2023-04-04 20:32:03,2019-11-10 22:58:49
+19001539,2 Word To Dwor,Bit und Byte,Klobucaric Gernot (murelli146),V 0.1,2023-03-28 19:53:31,2023-03-28 19:53:31
+19001046,Ansteuerung von el. Heizstäben mit PV-Energie,Regler,Christian Grosch (ChrisAllgaeu),V 0.7,2023-03-17 19:10:30,2022-01-29 12:56:00
+19000272,Auswahl aus 10 Eingangswerten,Auswahlschalter,Winfried Winkler (Winni),V 0.4,2023-03-14 22:16:48,2016-10-24 18:33:49
+19000145,Beschattungssteuerung-NG,Astro,Yves Schumann (starwarsfan),V 3.14,2023-03-05 21:35:17,2016-10-04 00:00:00
+19002249,solarprognose.de,Kommunikation,Nima Ghassemi (sipiyou),V 1.3,2023-03-04 15:51:51,2022-08-10 19:51:51
+19000718,Lesen eines Russound MCA C3/C5 und MCA-88,Home Entertainment,Matthias Quernheim (maque),V 1.6.3,2023-02-26 20:35:43,2019-01-01 20:13:37
+19000318,Steuerung Dreambox Enimga2,HS-Webabfragen,Winfried Winkler (Winni),V 0.8,2023-02-06 12:05:08,2016-11-21 00:55:38
+19002272,Alexa Textnachricht (Benachrichtigung),Kommunikation,Benjamin Bretz (benji),V 0.1,2023-02-05 18:22:03,2023-01-06 15:17:53
+19002243,Alexa AVS Reloaded,Webservice,Nima Ghassemi (sipiyou),V 1.63,2023-01-27 22:15:24,2022-01-21 22:22:35
+19001493,Wenn-Dann-Vergleich 10-Fach mit STRPOS,Vergleicher,Ben (stonie2oo4),V 0.1,2023-01-06 09:08:18,2020-02-17 20:48:12
+19000749,PiHole Stats,Webservice,Martin Ziegler (Brick),V 0.32,2023-01-05 20:27:03,2017-03-03 10:41:56
+19002120,Abfrage der aWattar Strompreise,Weitere Bausteine,Manfred (nullo83),V 1.0,2022-12-27 14:50:42,2020-03-02 20:33:47
+19000527,Pollenflugprognose,Wetter,Michael Werski (wintermute),V 0.2,2022-12-21 16:13:04,2017-04-06 13:19:06
+19002347,MercedesMe BYOCAR Abfrage,HS-Webabfragen,Winfried Winkler (Winni),V 0.4,2022-12-21 14:53:39,2022-12-14 20:59:12
+19000063,1/0 wird on/off,Textfunktionen,Hartmut  (Hartmut),V 1,2022-12-06 15:41:43,2022-12-06 15:23:42
+19001428,Börsenkurse  onvista für Archiv,HS-Webabfragen,Winfried Winkler (Winni),V 0.3,2022-12-03 19:51:12,2019-10-26 19:09:08
+19001347,SonnenBatterie API,Datenaustausch,Tobi (JonDonSponky),V 0.2,2022-11-20 23:15:39,2022-11-06 22:59:15
+19001342,Stiebel Eltron WPF cool mit FEK,Datenaustausch,Tobi (JonDonSponky),V 1.8,2022-11-19 16:40:26,2017-12-12 23:30:05
+19001281,UniFi™ Port-Control,Netzwerk,Michael Werski (wintermute),V 0.2,2022-11-14 02:09:59,2021-02-26 20:20:59
+19002163,Wetterdaten einer Froggit WH3000SE,Wetter,Philipp (philipp900),V 0.3,2022-11-12 17:37:43,2021-01-12 13:47:09
+19002248,Samsung SmartThings Gateway,Kommunikation,Nima Ghassemi (sipiyou),V 1.04,2022-11-11 22:21:13,2022-07-31 22:03:17
+19000462,newsapi.org Datenermittlung,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2022-10-25 22:51:52,2016-11-21 00:00:00
+19000465,newsapi.org Datenermittlung sources,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2022-10-25 22:48:18,2018-01-01 12:36:45
+19000216,easee Wallbox mit Überschussladung (BETA),Kommunikation,Frank Endt (basaltnischl),V 0.1,2022-10-18 16:28:44,2022-10-18 16:28:35
+19002371,spritpreisrechner.at,Webservice,Laertes Höllinger (laertes),V 0.1,2022-10-15 12:23:40,2022-10-14 10:44:55
+19002370,WeatherLink Live mit Davis Vantage Pro2 / Vue,Wetter,Laertes Höllinger (laertes),V 0.2,2022-10-15 11:36:51,2020-12-31 14:05:24
+19002330,Fully Kiosk Browser Remote Control,Weitere Bausteine,Otterstätter (Panzaeron),V 0.2,2022-10-08 15:33:06,2020-11-15 12:57:07
+19002601,Kostal Smart Energy Meter ModbusTCP,Modbus,David (kingolli),V 0.1,2022-10-06 15:03:03,2022-10-06 15:02:42
+19002090,JUDO i-soft Plus Wasserenthärtungsanlage,Datenaustausch,Andreas Schmidt (AndiVaio),V 0.2,2022-09-29 23:15:24,2020-01-14 17:47:26
+19002621,SmartThings::SamsungOCFTV,Kommunikation,Nima Ghassemi (sipiyou),V 0.2,2022-09-13 22:19:07,2022-08-10 19:53:32
+19002600,PV Prognose,Wetter,David (kingolli),V 0.3,2022-09-13 16:26:53,2022-04-01 12:49:37
+19002620,Smartthings::SamsungOCFAirConditioner,Kommunikation,Nima Ghassemi (sipiyou),V 1.01,2022-09-10 15:00:12,2022-08-10 19:52:26
+19001383,Verbrauch [Wh] bei beliebigen Leistungstelegrammen,Zähler,Marco Wörz (leppenraub),V 0.4,2022-08-20 08:43:50,2017-12-20 07:59:41
+19002402,Verbrauch [Wh] - 12-fach,Zähler,Marco Wörz (leppenraub),V 0.1,2022-08-20 08:42:53,2022-08-20 08:42:53
+19002246,VisuUser Überwachung mit Totzeit,Kommunikation,Nima Ghassemi (sipiyou),V 1.0,2022-08-01 00:25:17,2022-04-17 15:42:13
+19001315,Nuki Smartlock Web API,Netzwerk,Christoph  Prinesdoma (ChrisP),V 0.1,2022-07-17 15:57:35,2022-07-17 15:57:06
+19001093,ModBus Sunspec Scalefactor (SunspecSF),Math. Funktionen,Johannes Häfner (johannes2912),V 0.1,2022-05-22 20:24:51,2022-05-22 20:12:14
+19001711,DMX USB/Art-Net LBS,DALI und Lichtsteuerung,Hendrik Später (ghemor),V 0.52,2022-05-04 12:27:14,2020-04-23 13:33:05
+19001311,Nuki Smartlock Bridge API,Netzwerk,Christoph  Prinesdoma (ChrisP),V 0.4,2022-04-16 14:24:21,2019-03-24 16:33:59
+19002430,Cloudflare Update DNS API,Netzwerk,Matthias Quernheim (maque),V 1.0,2022-04-12 21:27:13,2022-04-12 21:22:40
+19002015,PV-Speicher Simulation,Weitere Bausteine,Michael Kolbe (Michael85),V 0.1,2022-04-07 23:15:15,2022-04-07 23:14:51
+19000933,JSON-Abfrage,Webservice,Stefan Ladisch (MrIcemanLE),V 0.4,2022-04-01 08:00:13,2017-04-27 14:32:32
+19001542,str_pad (Zeichenkette auffüllen),Textfunktionen,Roy Henning (royrobson),V 0.1,2022-03-02 20:46:18,2022-03-02 20:46:18
+19002381,InfluxDB2.0 Batch Writer,Datenaustausch,Jens Meier (McJameson),V 0.3,2022-02-25 19:43:49,2021-01-22 19:37:49
+19001460,Wert aus Bereich in Prozent umrechnen,Wandler,Yves Schumann (starwarsfan),V 1.0,2022-02-07 00:30:12,2022-02-07 00:14:03
+19001047,BWT Wasserenthärter Perla auslesen,Datenaustausch,Christian Grosch (ChrisAllgaeu),V 0.2,2022-02-04 16:10:51,2022-02-04 16:10:51
+19002553,Tesla Gen3 Wall Connector - Lifetime,Lastmanagement,Rainer Sträter (Rast),V 0.1,2022-01-28 19:21:32,2022-01-11 10:44:24
+19002552,Tesla Gen 3 Wall Connector - WiFi Satus,Lastmanagement,Rainer Sträter (Rast),V 0.1,2022-01-28 19:21:25,2022-01-11 10:36:43
+19002551,Tesla Gen3 Wall Connector - Version,Lastmanagement,Rainer Sträter (Rast),V 0.1,2022-01-28 19:21:17,2022-01-11 10:27:33
+19002550,Tesla Gen 3 Wall Connector - Vitals,Lastmanagement,Rainer Sträter (Rast),V 0.1,2022-01-28 19:21:10,2022-01-10 11:24:08
+19000959,Rückwärtssuche dasÖrtliche,HS-Webabfragen,Winfried Winkler (Winni),V 0.5,2022-01-27 07:04:58,2018-02-18 01:05:01
+19001976,"Evangelium Tag für Tag,  Evangelizo Reader",Datenaustausch,Markus Musholt (Schmu),V 1.0,2022-01-13 12:04:16,2022-01-12 12:20:59
+19000278,UDP Listener,Datenaustausch,Winfried Winkler (Winni),V 1.0,2022-01-07 22:59:48,2016-11-14 00:13:08
+19001589,3xDec zu DPT232,Wandler,Carsten Milzarek (saegefisch),V 0.1,2022-01-03 12:17:43,2022-01-03 12:17:33
+19001420,Oilfox Abfrage,HS-Webabfragen,Winfried Winkler (Winni),V 0.9,2021-12-20 18:54:39,2018-04-27 14:48:55
+19000996,Setzt Ausgang abhängig vom Eingangswert,Math. Funktionen,Ralph Lautenschläger (Wingfighter),V 0.2,2021-12-03 08:13:12,2021-12-03 08:13:12
+19000719,Russound MCA-C5/C3 / MCA-88 Steuerung,Home Entertainment,Matthias Quernheim (maque),V 1.7.1,2021-11-28 17:28:39,2016-12-22 22:36:21
+19000997,FlipFlop mit Initialisierung und Logging,Gatter,Ralph Lautenschläger (Wingfighter),V 0.3,2021-11-28 12:26:16,2021-11-28 12:10:59
+19000995,Berechnung einer Fahrstrecke per Google Direction API,xxAPI,Ralph Lautenschläger (Wingfighter),V 0.3,2021-11-28 12:26:10,2021-11-27 14:36:22
+19000994,Umskalierung nach Gleichung y=mx+n,Math. Funktionen Kurven,Ralph Lautenschläger (Wingfighter),V 0.9,2021-11-28 12:25:56,2021-11-28 12:16:12
+19000993,Berechnet Minuten und Sekunden seit Tagesbeginn,Zeit-Funktionen,Ralph Lautenschläger (Wingfighter),V 0.1,2021-11-28 12:25:50,2021-11-28 12:23:49
+19000992,Oder-Gatter 6-fach,Gatter,Ralph Lautenschläger (Wingfighter),V 0.1,2021-11-28 12:25:43,2021-11-28 12:20:46
+19001530,Viessmann-Heizung-Steuerung,Heizung-Lueftung-Klima,Stefan Ladisch (MrIcemanLE),V 1.3,2021-11-04 08:06:03,2018-04-03 23:50:19
+19002510,Anzahl Änderungen in Zeitperiode,Zeit-Funktionen,Hardy Köpf (harry7922),V,2021-10-16 14:39:10,2021-10-15 14:18:51
+19000940,LBS zur Ansteuerung eines DMX4ALL USB DMX Controllers,Weitere Bausteine,Manuel Helmbrecht (CrashnB),V 1.2,2021-10-14 19:16:12,2017-01-30 19:30:38
+19001154,Hyterese Zähler remanent,Zähler,Thorsten Hörmann (Thorsten1970),V 0.2,2021-10-09 10:09:42,2021-10-08 14:32:06
+19002242,DPT3 Software-Dimmer,Ohne,Nima Ghassemi (sipiyou),V 1.0,2021-10-05 22:50:47,2021-10-04 22:15:14
+19002500,Nächste Notfallapotheke,xxAPI,Martin Chmielewski (MartinCh),V 0.1,2021-09-11 21:20:50,2021-09-11 21:17:34
+19001500,Time Converter,Zeit-Funktionen,Schmidt Andre (eXec),V 1.0,2021-09-10 08:13:57,2018-06-25 08:30:26
+19002471,suchen & ersetzen - 4 Variablen,Filter,Hardi (elkomaster91),V 1.0,2021-08-23 22:12:27,2021-08-23 22:12:27
+19002470,suchen & ersetzen - 2 Variablen,Filter,Hardi (elkomaster91),V 1.0,2021-08-23 21:54:55,2021-08-23 21:46:11
+19002091,VH400 Bodenfeuchtesensor,Wandler,Andreas Schmidt (AndiVaio),V 0.1,2021-08-08 02:10:01,2020-07-23 12:54:10
+19002460,"SEL  /  ""Selektieren""",Gatter,19_grad (19grad),V 0.1,2021-08-05 11:27:05,2021-08-05 11:25:06
+19001115,FRITZ!Box Info WAN-Connect,Netzwerk,Roy Henning (royrobson),V 0.2,2021-07-20 22:31:50,2017-11-27 17:18:16
+19001587,JSON 25x encode,Wandler,Carsten Milzarek (saegefisch),V 0.1,2021-06-06 18:17:02,2021-06-06 18:16:49
+19002450,Dieser Baustein berechnet den Füllstand einer Zisterne in Prozent,Wetter,Tino (Horst12),V 1.0,2021-06-02 14:04:46,2021-06-02 13:59:25
+19002178,Ergänzung zu LBS19002172 RainMachine Wetterdaten,Weitere Bausteine,Otterstätter (Panzaeron),V 0.1.1,2021-05-16 10:27:38,2020-08-23 23:20:00
+19002177,Ergänzung zu LBS19002172 RainMachine Diagnose,Weitere Bausteine,Otterstätter (Panzaeron),V 0.2,2021-05-16 09:54:57,2020-08-05 08:24:05
+19002332,Withings Sleep,Datenaustausch,Otterstätter (Panzaeron),V 0.2,2021-05-15 09:42:54,2021-03-31 17:32:04
+19001583,Download CSV (generisch) für Datenarchiv,Datenaustausch,Carsten Milzarek (saegefisch),V 0.5,2021-05-15 01:09:48,2020-03-01 04:33:58
+19001585,PV-Energiewerte berechnen,Weitere Bausteine,Carsten Milzarek (saegefisch),V 0.1,2021-05-08 03:40:13,2021-05-08 03:34:50
+19001581,SMA EM Multicast,Kommunikation,Carsten Milzarek (saegefisch),V 0.3,2021-05-08 02:35:50,2018-05-03 19:07:34
+19002440,Einfache Solarpumpensteuerung,Heizung-Lueftung-Klima,Soritz Gerd (mediafreak),V 0.1,2021-05-04 16:04:17,2021-05-04 15:49:23
+19002343,HP Laserjet SNMP Abfrage,Kommunikation,Winfried Winkler (Winni),V 0.1,2021-05-04 06:27:16,2021-05-03 10:02:32
+19002344,Datenzeilen in Listen,Listeneingang + Listenausgang,Winfried Winkler (Winni),V 0.2,2021-05-03 10:01:08,2021-05-02 14:52:22
+19002342,QNAP SNMP-Abfrage,Kommunikation,Winfried Winkler (Winni),V 0.1,2021-05-02 14:50:06,2021-05-02 14:50:06
+19001445,Sonnenscheinermittlung Kurvenschwellwert,Weitere Bausteine,Hardy Köpf (harry7922),V 0.2,2021-05-02 12:51:54,2019-09-15 10:48:09
+19000386,Restzeit-Timer  retriggerbar + abbrechbar + remanent,Zeit-Funktionen,Wolfgang Sinz (woda),V 1.0,2021-05-01 17:40:41,2021-05-01 17:40:41
+19001620,Gardena Smart Sileno,Webservice,SirSydom (SirSydom),V 0.31,2021-05-01 10:33:42,2019-04-30 10:56:21
+19002341,Shelly Motion Cloud Abfrage,Kommunikation,Winfried Winkler (Winni),V 0.1,2021-04-28 08:56:20,2021-04-28 08:34:43
+19002167,Alexa Multimedia Device,Webservice,Philipp (philipp900),V 1.1,2021-04-25 18:53:14,2021-01-12 13:46:44
+19000827,Scrollen und Zoomen in Diagrammen,Weitere Bausteine,Matthias Quernheim (maque),V 2.1,2021-04-20 18:54:03,2019-01-01 20:14:22
+19001040,Verbrauchsdatenaufbereitung aus Datenarchiv,Zähler,Christian Grosch (ChrisAllgaeu),V 0.3,2021-04-17 22:31:53,2017-03-08 14:15:11
+19001041,Backup/Restore Funktion fuer Edomi Datenarchiv,Datenaustausch,Christian Grosch (ChrisAllgaeu),V 0.3,2021-04-17 22:27:38,2017-05-20 19:05:20
+19002022,Steuerung REOLINK Kameras,HS-Webabfragen,Winfried Winkler (Winni),V 0.5,2021-04-13 19:00:31,2019-12-08 17:22:59
+19000316,Datum/Uhrzeit plus,Zeit-Funktionen,Winfried Winkler (Winni),V 0.3,2021-04-13 18:56:24,2016-04-19 00:00:00
+19002331,Withings API-Receiver,Datenaustausch,Otterstätter (Panzaeron),V 0.1,2021-04-03 17:10:59,2021-03-31 17:31:29
+19002420,MIN/MAX-Vergleicher für bis zu 20 Eingänge,Vergleicher,Bülow Björn (Escride),V 1.0,2021-04-01 12:16:12,2021-04-01 12:16:12
+19000715,Threema Gateway,Kommunikation,Matthias Quernheim (maque),V 0.1,2021-03-21 12:02:47,2016-12-12 00:00:00
+19000711,EKEY UDP Listener and Converter,Datenaustausch,Matthias Quernheim (maque),V 1.3.2,2021-03-21 12:02:13,2016-12-10 15:11:56
+19000710,EKEY UDP Converter,Datenaustausch,Matthias Quernheim (maque),V 1.3.1,2021-03-21 12:01:35,2016-12-10 15:11:26
+19002023,Signalunterbrechung,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2021-03-20 20:45:12,2019-12-22 20:04:06
+19002028,Tabellenaufbau,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2021-03-20 20:42:41,2021-03-20 20:42:41
+19002027,Wertauswahl aus mehreren Arrays,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2021-03-20 20:41:45,2021-03-20 20:41:45
+19001726,Show-PA,Kommunikation,Joe (givemeone),V 1,2021-03-17 13:08:29,2021-03-17 13:08:22
+19001725,Tor-PA,Filter,Joe (givemeone),V 1,2021-03-17 13:02:33,2021-03-17 13:02:25
+19000469,Tankerkönig Daten für Listelement,HS-Webabfragen,Winfried Winkler (Winni),V 0.3,2021-03-10 10:48:55,2018-01-01 12:28:30
+19000466,newsapi.org source Daten für Listelement,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2021-03-10 10:47:38,2020-06-18 21:51:14
+19000463,newsapi.org Ausgabe der News im Listelement,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2021-03-10 10:46:46,2016-11-21 00:00:00
+19000460,Listelementausgabe für Unwetter LBS,Listeneingang + Listenausgang,Winfried Winkler (Winni),V 0.3,2021-03-10 10:30:29,2016-11-21 00:00:00
+19000454,FritzBox Anrufliste für Listelement,Kommunikation,Winfried Winkler (Winni),V 0.5,2021-03-10 10:29:42,2016-11-07 12:28:54
+19000512,Datenaufbereitung Listelement aus bestehenden Daten,Wandler,Winfried Winkler (Winni),V 1.1,2021-03-10 09:52:37,2016-12-28 21:40:55
+19002051,Akuvox Türsprechstelle,Türkommunikationusatzbausteine,Kulig Peter (pkuli6kg),V 0.4,2021-03-09 14:24:03,2021-03-03 13:45:47
+19001718,Time lock,Filter,Hendrik Später (ghemor),V 0.1,2021-02-15 18:22:51,2021-02-15 18:22:51
+19001717,Light State Switch,Regler,Hendrik Später (ghemor),V 0.5,2021-02-15 18:21:34,2021-02-15 18:21:34
+19001716,Time between,Zeit-Funktionen,Hendrik Später (ghemor),V 0.1,2021-02-15 18:20:42,2021-02-15 18:20:42
+19001715,Automatische Sperre,Filter,Hendrik Später (ghemor),V 0.1,2021-02-15 18:19:37,2021-02-15 18:19:30
+19001714,Heat/Cool Switch,Weitere Bausteine,Hendrik Später (ghemor),V 0.21,2021-02-15 18:17:23,2020-05-12 19:26:17
+19001710,KeyListReader,Weitere Bausteine,Hendrik Später (ghemor),V 0.52,2021-02-15 18:17:20,2018-11-05 18:14:31
+19001712,DMX USB/Art-Net Moving Colors Parameter,Weitere Bausteine,Hendrik Später (ghemor),V 0.8,2021-02-15 18:16:16,2020-05-12 19:23:04
+19001713,DMX USB/Art-Net Dimm Parameter,Weitere Bausteine,Hendrik Später (ghemor),V 0.31,2021-02-15 18:14:57,2020-04-23 13:36:36
+19001607,MQTT Topic Parser 10-fach,Datenaustausch,Staud Marco (mars),V 0.2,2021-02-15 17:18:48,2019-05-06 14:51:37
+19002042,Encoding Konvertierung,Textfunktionen,Sven Anders (SvenA),V 1.0,2021-02-15 12:36:31,2021-02-15 12:36:12
+19002045,Eingabe =/≠[leer]?,Vergleicher,Sven Anders (SvenA),V 1.0,2021-02-15 12:32:30,2021-02-15 12:29:24
+19002044,UTF-8 to DTP16.2 (ISO-8859-1) Konvertierung,Textfunktionen,Sven Anders (SvenA),V 1.0,2021-02-15 12:32:24,2021-02-15 12:32:13
+19002200,CUPS Printer Queue Status,Weitere Bausteine,Wierer Marco (Salmonella),V 0.99,2021-02-13 11:34:42,2020-05-21 23:18:30
+19001312,Dahua Events,Netzwerk,Christoph  Prinesdoma (ChrisP),V 0.3,2021-02-13 07:44:57,2019-09-08 20:00:09
+19001770,BMW Beta,Webservice,Michael Werski (wintermute),V 0.0.2,2021-02-06 16:43:46,2021-02-05 14:12:29
+19002164,Curl with digest auth,Kommunikation,Philipp (philipp900),V 0.1,2021-02-05 15:07:22,2021-01-12 13:47:03
+19002360,Kostal Plenticore ModbusTCP,Kommunikation,Hansel Stefan (bluegaspode),V 0.6,2021-01-23 19:16:50,2020-12-30 10:25:29
+19002161,Virtual HUE Device for Alexa,Webservice,Philipp (philipp900),V 0.4,2021-01-17 18:10:45,2021-01-12 13:47:21
+19002160,Virtual HUE Bridge for Alexa,Webservice,Philipp (philipp900),V 0.3,2021-01-15 16:25:25,2021-01-12 13:47:29
+19000101,Hostcheck,Netzwerk,Michael Werski (wintermute),V 0.9,2021-01-14 09:46:20,2016-04-08 00:00:00
+19000825,Wake On LAN (WOL) Packet senden.,Netzwerk,Matthias Quernheim (maque),V 0.1,2021-01-07 13:54:07,2019-01-01 20:14:12
+19001447,SNMP set,Netzwerk,Hardy Köpf (harry7922),V 0.1,2020-12-17 09:50:11,2020-12-17 09:49:53
+19001636,Weather Underground Aktuell,Wetter,Michael Werski (wintermute),V 0.1,2020-12-15 18:15:27,2020-12-14 19:32:40
+19001637,Weather Underground 5 Tage Vorhersage,Wetter,Michael Werski (wintermute),V 0.1,2020-12-15 18:15:20,2020-12-15 18:09:54
+19002029,DVR-Ausgabe,Video,Winfried Winkler (Winni),V 0.2,2020-12-15 08:05:55,2020-12-06 13:55:33
+19001973,MDT Diagnosetext JAL-0X10X.02 in Deutsch,Wandler,Markus Musholt (Schmu),V 1.0,2020-12-14 08:33:09,2020-12-14 08:33:09
+19000525,Kratzprognose,Wetter,Michael Werski (wintermute),V 0.2,2020-12-06 00:00:43,2017-04-05 18:37:18
+19001972,Prüft ob eine URL verfügbar ist.  Bilder ersetzen,Vergleicher,Markus Musholt (Schmu),V 1.2,2020-11-19 12:31:42,2020-05-01 16:13:22
+19000096,E3DC Modbus TCP,Modbus,Armin Bock (Wagoklemme),V 0.1,2020-11-02 10:39:28,2018-04-25 18:30:45
+19001686,Anzahl Eingänge,Zähler,Prenner Christian (trax),V 1.1,2020-10-28 20:52:54,2020-08-29 17:34:35
+19001045,Datenkommunikation mit PV Wechselrichter/Speicher von SENEC,Datenaustausch,Christian Grosch (ChrisAllgaeu),V 0.5,2020-10-23 16:41:12,2020-10-23 16:38:04
+19001265,KOSTAL PIKO Wechselrichter,Kommunikation,Bewersdorff Mike (Glotzkowski),V 0.1,2020-10-06 19:49:11,2020-10-06 19:42:06
+19000973,Json Decoder 20fach,Datenaustausch,Hartwig Mattes (hartwigm),V 0.2,2020-09-14 15:35:04,2017-02-27 17:40:40
+19001562,Configurable Percent-Byte Converter,Math. Funktionen,Markus Richter (MKHR),V 1.0.0,2020-09-06 01:26:52,2020-09-05 12:34:10
+19001563,Percent to Byte Converter,Math. Funktionen,Markus Richter (MKHR),V 1.0.0,2020-09-06 01:24:25,2020-09-05 12:34:21
+19001564,Byte to Percent Converter,Math. Funktionen,Markus Richter (MKHR),V 1.0.0,2020-09-06 01:22:57,2020-09-05 12:34:33
+19001565,Only-Off Filter,Filter,Markus Richter (MKHR),V 1.0.0,2020-09-05 14:31:01,2020-09-05 12:33:36
+19001988,Auslesen eines go-E Laders,Kommunikation,Jürgen Wild (Jue),V 0.12,2020-09-04 14:42:58,2019-10-08 19:18:18
+19002290,Edomi sendet Whatsapp,Datenaustausch,Hartwig Mattes (hartwigm),V 1.0,2020-08-31 13:25:59,2020-08-31 12:21:02
+19000952,UniFi™ ClientInformation,Netzwerk,Winfried Winkler (Winni),V 0.5,2020-08-31 10:31:37,2017-10-25 00:48:32
+19001680,DAIKIN-Control,Heizung-Lueftung-Klima,Prenner Christian (trax),V 1.4,2020-08-29 17:32:06,2018-08-25 21:33:09
+19002175,Ergänzung zu LBS19002172 RainMachine Zone,Weitere Bausteine,Otterstätter (Panzaeron),V 0.1,2020-08-25 18:56:38,2020-08-04 00:37:46
+19002176,Ergänzung zu LBS19002172 RainMachine Restrictions,Weitere Bausteine,Otterstätter (Panzaeron),V 0.1,2020-08-25 18:56:33,2020-08-04 23:19:38
+19000939,DWD Vorhersage Tageswerte - Einzelabfrage,Wetter,Stefan Ladisch (MrIcemanLE),V 0.6,2020-08-19 21:25:43,2019-05-14 10:45:30
+19000937,DWD Vorhersage Tageswerte,Wetter,Stefan Ladisch (MrIcemanLE),V 0.5,2020-08-19 21:24:11,2019-04-09 13:39:51
+19001280,UniFi™ AP-Control,Netzwerk,Michael Werski (wintermute),V 0.8,2020-08-06 19:23:08,2017-09-14 11:03:07
+19000523,UniFi™ Anwesenheitserkennung,Netzwerk,Michael Werski (wintermute),V 0.5,2020-08-06 19:21:46,2017-03-17 01:17:50
+19002052,"Mülltermine, optmiert für Visu und Telegram",Weitere Bausteine,Kulig Peter (pkuli6kg),V 0.5,2020-08-06 12:07:44,2019-12-11 09:03:30
+19001723,Sensor-Redundanz (Watchdog) .  Schaltet bei Ausfall auf einen Ersatzsensor um.,Vergleicher,Joe (givemeone),V 2.0,2020-06-27 23:54:12,2020-01-14 15:24:53
+19002026,Rückgabewerte VSE1014 HighCharts verarbeiten,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2020-06-22 11:34:25,2020-06-22 11:34:25
+19000467,Klickevents enhanced Listelement auswerten,Listeneingang + Listenausgang,Winfried Winkler (Winni),V 0.5,2020-06-18 21:49:43,2018-01-01 12:41:11
+19000151,Sonnenstand,Astro,Michael Werski (wintermute),V 1.2,2020-05-20 11:15:40,2016-11-04 23:55:52
+19000552,OpenSprinkler Options,Kommunikation,Michael Werski (wintermute),V 0.1,2020-05-07 13:49:34,2017-05-20 01:16:28
+19000553,OpenSprinkler Station,Kommunikation,Michael Werski (wintermute),V 0.1,2020-05-07 13:44:02,2017-05-20 01:14:09
+19000551,OpenSprinkler Controller,Kommunikation,Michael Werski (wintermute),V 0.1,2020-05-07 13:42:57,2017-05-18 21:00:04
+19001874,Wetterdaten einer Froggit WH4000SE / ELV 980WS,Wetter,Tobi M. (blaky),V 1.1,2020-04-23 22:12:38,2020-01-25 15:11:57
+19000871,PHP | ARRAY <> JSON,Weitere Bausteine,Dariusz Salzer (coliflower),V 0.1.00,2020-04-22 07:43:56,2020-04-22 07:43:56
+19000953,Bayerninfo Verkehrskameras,Webservice,Winfried Winkler (Winni),V 0.2,2020-04-21 21:49:29,2018-12-12 16:09:51
+19002025,Laufschrift,Textfunktionen,Winfried Winkler (Winni),V 0.2,2020-04-07 09:45:39,2020-04-06 00:26:00
+19000070,Home-Connect-SSE,Kommunikation,Dariusz Salzer (coliflower),V 0.3.05,2020-04-06 23:02:09,2016-12-26 12:38:45
+19001082,Min/Max/Durchschnitt bis Reset,Math. Funktionen,Martin Ziegler (Brick),V 0.1,2020-04-06 13:13:42,2020-04-06 13:09:20
+19000365,Einfache Umrechnung 0-100 zu 0-255,Math. Funktionen,Michael Werski (wintermute),V 0.1,2020-04-03 19:21:04,2020-04-03 19:20:54
+19000202,Squeeze Command,Audio,Michael Werski (wintermute),V 0.6,2020-04-03 19:17:10,2016-04-01 00:00:00
+19000201,Squeeze Client,Audio,Michael Werski (wintermute),V 0.6,2020-04-03 19:14:49,2016-04-01 00:00:00
+19000524,Thinking Cleaner,Ohne,Michael Werski (wintermute),V 0.3,2020-03-29 18:02:44,2017-04-01 14:51:50
+19001013,Telenot comlock 410 Ausgänge schalten,Datenaustausch,Benjamin Bretz (benji),V  1.0,2020-03-28 15:11:31,2017-02-08 21:07:28
+19001852,zeitlicher sequentieller Durchschalter,Zeit-Funktionen,Maximilian Haase (MaxH),V 1.1,2020-03-21 17:58:29,2020-03-21 17:58:16
+19001851,Bewässerungsdauer,Weitere Bausteine,Maximilian Haase (MaxH),V 1.0,2020-03-21 17:58:23,2020-03-21 17:57:09
+19000142,Moving Colors,DALI und Lichtsteuerung,Yves Schumann (starwarsfan),V 1.6,2020-03-18 19:28:59,2016-07-13 09:25:54
+19002140,MQTT Publish,Kommunikation,Michael Werski (wintermute),V 0.1,2020-03-17 17:59:41,2020-03-17 17:38:07
+19001701,Vorschalt Baustein für LBS 19000145,Astro,Peter Stoll (kermit42),V 1.0,2020-03-15 21:10:11,2020-03-15 21:10:04
+19001700,Sucht Eingangswert in bis zu 6 Intervallen,Vergleicher,Peter Stoll (kermit42),V 0.5,2020-03-15 17:17:45,2020-03-15 17:17:45
+19001971,SELECT - Abfrage an eine mysql Datenbank auf einem Server Änderung LBS 19000775,Datenaustausch,Markus Musholt (Schmu),V 0.1,2020-03-14 19:45:50,2020-03-14 19:44:15
+19002130,SELECT - Abfrage an eine MS SQL Datenbank auf einem Server,Datenaustausch,Ady (gaxy),V 0.1,2020-03-12 08:43:03,2020-03-12 08:42:53
+19001644,Esera 1-Wire Gateway,1 Wire,Thomas Willi (twi127),V 0.1,2020-03-06 17:29:32,2020-03-06 17:29:18
+19000361,Wert runden,Math. Funktionen,Michael Werski (wintermute),V 0.5,2020-03-03 15:40:36,2016-07-13 10:16:15
+19001005,Telenot Complex 400 - Eingänge Master/Comslave,Datenaustausch,Benjamin Bretz (benji),V 1.11,2020-02-26 15:15:35,2017-02-10 15:28:01
+19001582,Durchschnitt letzte X Werte (remanent),Math. Funktionen,Carsten Milzarek (saegefisch),V 0.2,2020-02-24 11:30:44,2020-02-23 23:35:23
+19001843,Ermittelt Titel und Künstler zum aktuell gespielten Titel einer Radiostation,Audio,Otterstätter (Panzaeron),V 0.5,2020-02-23 19:40:47,2019-09-29 11:09:13
+19002011,4bit Werte-Änderung,Math. Funktionen,Michael Kolbe (Michael85),V 0.1,2020-02-23 14:05:12,2020-02-22 23:36:03
+19001345,Easy SONOS,Audio,Tobi (JonDonSponky),V 1.4,2020-02-11 21:25:00,2018-01-28 16:32:55
+19000163,Stiebel Eltron ISG Modbus Steuerung LWZ,Datenaustausch,Benjamin Bretz (benji),V 0.1,2020-02-11 09:17:08,2020-02-11 09:15:11
+19000680,"Zehnder Comfoair CA350/550, Stork und baugleiche",Heizung-Lueftung-Klima,Tobias Renneke (asto),V 0.8,2020-02-10 15:52:56,2016-11-16 22:40:15
+19001724,Calculate GPS-Distance (VSE1007),Math. Funktionen,Joe (givemeone),V 1,2020-02-09 20:50:20,2020-02-09 20:50:20
+19000270,GPS Routen aus Datenbank aufbauen,Weitere Bausteine,Winfried Winkler (Winni),V 0.2,2020-02-09 20:32:20,2016-09-17 22:14:30
+19002024,Adresse aus GPS Daten,Webservice,Winfried Winkler (Winni),V 0.4,2020-02-09 20:28:28,2020-01-16 00:34:03
+19000158,ics/CalDAV Ausgabe für Listelement,Datenaustausch,Community KNXUF (KNXUF-Community),V 0.9,2020-02-07 10:58:16,2016-04-08 00:00:00
+19001346,SONOS Radiosender,Audio,Tobi (JonDonSponky),V 1.1,2020-02-04 22:31:25,2018-03-06 22:19:57
+19001343,Query-Text erzeugen,Textfunktionen,Tobi (JonDonSponky),V 1.1,2020-02-04 22:30:28,2018-01-10 18:46:11
+19001340,Sonnenbatterie,Datenaustausch,Tobi (JonDonSponky),V 1.1,2020-02-04 22:28:54,2017-11-04 22:48:05
+19001541,Webrequest mit Client-Angabe,HS-Webabfragen,Roy Henning (royrobson),V 0.1,2020-01-28 21:17:59,2020-01-28 21:17:59
+19002071,Garagentor Absolute Position,Weitere Bausteine,Lindemann Christopher (FISEChris1337),V 0.1,2020-01-27 11:37:25,2020-01-25 21:13:26
+19002070,Dopppelfenster Kontakt Auswertung,Alarmierung,Lindemann Christopher (FISEChris1337),V 0.1,2020-01-25 21:16:47,2020-01-09 23:01:39
+19000104,XBMC/KODI Nachricht anzeigen,Home Entertainment,Michael Werski (wintermute),V 0.2,2020-01-22 09:58:54,2016-02-16 00:00:00
+19000329,Fertigmeldung mit Aktorsteuerung,Lastmanagement,Michael Werski (wintermute),V 0.4,2020-01-20 21:38:54,2016-08-30 00:08:56
+19000156,Unwetterwarnung MeteoGroup,Wetter,Michael Werski (wintermute),V 0.3,2020-01-20 20:35:42,2016-08-25 10:41:44
+19001776,ProCon.IP Poolsteuerung Status,Datenaustausch,Michael Werski (wintermute),V 0.1,2020-01-19 16:53:59,2020-01-17 15:16:59
+19000978,Neato Botvac,Datenaustausch,Nima Ghassemi (sipiyou),V 0.74,2020-01-13 21:58:56,2018-03-25 18:02:37
+19000429,Epson Beamer RS232 via Moxa,Video,Hansjörg Pirpamer (hapi),V,2020-01-12 19:24:40,2020-01-01 14:25:02
+19001720,PREG_REPLACE - String durch Regex manipulieren/ersetzen,Textfunktionen,Joe (givemeone),V 1,2020-01-07 18:02:36,2018-12-04 07:57:38
+19001873,RGB zu Prozent ( Loxone analog ),Weitere Bausteine,Tobi M. (blaky),V 0.3,2020-01-06 22:08:12,2019-12-22 13:39:18
+19002041,Ausgabe abhängig von Eingangswert,Textfunktionen,Sven Anders (SvenA),V 1.1,2020-01-05 22:58:19,2019-11-29 14:38:14
+19001148,Dezimalzeit,Zeit-Funktionen,Thorsten Gehrig (ThorstenGehrig),V 0.2,2020-01-05 08:44:36,2018-02-06 09:29:33
+19001147,Bereichsprüfung,Vergleicher,Thorsten Gehrig (ThorstenGehrig),V 1.1,2020-01-05 08:08:21,2018-02-06 07:47:42
+19001173,SendChangeAfterTime,Filter,Michael Riedmüller (hx5),V 0.4,2020-01-04 17:56:42,2017-09-05 09:54:07
+19001125,Verbrauch aus Zählerständen und Impulsen,Zähler,Michael Riedmüller (hx5),V 1.5,2020-01-04 17:48:30,2017-07-03 13:53:51
+19000426,Snips Switch (Sprachsteuerung mit Snips),Kommunikation,Hansjörg Pirpamer (hapi),V 20190113,2020-01-01 14:24:10,2018-12-20 14:58:20
+19001642,Statistik Verbrauchsdaten,Zähler,Thomas Willi (twi127),V 0.8,2019-12-29 18:05:22,2018-09-18 18:39:22
+19001855,RFID-Reader: Berechtigungen Türkommunikation,Türkommunikationusatzbausteine,Maximilian Haase (MaxH),V 1.0,2019-12-20 20:33:50,2019-12-20 20:32:35
+19001854,RFID-Reader: Transponder-Identifikation,Türkommunikationusatzbausteine,Maximilian Haase (MaxH),V 1.0,2019-12-20 20:33:45,2019-12-20 20:32:26
+19001853,RFID-Reader: Transponderleser-Bestimmung,Türkommunikationusatzbausteine,Maximilian Haase (MaxH),V 1.0,2019-12-20 20:33:40,2019-12-20 20:31:08
+19000317,Bedingungstext 5-fach,Auswahlschalter,Winfried Winkler (Winni),V 0.1,2019-12-03 23:44:31,2016-04-11 00:00:00
+19000319,Strings verbinden plus 10-fach,Textfunktionen,Winfried Winkler (Winni),V 0.5,2019-12-03 23:37:41,2016-10-05 12:25:28
+19000455,Fritzbox Anrufliste Einfügen Lesen Löschen,Kommunikation,Winfried Winkler (Winni),V 0.5,2019-12-02 15:22:00,2016-11-14 22:10:29
+19000275,Benzinpreise von Tankerkönig Aufbereitung,HS-Webabfragen,Winfried Winkler (Winni),V 0.3,2019-12-01 23:06:57,2016-07-07 13:01:59
+19000332,Min/Max Funktion mit Zeitstempel,Weitere Bausteine,Winfried Winkler (Winni),V 0.3,2019-12-01 23:05:35,2016-04-24 00:00:00
+19000331,Werte rauf/runter in Schleife,Weitere Bausteine,Winfried Winkler (Winni),V 0.3,2019-12-01 23:04:46,2016-04-19 00:00:00
+19000337,Betriebsstundenzähler,Ohne,Winfried Winkler (Winni),V 0.4,2019-12-01 23:04:02,2016-04-28 00:00:00
+19000957,FRITZ!Dect200 multi,Datenaustausch,Winfried Winkler (Winni),V 0.3,2019-12-01 22:56:47,2018-01-01 12:20:58
+19002040,=/≠[leer]?,Vergleicher,Sven Anders (SvenA),V 1.0,2019-11-29 14:41:58,2019-11-29 14:41:46
+19001540,Wert-Vergleich 8-fach,Vergleicher,Roy Henning (royrobson),V 0.3,2019-11-21 14:14:37,2018-05-06 22:03:55
+19001116,JSON Abfrage + Extraktor 16-fach,Webservice,Roy Henning (royrobson),V 0.1,2019-11-16 22:34:31,2019-11-16 22:34:25
+19002020,Bildabfragen zur MBID (Music) auf fanart.tv,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2019-11-10 22:49:13,2019-11-08 20:01:33
+19000402,Ermöglich die Auswahl von vordefinierten Radiostationen aus einer Liste.,Audio,Otterstätter (Panzaeron),V 0.5,2019-10-26 10:20:17,2016-10-20 19:40:59
+19000824,Russound Source Status Matrix,Home Entertainment,Matthias Quernheim (maque),V 1.0,2019-10-25 13:28:41,2019-01-01 20:14:07
+19001436,Homematic Generic Device,Homematic,Nano (Nanosonde),V 0.5,2019-10-25 10:40:54,2018-01-11 21:22:26
+19001435,Homematic Event Receiver,Homematic,Nano (Nanosonde),V 0.1,2019-10-25 10:39:08,2018-01-07 23:10:29
+19001432,HM-RC-4-3 Funk-Handsender,Ohne,Nano (Nanosonde),V 1.0,2019-10-25 10:37:41,2018-01-05 16:05:03
+19001431,"HM-Sec-SCo Tür-Fensterkontakt, optisch",Ohne,Nano (Nanosonde),V 1.0,2019-10-25 10:37:02,2018-01-05 16:03:31
+19001224,HMIP-Universal-LBS,Ohne,Nano (Nanosonde),V 1.0,2019-10-25 10:35:58,2018-01-03 16:20:28
+19001223,HOMEMATIC-IP-EDOMI-Master,Ohne,Nano (Nanosonde),V 1.0,2019-10-25 10:34:40,2018-01-03 16:06:15
+19001222,Sony Bravia Control,Home Entertainment,Nano (Nanosonde),V 0.1,2019-10-25 10:31:55,2018-01-01 14:31:41
+19001221,KNX BAOS  for Wolf ISM8 CWL,Heizung-Lueftung-Klima,Nano (Nanosonde),V 0.1,2019-10-25 10:31:35,2017-12-28 16:52:57
+19001220,TCP server,Netzwerk,Nano (Nanosonde),V 0.3,2019-10-25 10:31:29,2017-08-08 14:00:25
+19001079,MQTT Topic Parser (8x),Textfunktionen,Nano (Nanosonde),V 0.1,2019-10-25 10:31:05,2017-08-04 10:05:15
+19001078,MQTT Topic Parser (1x),Textfunktionen,Nano (Nanosonde),V 0.2,2019-10-25 10:31:00,2017-08-03 10:04:44
+19001077,String bedingt verbinden,Textfunktionen,Nano (Nanosonde),V 0.1,2019-10-25 10:30:55,2017-07-09 13:44:07
+19001076,Webhook (Receive HTTP POST Requests),Webservice,Nano (Nanosonde),V 0.2,2019-10-25 10:30:50,2017-05-22 07:40:54
+19001075,JSON Decoder (1x) with KEY,Textfunktionen,Nano (Nanosonde),V 0.1,2019-10-25 10:30:45,2017-05-21 15:19:05
+19001074,JSON Decoder (5x) with KEYs,Textfunktionen,Nano (Nanosonde),V 0.1,2019-10-25 10:30:40,2017-05-21 15:18:58
+19001073,JSON Decoder (10x) with KEYs,Textfunktionen,Nano (Nanosonde),V 0.1,2019-10-25 10:30:35,2017-05-21 15:18:51
+19001072,JSON Decoder (20x) with KEYs,Textfunktionen,Nano (Nanosonde),V 0.1,2019-10-25 10:30:17,2017-05-21 11:22:29
+19001779,Farbtemperaturen,DALI und Lichtsteuerung,Michael Werski (wintermute),V 0.2,2019-10-18 01:11:47,2019-10-17 20:45:42
+19002010,Auto-Sperre,Zähler,Michael Kolbe (Michael85),V 0.1,2019-10-17 21:57:05,2019-10-17 12:06:17
+19000528,luftdaten.info,Wetter,Michael Werski (wintermute),V 0.3,2019-10-14 10:41:13,2017-05-16 15:08:41
+19001427,Diagramm Zoom-Pan,Weitere Bausteine,Winfried Winkler (Winni),V 0.2,2019-10-11 07:10:29,2019-10-09 00:48:33
+19001778,Dimmkurven,DALI und Lichtsteuerung,Michael Werski (wintermute),V 0.1,2019-09-21 02:36:25,2019-09-21 02:36:25
+19001980,Auslesen des aktuellen Zustandes einer Batterie an SolarWorld Suntrol eManager,Weitere Bausteine,Jürgen Wild (Jue),V 1.1,2019-09-19 19:06:49,2019-09-19 17:11:17
+19001981,SolarWold Suntrol eManager Daten Vortag,Weitere Bausteine,Jürgen Wild (Jue),V 0.2,2019-09-19 18:13:54,2019-09-19 17:14:20
+19001985,Auslesen von Reglern  der Technischen Alternative mit C.M.I-Modul,Weitere Bausteine,Jürgen Wild (Jue),V 0.2,2019-09-19 17:27:30,2019-09-19 17:22:33
+19001652,Counter2Changerate,Zähler,SirSydom (SirSydom),V 0.11,2019-09-17 15:31:40,2019-09-05 11:08:18
+19001970,Auswertung von Fensterkontakten (V. 1.0),Alarmierung,Markus Musholt (Schmu),V 1.0,2019-09-17 13:15:19,2019-09-17 12:48:30
+19001960,Hysterese,Math. Funktionen,Friedrich Keller (muhaa),V 0.1,2019-09-06 21:53:33,2019-09-06 10:16:29
+19001351,Luxtronik 2 - Parameter,Heizung-Lueftung-Klima,Pascal Morach (pamo),V 2.7,2019-09-01 13:42:33,2017-11-06 23:01:16
+19001350,Luxtronik 2 - Betriebsdaten,Heizung-Lueftung-Klima,Pascal Morach (pamo),V 2.4,2019-09-01 13:34:07,2017-11-06 23:00:00
+19001561,Chromecast Audio Control v2.x,Audio,Markus Richter (MKHR),V 2.0.0,2019-08-18 22:57:19,2019-08-18 22:57:19
+19001560,Chromecast Audio Control v1.x,Audio,Markus Richter (MKHR),V 1.1.0,2019-08-18 22:48:10,2018-04-28 23:59:44
+19001429,Baustein um eigene Eingabemasken zu realisieren,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2019-08-11 19:36:03,2019-08-11 19:36:03
+19001010,Telenot Complex 400 -Bereiche schalten,Datenaustausch,Benjamin Bretz (benji),V 1.1,2019-08-11 19:26:34,2017-02-08 21:06:37
+19001009,Telenot Complex 400 - Meldebereich sperren,Datenaustausch,Benjamin Bretz (benji),V 1.1,2019-08-11 18:59:08,2017-02-10 15:37:54
+19001002,Telenot Complex 400 - Ausgänge Master/Comslave,Datenaustausch,Benjamin Bretz (benji),V 1.1,2019-08-11 17:17:32,2017-02-10 15:18:06
+19000340,Erinnerungen in Datenbank schreiben,Zeit-Funktionen,Winfried Winkler (Winni),V 0.3,2019-08-10 22:14:27,2016-08-18 20:15:28
+19001425,Trigger aus Archiv/DVR-Bildablage,Video,Winfried Winkler (Winni),V 0.2,2019-08-10 15:07:24,2019-04-29 00:13:23
+19001422,Füllen Kamera-Archiv aus DVR,Video,Winfried Winkler (Winni),V 0.7,2019-08-10 15:03:14,2019-01-11 17:41:42
+19000348,Archiv - von Datei laden / Wert zu beliebigem Zeitpunkt einfügen,Datenaustausch,Winfried Winkler (Winni),V 0.4,2019-08-10 14:53:14,2016-07-29 00:00:00
+19001951,Yamaha Musiccast Client,Audio,Dominik Simon (Dosim),V .01,2019-08-05 11:57:39,2019-08-05 11:24:10
+19001950,Yamaha Musiccast Bridge,Audio,Dominik Simon (Dosim),V 0.1,2019-08-05 11:57:10,2019-08-05 11:21:43
+19000213,Kostal Wechselrichter,Ohne,Frank Endt (basaltnischl),V 1.1,2019-08-02 14:39:24,2016-03-15 00:00:00
+19001777,myAudi,Webservice,Michael Werski (wintermute),V 0.0,2019-07-31 18:40:57,2019-07-27 15:11:43
+19001673,Speichert max. 16 Werte und gibt diese beim Systemstart aus,Weitere Bausteine,Otterstätter (Panzaeron),V 0.1,2019-07-26 09:34:02,2019-02-12 19:28:10
+19001924,Alarmschärfer,Datenaustausch,Nima Ghassemi (sipiyou),V 1.0,2019-07-17 21:49:16,2019-07-10 22:39:47
+19001923,Nachtabsenkung Taster,Weitere Bausteine,Nima Ghassemi (sipiyou),V 1.0,2019-07-17 21:12:57,2019-06-15 10:52:34
+19000099,Grünbeck Softliq SC18,Heizung-Lueftung-Klima,Armin Bock (Wagoklemme),V 0.3,2019-07-16 20:28:53,2019-04-06 20:04:43
+19001940,Windhager Datenabfage DIGEST,Kommunikation,Kulig Peter (pkuli6kg),V 0.1,2019-07-02 14:40:07,2019-07-02 14:39:26
+19001153,Eingangsauswahlschalter,Auswahlschalter,Thorsten Hörmann (Thorsten1970),V 0.1,2019-06-29 15:47:39,2019-06-29 15:47:16
+19001830,Triggerbaustein für Softliq SC18,Heizung-Lueftung-Klima,Armin Bock (Wagoklemme),V 0.2,2019-06-28 17:13:22,2019-04-06 20:09:08
+19001722,"Zähler Monoton	(remanent, advanced)",Zähler,Joe (givemeone),V 0.2,2019-06-13 12:28:58,2019-06-13 10:22:40
+19001870,Rollosteuerung Sonne/Lux/Temp abhängig,Jalousie-Rolladen-Trennwand,Tobi M. (blaky),V 0.61,2019-06-11 10:35:58,2019-05-11 14:34:12
+19001890,UND-Gatter 2-fach nur E1 Trigger,Gatter,Timm Fuchs (Ti4KNX),V 0.1,2019-06-04 22:14:27,2019-06-04 22:10:42
+19001423,Erzeugt GIF-Datei aus mehreren Einzelbildern,Video,Winfried Winkler (Winni),V 0.4,2019-05-21 22:39:49,2019-01-16 17:08:53
+19000464,VIVOTEK Kamera-Steuerung,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2019-05-21 22:38:43,2018-01-04 21:28:54
+19001872,Addition von bis zu 20 Werten,Math. Grundfunktionen,Tobi M. (blaky),V 1.0,2019-05-13 16:29:36,2019-05-13 12:54:11
+19001034,InfluxDB Batch Writer,Datenaustausch,Michael Pattison (gulp2k),V 0.2,2019-05-11 21:39:28,2017-03-25 20:51:59
+19000123,Steuerung von VLC,Audio,Otterstätter (Panzaeron),V 1.14,2019-05-09 02:12:46,2016-12-07 21:58:13
+19001860,Landroid Bridge Anbindung per HTTP,Datenaustausch,Weber Wilhelm (WWebber),V 0.2,2019-05-06 23:23:19,2019-05-05 21:54:17
+19001862,Helper für 19001860_lbs,Datenaustausch,Weber Wilhelm (WWebber),V 0.1,2019-05-06 23:23:00,2019-05-05 21:55:28
+19001861,Helper für 19001860_lbs,Datenaustausch,Weber Wilhelm (WWebber),V 0.1,2019-05-06 23:22:55,2019-05-05 21:55:05
+19001032,Waterkotte EcoTouch Reader,Heizung-Lueftung-Klima,Michael Pattison (gulp2k),V 0.2,2019-04-25 22:23:59,2017-03-12 14:35:23
+19001580,ModBus Read SMA,Modbus,Carsten Milzarek (saegefisch),V 0.7,2019-04-22 20:57:08,2018-05-03 15:01:26
+19001850,Remanente Zählerstatistik,Zähler,Maximilian Haase (MaxH),V 1.0,2019-04-22 16:47:21,2019-04-22 16:47:13
+19001820,BSB-LAN Gateway JSON Abfrage,Datenaustausch,Lutz Borgerding (Luis321),V 1.0,2019-04-15 19:39:11,2019-03-29 12:19:04
+19000938,DWD x Weather Icons Mapping,Wetter,Stefan Ladisch (MrIcemanLE),V 0.1,2019-04-09 13:45:43,2019-04-09 13:45:43
+19000898,Tageslicht / Farbtemperatur Berechnung (tunable-white),DALI und Lichtsteuerung,Waleri (juliawf),V 0.3,2019-03-22 08:10:37,2019-03-21 21:17:23
+19001260,Buderus Gateway Logamatic web KM200 / KM100 / KM50 (EMS plus),Heizung-Lueftung-Klima,Bewersdorff Mike (Glotzkowski),V 1.0,2019-03-17 22:02:45,2017-09-08 21:10:10
+19001721,Filtert leere Strings,Textfunktionen,Joe (givemeone),V 0.1,2019-03-12 09:11:19,2019-03-12 09:10:50
+19000153,Zeitformatierung/Addition,Zeit-Funktionen,Michael Werski (wintermute),V 0.9,2019-03-11 20:51:29,2016-12-19 23:23:42
+19000713,Aendern die Gross-Kleinschreibung eines Strings,Textfunktionen,Matthias Quernheim (maque),V 1.0,2019-03-01 20:31:12,2016-12-10 00:00:00
+19000200,Squeeze Server,Audio,Michael Werski (wintermute),V 0.9,2019-02-27 23:32:11,2016-10-21 01:00:58
+19000823,Russound Quellen JSON Decoder zu Baustein 19000718,Home Entertainment,Matthias Quernheim (maque),V 1.0.1,2019-02-23 16:14:23,2019-01-01 20:14:02
+19000822,Russound Zones JSON Decoder zu Baustein 1900718,Home Entertainment,Matthias Quernheim (maque),V 1.0.1,2019-02-23 16:13:33,2019-01-01 20:13:57
+19000226,Szenen Lampe,DALI und Lichtsteuerung,Esders Bernhard (bernsen),V 2,2019-02-04 17:47:48,2018-01-19 17:29:57
+19000486,ArtNet-DMX-Controller,DALI und Lichtsteuerung,S. Tim (Crimson),V 0.91,2019-02-04 10:13:49,2017-07-07 14:04:36
+19001660,Luftdruck  abs. -> rel.,Wetter,Andreas Karrer (ak68),V 0.2,2019-02-03 08:28:14,2018-07-30 14:31:53
+19001662,Verdunstung/ pET (modifiziert nach Penman),Wetter,Andreas Karrer (ak68),V 0.1,2019-02-03 08:24:44,2019-02-03 08:24:44
+19000489,RGB -> HS(V) und V,Wandler,S. Tim (Crimson),V 0.9,2019-02-01 12:19:13,2017-07-07 14:07:48
+19000488,Partielle Änderungen an RGB-Wert aktualisieren,DALI und Lichtsteuerung,S. Tim (Crimson),V 0.9,2019-02-01 12:18:41,2017-07-07 14:07:19
+19000487,DMX-Channel,DALI und Lichtsteuerung,S. Tim (Crimson),V 0.9,2019-02-01 12:17:56,2017-07-07 14:06:17
+19000363,Hex2String,Wandler,Michael Werski (wintermute),V 0.1,2019-01-29 10:38:43,2019-01-29 10:38:43
+19001780,Berechnet die gefühlte Temperatur,Wetter,Vonrhein Andreas (andyKamikaze),V 0.1.0,2019-01-18 18:44:25,2019-01-18 18:42:47
+19001760,Schnittstelle RESOL SD-Karte,Datenaustausch,Millo (millo),V 1.0,2019-01-10 20:10:00,2019-01-10 19:30:09
+19000683,Pushover,Alarmierung,Tobias Renneke (asto),V 0.4,2019-01-10 19:36:20,2016-11-23 21:10:21
+19000103,XBMC/KODI Script Status,Weitere Bausteine,Michael Werski (wintermute),V 0.2,2019-01-02 18:10:12,2016-02-16 00:00:00
+19000321,"wetter.com Abfrage, 1 Tag",Wetter,Michael Werski (wintermute),V 0.4,2019-01-02 17:54:22,2016-04-18 00:00:00
+19001151,2_Bit_abhängige_Wertausgabe_mit_Priowert,Auswahlschalter,Thorsten Hörmann (Thorsten1970),V 0.2,2019-01-01 19:55:31,2019-01-01 19:46:20
+19001152,Hysterese Zähler,Zähler,Thorsten Hörmann (Thorsten1970),V 0.1,2019-01-01 19:36:50,2019-01-01 19:36:50
+19001605,Weltzeituhr,Zeit-Funktionen,Staud Marco (mars),V 0.1,2019-01-01 19:22:44,2019-01-01 17:18:56
+19000314,LINKSYS Kamerasteuerung,HS-Webabfragen,Winfried Winkler (Winni),V 0.1beta,2019-01-01 15:31:14,2016-04-12 00:00:00
+19000313,Kamerasteuerung Mobotix (S25),HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2019-01-01 15:29:41,2016-04-10 00:00:00
+19000312,Kamerasteuerung PT FOSCAM FI8918W,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2019-01-01 15:29:01,2016-04-11 00:00:00
+19000279,Yamaha-Receiver Befehle,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2019-01-01 15:27:58,2016-04-04 00:00:00
+19000277,Yamaha-Receiver Feedback Auswertung,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2019-01-01 15:26:38,2016-04-04 00:00:00
+19000068,Zeitvergleich im Fenster,Zeit-Funktionen,Hartmut  (Hartmut),V 0.31,2019-01-01 15:20:49,2016-12-12 15:48:05
+19000015,Wetterstation Elsner P03/3-RS485,Heizung-Lueftung-Klima,Christian Maurer (ferengi),V 0.1,2019-01-01 15:19:14,2016-03-05 00:00:00
+19000867,Heizungsbetriebsart HVAC,Heizung-Lueftung-Klima,Maximilian Haase (MaxH),V 1.0,2018-12-30 17:38:49,2017-10-27 15:31:26
+19001011,Telenot Complex 400 - Ausgänge Master/Comslave,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:17:54,2017-02-08 21:06:56
+19001008,Telenot Complex 400 - Comlock 410,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:16:59,2017-02-10 15:35:01
+19001007,Telenot Complex 400 - Status Bedienteile,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:16:46,2017-02-10 15:33:22
+19001006,Telenot Complex 400 - Ausgänge ComlockEingänge Melderbus,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:16:27,2017-02-10 15:30:41
+19001004,Telenot Complex 400 - MB Status,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:15:59,2017-02-10 15:25:37
+19001003,Telenot Complex 400 - Zustand Bereiche,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:15:38,2017-02-10 15:23:37
+19001001,Telenot Complex 400 - Ausgänge Comlock,Datenaustausch,Benjamin Bretz (benji),V 1.0,2018-12-29 20:14:56,2017-02-10 15:16:29
+19001000,Telenot Complex400 - Connector,Datenaustausch,Benjamin Bretz (benji),V 1.11,2018-12-29 20:14:00,2017-02-12 10:59:40
+19001740,Mobotix Last Entry,Türkommunikationusatzbausteine,David Stenger (stinch),V 0.1,2018-12-21 13:30:44,2018-12-21 13:30:44
+19000071,Home-Connect-Geschirrspüler,Kommunikation,Dariusz Salzer (coliflower),V 0.3.02,2018-12-16 15:08:46,2017-09-10 14:45:02
+19000168,Auswerten und KO write/read (Fernzugriff),Weitere Bausteine,Benjamin Bretz (benji),V 0.2,2018-10-23 22:28:35,2018-10-22 16:40:10
+19000721,NibeUplink API: Request,Weitere Bausteine,Sebastian Kuhn (DerSeppel),V 1.4.4,2018-10-23 14:20:11,2017-01-24 11:15:00
+19000519,Radio-Button Selektion,Gatter,Winfried Winkler (Winni),V 0.2,2018-10-16 08:04:48,2018-05-01 20:05:31
+19001682,Pusher Event Sender,Kommunikation,Prenner Christian (trax),V 1.0,2018-10-03 22:11:00,2018-10-03 22:11:00
+19001490,Monoprice 10761 RS-232C,Audio,Ben (stonie2oo4),V 0.2,2018-10-03 18:47:53,2018-03-02 07:16:55
+19001494,Pioneer-TV RS232C,Home Entertainment,Ben (stonie2oo4),V 0.2,2018-10-03 18:45:36,2018-03-03 16:48:03
+19000944,für DMX Angepasste Version des String verbinden LBS 18000001,Textfunktionen,Manuel Helmbrecht (CrashnB),V 1.0,2018-09-28 08:01:43,2018-09-28 08:01:27
+19001384,Garagentorsteuerung,Jalousie-Rolladen-Trennwand,Marco Wörz (leppenraub),V 1.0,2018-09-26 11:51:45,2017-12-20 08:08:06
+19001184,UniFi WLAN-Control,Netzwerk,Thomas Willi (twi127),V 0.2,2018-09-04 19:36:49,2018-01-22 16:36:54
+19001333,Rolladen- / Jalousie-Fahrtrichtung bestimmen,Jalousie-Rolladen-Trennwand,Blößl Dirk (s01iD),V 1.0,2018-08-23 11:40:41,2018-08-23 11:40:41
+19000727,NibeUplink API: Write,Weitere Bausteine,Sebastian Kuhn (DerSeppel),V 1.0,2018-08-17 00:34:28,2018-08-17 00:23:43
+19000315,Auswertung des Kamera-Archiv KOs,Datenaustausch,Winfried Winkler (Winni),V 0.3,2018-07-31 09:46:21,2016-04-13 00:00:00
+19000709,Zisterne Füllstandsberechnung,Wetter,Yves Schumann (starwarsfan),V 1.0,2018-07-17 17:33:17,2018-07-17 17:33:17
+19000169,Edomi-Backup transfer FTP,Datenaustausch,Benjamin Bretz (benji),V 0.3,2018-07-16 20:17:10,2017-06-08 10:38:07
+19000573,STRPOS+: Ermittelt die Startposition eines Strings an E1 in E2,Textfunktionen,Frank Wartenberg (mywap),V 0.3,2018-07-04 23:53:57,2016-10-20 22:06:05
+19001332,Percent (DPT5) to Mirek Temperature Converter v1.0,Math. Funktionen,Blößl Dirk (s01iD),V 1.0,2018-06-25 09:21:53,2018-06-25 09:21:53
+19000165,Helios KWL easyControls ModbusTCP,Datenaustausch,Benjamin Bretz (benji),V 0.6,2018-06-22 06:34:38,2016-06-01 00:00:00
+19000214,DarkSky Icon Font (v1.0),Textfunktionen,Frank Endt (basaltnischl),V 1.0,2018-06-20 15:25:40,2018-06-20 14:25:59
+19001183,UniFi Guest Control per QR-Code URL,Netzwerk,Thomas Willi (twi127),V 0.2,2018-06-12 18:19:44,2018-01-22 16:34:03
+19001610,Sonnenkraft Solarregler SKSC2 HE,Heizung-Lueftung-Klima,Christian (ChrisChros),V 0.3,2018-06-09 22:43:15,2018-05-22 20:12:47
+19000324,WU Vorhersage 10 Tage,Wetter,Michael Werski (wintermute),V 0.4,2018-06-08 13:27:58,2016-08-25 12:26:24
+19000323,WU einfache Vorhersage 10 Tage Tag/Nacht,Wetter,Michael Werski (wintermute),V 0.4,2018-06-08 13:27:11,2016-08-25 12:25:47
+19000325,WU Vorhersage 10 Tage in Datenarchive,Wetter,Michael Werski (wintermute),V 0.4,2018-06-08 13:22:35,2016-08-25 12:27:06
+19000322,WU Abfrage inkl. Denro ONE,Wetter,Michael Werski (wintermute),V 0.6,2018-06-08 13:17:45,2016-08-30 00:25:12
+19000382,Werte Bandpass / Filter,Filter,Wolfgang Sinz (woda),V 1.0,2018-06-07 21:03:18,2018-06-07 21:01:28
+19001612,Hargassner NanoPK Pelletskessel,Heizung-Lueftung-Klima,Christian (ChrisChros),V 0.1,2018-05-22 20:24:51,2018-05-22 20:24:51
+19001611,Sonnenkraft Solarregler SKSC 1/2,Heizung-Lueftung-Klima,Christian (ChrisChros),V 0.3,2018-05-22 20:15:48,2018-05-22 20:15:48
+19000691,"""transponiert"" Spalten  in Zeilen zur Ausgabe an das Visu-Elemet Liste/Tabelle",Listeneingang + Listenausgang,Staud Marco (mars),V 0.3,2018-05-21 17:15:29,2016-11-17 00:00:00
+19000110,Werte aus dem SMA Sunnyportal lesen | ALPHA,Datenaustausch,Carsten Milzarek (saegefisch),V 1.4  (EOL),2018-05-08 00:42:24,2016-04-17 00:00:00
+19000362,Zufällige Telegrammverzögerung,Verzögerung,Michael Werski (wintermute),V 0.2,2018-05-07 14:00:25,2017-04-05 17:50:15
+19001421,Oilfox ChartData für Archiv aufbereiten,Datenaustausch,Winfried Winkler (Winni),V 0.1,2018-05-07 12:33:14,2018-04-30 01:02:09
+19000954,Philips JointSpace V6,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2018-05-01 19:53:53,2018-05-01 19:53:53
+19001480,Wenn-Dann-Vergleich 10-Fach,Vergleicher,Sebastian (trollmar),V 0.2,2018-04-30 10:35:06,2018-02-04 21:43:54
+19000098,E3DC Autarkie und Eigenverbrauch,Ohne,Armin Bock (Wagoklemme),V 0.1,2018-04-26 16:37:03,2018-04-25 18:36:38
+19000097,Takt Trigger Sekunden,Zeit-Funktionen,Armin Bock (Wagoklemme),V 0.1,2018-04-26 12:40:00,2018-04-25 18:33:15
+19001304,Text formatieren (CSS),Ohne,Michael Riedmüller (hx5),V 0.1,2018-04-24 23:07:17,2018-04-09 21:30:56
+19001117,Restzeit-Timer retriggerbar+abbrechbar,Zeit-Funktionen,Roy Henning (royrobson),V 0.2,2018-04-20 18:12:24,2018-04-06 23:03:59
+19001327,Sonnenauf/-untergang mit Zeitversatz,Zeit-Funktionen,Strüber Steffen (steffen79),V 0.4,2018-04-20 07:25:21,2018-03-31 22:01:54
+19001081,Logeinträge auslesen,Textfunktionen,Martin Ziegler (Brick),V 1.1,2018-04-10 14:01:08,2018-04-04 11:24:12
+19000095,Oventrop Regtronic RQ-B,Regler,Armin Bock (Wagoklemme),V 0.1,2018-04-02 11:53:08,2018-04-02 11:53:08
+19001400,Guntamatic Webinterface auslesen,Heizung-Lueftung-Klima,Hellmuth Michael (HeMichael),V 0.1,2018-04-01 23:28:57,2018-04-01 23:27:46
+19001381,16-fach Multiplikator,Math. Grundfunktionen,Marco Wörz (leppenraub),V 0.2,2018-03-28 13:33:38,2017-12-20 07:48:22
+19001443,Sonnensegel Höhenverstellung Sicherheitsbaustein,Jalousie-Rolladen-Trennwand,Hardy Köpf (harry7922),V 1.1,2018-03-21 19:13:58,2018-03-17 18:12:37
+19001329,Pseudo SMTP Server (zb für HikVision Kamera-Auslöser),Netzwerk,Strüber Steffen (steffen79),V 0.1,2018-03-21 11:37:37,2018-03-21 11:37:30
+19001299,HM-Sec-Key-S Motorschloss,Homematic,Klobucaric Gernot (murelli146),V 0.1,2018-03-20 19:09:43,2018-03-20 19:09:43
+19001298,HM-WDS100 Wetterstation,Homematic,Klobucaric Gernot (murelli146),V 0.1,2018-03-20 19:07:54,2018-03-20 19:07:54
+19001297,HM-Sec-SD-2 Rauchmelder,Homematic,Klobucaric Gernot (murelli146),V 0.1,2018-03-20 18:58:54,2018-03-20 18:34:34
+19001296,HM-PBI-4-FM / HM-RC-Key4-2 Taster- Fernbedienung,Homematic,Klobucaric Gernot (murelli146),V 0.1,2018-03-20 18:58:47,2018-03-19 20:26:28
+19001295,HM-Sec-RHS Fensterkontakt,Homematic,Klobucaric Gernot (murelli146),V 0.1,2018-03-20 18:58:38,2018-03-19 20:17:34
+19001294,HM-Sec-SC-2 Türkontakt,Homematic,Klobucaric Gernot (murelli146),V 0.1,2018-03-20 18:58:31,2018-03-19 20:00:56
+19000672,Multisensor Umgebungslichtberechnung,1 Wire,Otterstätter (Panzaeron),V 0.1,2018-03-20 09:18:06,2018-03-19 17:54:56
+19001215,Kodi Notification Receiver,Home Entertainment,Michael Pattison (gulp2k),V 0.1,2018-03-07 10:44:02,2018-02-21 17:07:44
+19001328,SNMP Trap Demo,Netzwerk,Strüber Steffen (steffen79),V 0.1,2018-03-04 10:14:21,2018-03-04 10:14:21
+19001491,Monoprice 10761 Command,Audio,Ben (stonie2oo4),V 0.1,2018-03-03 12:58:05,2018-03-03 12:10:20
+19000274,Benzinpreise Tankerkönig API,HS-Webabfragen,Winfried Winkler (Winni),V 0.6,2018-02-20 16:15:12,2016-07-07 13:05:34
+19001177,Statussimulator - Dimmer,DALI und Lichtsteuerung,Michael Riedmüller (hx5),V  0.6,2018-02-19 12:52:30,2017-09-18 16:21:00
+19000330,Alarm / Treppenhaus (mit Ausgabe der verbleibenden Zeit),Zeit-Funktionen,Winfried Winkler (Winni),V 0.5,2018-02-19 07:07:45,2016-05-02 00:00:00
+19000977,Russound Command adding,Audio,Hartwig Mattes (hartwigm),V 0.1,2018-02-16 11:04:13,2018-02-16 11:03:40
+19000976,Anpassungsberenzung,Verzögerung,Hartwig Mattes (hartwigm),V 0.1,2018-02-16 11:04:01,2018-02-16 10:56:24
+19001178,Statussimulator - Sonnenschutz,Jalousie-Rolladen-Trennwand,Michael Riedmüller (hx5),V 0.5,2018-02-15 10:27:46,2017-09-29 23:08:01
+19001121,Dämmerungs- und ZSU-Steuerung,Regler,Michael Riedmüller (hx5),V 0.3,2018-02-15 09:27:30,2017-06-19 16:38:12
+19001129,Schaltregler,Ohne,Michael Riedmüller (hx5),V 1,2018-02-14 12:30:57,2017-07-10 15:03:19
+19001301,SendSmoothly,Ohne,Michael Riedmüller (hx5),V 0.2,2018-02-05 09:07:29,2018-02-04 13:36:15
+19001471,Restzeit-Timer 10-fach seq. nicht retriggerbar,Zeit-Funktionen,Nils Obermiller (nno),V 1.0,2018-02-02 00:21:45,2018-02-02 00:21:45
+19000479,Filter: 0→0 und ≠0→1 (auch für Text),Filter,Nils Obermiller (nno),V 1.0,2018-02-01 22:09:34,2018-02-01 22:08:46
+19000478,Strings bedingt verbinden invertiert,Textfunktionen,Nils Obermiller (nno),V 1.0,2018-02-01 22:05:24,2018-02-01 22:05:24
+19001141,Beschattung,Jalousie-Rolladen-Trennwand,Thorsten Gehrig (ThorstenGehrig),V 1.1,2018-02-01 12:23:15,2017-06-25 14:41:26
+19001442,Wenn-Dann 10-fach,Weitere Bausteine,Hardy Köpf (harry7922),V 0.1,2018-01-31 19:55:00,2018-01-31 19:55:00
+19001441,Fenster-offen Timer,Math. Grundfunktionen,Hardy Köpf (harry7922),V 0.1,2018-01-31 19:47:22,2018-01-31 19:47:12
+19001130,Berechnung mathematischer Formel,Math. Grundfunktionen,Donner Marc (madon),V 0.1,2018-01-24 18:13:38,2018-01-24 18:02:23
+19001211,Sensor Watchdog 10-fach,Kommunikation,Michael Pattison (gulp2k),V 0.1,2018-01-23 15:53:12,2017-11-04 22:03:54
+19001188,Moode Audio Radio/CD Daten,Audio,Thomas Willi (twi127),V 0.1,2018-01-22 16:44:19,2018-01-22 16:44:19
+19001213,Sonnenaufgang / -untergang Generator,DALI und Lichtsteuerung,Michael Pattison (gulp2k),V 0.3,2018-01-22 11:35:59,2018-01-18 22:30:00
+19001440,"Arithmetisches Mittel, Min und Max 10-fach",Math. Grundfunktionen,Hardy Köpf (harry7922),V 0.2,2018-01-21 18:46:46,2018-01-17 18:51:40
+19000091,Regenmessung/Statistik,Zähler,Armin Bock (Wagoklemme),V 2.1,2018-01-21 16:35:26,2016-08-03 00:00:00
+19000225,Szenen Schalter,DALI und Lichtsteuerung,Esders Bernhard (bernsen),V 1,2018-01-19 17:30:22,2018-01-19 17:29:07
+19001385,String selektieren,Textfunktionen,Marco Wörz (leppenraub),V 0.1,2018-01-16 06:26:07,2018-01-16 06:25:44
+19001291,HM-Sec-SD-2 Rauchmelder zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2018-01-12 09:55:46,2018-01-12 09:50:47
+19000925,HOMEMATIC-EDOMI-Master,Homematic,Klobucaric Gernot (murelli146),V 1.10,2018-01-12 09:47:34,2017-08-24 18:30:14
+19001360,MDT Heizungsaktor Diagnosetext,Heizung-Lueftung-Klima,Helmut Weber (Helmut Weber),V 0.3,2018-01-09 20:47:19,2017-11-21 23:35:30
+19001123,Dämmerungsdimmer,DALI und Lichtsteuerung,Michael Riedmüller (hx5),V 0.2,2018-01-02 18:11:49,2017-06-26 17:49:45
+19000775,SELECT - Abfrage an eine mysql Datenbank auf einem Server,Datenaustausch,Frank Wartenberg (mywap),V 0.2,2018-01-01 16:56:07,2017-10-02 17:22:31
+19000468,newsapi.org source Daten Einzelausgabe,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2018-01-01 12:34:54,2018-01-01 12:34:54
+19000956,Verzögerung bei Folgetelegrammen,Verzögerung,Winfried Winkler (Winni),V 0.1,2017-12-30 18:49:50,2017-12-30 18:49:50
+19001382,Szenenwahlschalter mit Rücksetzfunktion und Sperrobjekt,DALI und Lichtsteuerung,Marco Wörz (leppenraub),V 0.1,2017-12-21 09:52:22,2017-12-20 07:57:39
+19001380,8-fach Multiplikator,Math. Grundfunktionen,Marco Wörz (leppenraub),V 0.1,2017-12-21 09:51:34,2017-12-20 07:47:29
+19001370,SunSpec Wechselrichter ModbusTCP,Kommunikation,Zöller Martin (marzoel),V 0.1,2017-12-07 21:07:13,2017-12-06 19:35:51
+19000420,MPD Client,Audio,Hansjörg Pirpamer (hapi),V 20170830,2017-12-02 15:25:22,2016-07-03 00:00:00
+19000425,Denon KNX -Adapter für Denon AVR LBS19000199,Home Entertainment,Hansjörg Pirpamer (hapi),V 20171202,2017-12-02 15:08:44,2017-10-29 14:51:48
+19000421,Multiroom Player Steuerung,Audio,Hansjörg Pirpamer (hapi),V v21071202,2017-12-02 14:38:54,2016-07-01 00:00:00
+19001261,PREG_MATCH: Durchsucht Zeichenketten mit regulären Ausdrücken (RegExp),Textfunktionen,Bewersdorff Mike (Glotzkowski),V 0.1,2017-11-23 19:13:28,2017-11-23 19:13:28
+19001186,Passwort Wechsel,Weitere Bausteine,Thomas Willi (twi127),V 0.1,2017-11-16 20:15:00,2017-11-16 20:14:49
+19000117,Zeit mit Offset adjustieren,Zeit-Funktionen,Carsten Milzarek (saegefisch),V 0.3,2017-11-14 01:57:58,2016-11-01 00:00:00
+19000116,Wert 0-100% oder 0-255 auf PWM,Wandler,Carsten Milzarek (saegefisch),V 0.2,2017-11-14 01:57:18,2016-10-21 20:59:40
+19000115,Heizungsregelung,Heizung-Lueftung-Klima,Carsten Milzarek (saegefisch),V 0.2,2017-11-14 01:56:36,2016-10-21 20:59:36
+19000114,Temperatur-Sollwert nach Betriebsmodus,Heizung-Lueftung-Klima,Carsten Milzarek (saegefisch),V 0.2,2017-11-14 01:55:21,2016-10-21 20:59:32
+19000113,PID-Regler (generisch),Regler,Carsten Milzarek (saegefisch),V 0.2,2017-11-14 01:54:38,2016-10-21 20:59:28
+19000112,Astro-ZSU,Zeit-Funktionen,Carsten Milzarek (saegefisch),V 0.3,2017-11-14 01:54:05,2016-11-01 00:00:00
+19000111,"Auslesen der System-Temeraturen (CPU, MB,...)",Weitere Bausteine,Carsten Milzarek (saegefisch),V 1.1,2017-11-14 01:52:46,2016-09-26 22:26:48
+19000090,Strom Verbrauchsstatistik,Zähler,Armin Bock (Wagoklemme),V 1.3,2017-11-04 09:45:47,2016-09-18 11:20:34
+19001330,Iskra MT681 auslesen,Zähler,Blößl Dirk (s01iD),V 0.1,2017-11-01 14:26:26,2017-11-01 14:25:40
+19000971,Russound Addon zu 19000719,Home Entertainment,Hartwig Mattes (hartwigm),V 0.3,2017-11-01 12:31:32,2017-02-27 17:31:54
+19001179,Taster Auf/Stopp/Ab,Auswahlschalter,Michael Riedmüller (hx5),V 1,2017-10-19 13:42:27,2017-10-05 16:15:12
+19000951,ONVIF Kamerasteuerung,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2017-10-12 07:07:58,2017-10-12 07:07:58
+19000559,Exec,Ohne,Michael Werski (wintermute),V 0.1,2017-10-11 16:38:25,2017-10-11 16:38:10
+19001114,Doppel-Statusbyte Auswerter,Bit und Byte,Roy Henning (royrobson),V 0.1,2017-10-08 19:41:14,2017-10-08 19:41:14
+19001290,Datenauslesung einer D0 Schnittstelle,Zähler,Klobucaric Gernot (murelli146),V 1.01,2017-10-04 21:39:42,2017-10-04 21:22:12
+19000890,Feiertagsberechnung,HS-Allgemein,Waleri (juliawf),V 1.0,2017-10-04 12:53:52,2017-01-06 01:15:33
+19001090,ekey-FingerID zu Klartext,Textfunktionen,Johannes Häfner (johannes2912),V 0.1,2017-09-17 23:12:05,2017-09-17 22:42:28
+19000866,24-fach Vergleicher,Vergleicher,Maximilian Haase (MaxH),V 1.0,2017-09-15 11:14:38,2017-09-15 11:14:19
+19001175,SaveInFile,Datenaustausch,Michael Riedmüller (hx5),V 0.1,2017-09-13 16:03:46,2017-09-13 13:40:35
+19000457,FritzBox Rückwärtssuche,Kommunikation,Winfried Winkler (Winni),V 0.3,2017-09-13 08:37:25,2016-11-16 12:21:07
+19000929,HM-RC-Key4-2 Fernbedienung zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2017-09-11 21:31:16,2017-08-24 20:32:16
+19001174,Vergleicher Plus,Math. Funktionen,Michael Riedmüller (hx5),V 1,2017-09-11 11:12:23,2017-09-05 23:35:06
+19001250,HM-Sec-RHS Fensterkontakt zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.01,2017-09-10 19:12:11,2017-08-24 20:55:05
+19001113,Umwandlung eines Bytes in die einzelnen Bits sowie Statusausgabe als String.,Bit und Byte,Roy Henning (royrobson),V 0.1,2017-09-07 22:50:42,2017-09-07 22:39:27
+19000575,Übersetzt Icon Code aus WU-Bausteinen in WI Zeichen,Wetter,Frank Wartenberg (mywap),V 0.2,2017-09-07 22:01:35,2016-12-06 00:00:00
+19000350,SML-Reader für eHZ,Zähler,toggle (toggle),V 1.3,2017-08-27 13:56:45,2016-11-08 00:00:00
+19000182,Fronius Wechselrichter by RD,Weitere Bausteine,Deckard Rick (rdeckard),V 1.2,2017-08-26 12:30:04,2016-03-06 00:00:00
+19000180,Termin Reminder by RD,Alarmierung,Deckard Rick (rdeckard),V 1.1,2017-08-26 12:29:13,2016-03-06 00:00:00
+19000868,Rechnet Hex-Werte in Dez-Werte um,Wandler,Maximilian Haase (MaxH),V 1.0,2017-08-25 17:07:17,2016-12-29 20:47:31
+19000572,Alarmierung zu Terminserien mit Sortierung und Warnung,Alarmierung,Frank Wartenberg (mywap),V 2.0,2017-08-25 02:07:55,2016-10-03 00:00:00
+19001252,HM-Universal-LBS zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2017-08-24 23:05:23,2017-08-24 21:39:50
+19001251,HM-Sec-Key-S Motorschloss zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2017-08-24 23:05:15,2017-08-24 21:14:45
+19000928,HM-PBI-4-FM Tasterschnittstelle zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2017-08-24 23:04:57,2017-08-24 20:18:53
+19000927,HM-Sec-SC-2 Türkontakt zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2017-08-24 23:04:51,2017-08-24 19:39:11
+19000926,HM-WDS100 Wetterstation zu 19000925,Homematic,Klobucaric Gernot (murelli146),V 1.00,2017-08-24 23:04:45,2017-08-24 19:10:17
+19000541,Yamaha Netzwerksteuerung,Home Entertainment,Philip Dachs (dachsei),V 0.1,2017-08-24 21:33:49,2016-12-17 20:41:45
+19000540,Easy Sonos,Home Entertainment,Philip Dachs (dachsei),V 1.1,2017-08-24 21:15:07,2016-12-23 13:36:36
+19000922,Varta Strom-Speichersystem auslesen.,Lastmanagement,Klobucaric Gernot (murelli146),V 1.01,2017-08-24 16:34:15,2017-07-20 11:19:59
+19001240,Internet Speedtest,Netzwerk,Fechtig Horst (Lunix1983),V 1.0,2017-08-20 12:52:09,2017-08-20 12:44:52
+19000904,Fritzbox Internet Monitor,Netzwerk,Sven Brunnet (futschikago),V 0.2,2017-08-15 16:34:03,2017-08-14 12:07:59
+19000380,DPT3 Dimmer / Regler,Regler,Wolfgang Sinz (woda),V 1.2,2017-08-14 20:02:57,2017-08-14 20:01:22
+19001112,Allgemeiner Vergleich 2,Vergleicher,Roy Henning (royrobson),V 0.1,2017-08-12 10:01:11,2017-08-04 15:08:41
+19001170,Wechselschalter,Gatter,Michael Riedmüller (hx5),V 0.1,2017-08-04 15:31:41,2017-07-14 22:37:17
+19001172,Kreuzschalter,Gatter,Michael Riedmüller (hx5),V 0.1,2017-08-04 15:31:33,2017-07-27 20:48:44
+19001120,Werteingrenzer,Filter,Michael Riedmüller (hx5),V 0.4,2017-08-02 21:14:46,2017-06-13 22:32:18
+19000932,Tankerkönig Abrage mit Stations IDs,Webservice,Stefan Ladisch (MrIcemanLE),V 0.1,2017-08-02 09:34:49,2017-04-27 14:31:24
+19000708,relative in absolute Luftfeuchtigkeit  umrechnen,Heizung-Lueftung-Klima,Yves Schumann (starwarsfan),V 1.0,2017-07-31 19:06:18,2017-07-31 12:58:52
+19001037,Nur Größer/Kleiner,Filter,Michael Pattison (gulp2k),V 0.1,2017-07-31 12:49:19,2017-07-31 12:49:13
+19001180,"DMX Artnet-Interface, 24 Kanäle",DALI und Lichtsteuerung,Thomas Willi (twi127),V 0.1,2017-07-20 22:01:41,2017-07-20 21:42:41
+19001127,String zu Ganzzahl/Ganzzahl zu String,Wandler,Michael Riedmüller (hx5),V 0.1,2017-07-18 16:02:58,2017-07-06 12:13:06
+19001110,Mondstand VisuPosition,Astro,Roy Henning (royrobson),V 0.4,2017-07-16 16:24:49,2017-06-13 11:05:33
+19000424,Russound RNET,Audio,Hansjörg Pirpamer (hapi),V 0.02,2017-07-16 11:04:10,2017-02-17 07:43:07
+19001160,S0-Auswertung,Zähler,Christoph Puderbach (chris15),V 0.2,2017-07-11 14:27:52,2017-07-11 14:24:35
+19001150,2-Bit Ausgangsschalter,Auswahlschalter,Thorsten Hörmann (Thorsten1970),V 0.1,2017-07-07 22:43:19,2017-07-07 22:33:07
+19001111,ABB VAA/S X.230.2.1 Statusbyte (0.1),Heizung-Lueftung-Klima,Roy Henning (royrobson),V 0.1,2017-07-07 22:04:59,2017-07-07 14:16:36
+19000482,0-100 in 1 Byte (hex) für HSV umwandeln,Wandler,S. Tim (Crimson),V 1.0,2017-07-06 13:16:22,2017-07-06 13:16:22
+19000481,Nimmt einen HSV entgegen und gibt  H/S/V aus.,Wandler,S. Tim (Crimson),V 1.0,2017-07-06 13:07:35,2017-07-06 13:07:35
+19001145,Momentanverbrauch,Zähler,Thorsten Gehrig (ThorstenGehrig),V 0.1,2017-07-02 21:21:27,2017-07-02 21:20:57
+19001143,Wertausloeser mit Reset,Weitere Bausteine,Thorsten Gehrig (ThorstenGehrig),V 1.0,2017-06-28 18:44:45,2017-06-28 18:44:13
+19001144,Strings verbinden 21-fach	mit Leeren paketen,Wandler,Thorsten Gehrig (ThorstenGehrig),V 1.0,2017-06-28 18:40:51,2017-06-28 18:40:51
+19001142,Wind in Bezeichnung,Wetter,Thorsten Gehrig (ThorstenGehrig),V 1.0,2017-06-28 13:24:41,2017-06-28 13:24:31
+19001140,Helligkeitswert Tag/Nacht,Regler,Thorsten Gehrig (ThorstenGehrig),V 0.1,2017-06-25 14:41:51,2017-06-24 22:43:08
+19000934,Wertauslöser binär,Gatter,Stefan Ladisch (MrIcemanLE),V 0.1,2017-06-20 11:46:43,2017-05-16 13:04:07
+19000094,Teile eines Strings ersetzen,Textfunktionen,Armin Bock (Wagoklemme),V 0.1,2017-06-19 20:55:25,2017-06-19 20:55:25
+19001061,Adventswochen,Zeit-Funktionen,Philipp Drewes (phili),V 0.2,2017-06-17 10:27:26,2017-06-16 09:26:54
+19001043,ermittelt den Verbrauchswert aus der Differenz von Zaehlerstaenden,Zähler,Christian Grosch (ChrisAllgaeu),V 0.1,2017-06-11 12:46:38,2017-06-11 12:46:38
+19001042,berechnet den aktuellen Energieverbrauch eines Hauses,Zähler,Christian Grosch (ChrisAllgaeu),V 0.1,2017-06-11 12:44:32,2017-06-11 12:44:32
+19000100,Betriebsstundenzähler,Zähler,Michael Werski (wintermute),V 0.7,2017-06-08 20:01:37,2016-10-01 23:45:23
+19000706,Fassadenhelligkeitsberechnung,Astro,Yves Schumann (starwarsfan),V 1.0,2017-06-02 19:36:30,2017-06-02 19:36:22
+19000148,Beschattungsparameter,Astro,Yves Schumann (starwarsfan),V 1.5,2017-06-01 22:44:25,2016-11-19 21:58:39
+19000705,Abweichungsdetektor,Alarmierung,Yves Schumann (starwarsfan),V 1.1,2017-05-30 22:54:14,2017-04-24 21:39:04
+19000146,QClock,Zeit-Funktionen,Yves Schumann (starwarsfan),V 1.5,2017-05-30 22:44:55,2016-07-13 09:26:34
+19000144,Siemens RVS61 Statuscodemapping,Heizung-Lueftung-Klima,Yves Schumann (starwarsfan),V 1.3,2017-05-30 22:35:32,2016-07-13 09:26:20
+19000143,Siemens RVS61 Fehlercodemapping,Heizung-Lueftung-Klima,Yves Schumann (starwarsfan),V 1.3,2017-05-30 22:35:15,2016-07-13 09:26:08
+19000141,Beschattungssteuerung,Astro,Yves Schumann (starwarsfan),V 2.13,2017-05-30 22:26:11,2016-11-25 13:45:04
+19000699,R/G/B/W-Werte in RGBW,DALI und Lichtsteuerung,Staud Marco (mars),V 0.1,2017-05-28 16:06:00,2016-12-22 22:02:09
+19000698,RGBW in R/G/B/W-Werte,DALI und Lichtsteuerung,Staud Marco (mars),V 0.1,2017-05-28 16:05:43,2016-12-18 00:00:00
+19000010,UniFi™ Voucher-Generator,Netzwerk,Christian Maurer (ferengi),V 0.1,2017-05-28 10:20:49,2016-01-28 20:57:03
+19000511,Yamaha BD/DVD Feedback Auswertung,Kommunikation,Winfried Winkler (Winni),V 0.1,2017-05-24 08:41:09,2016-12-28 21:37:22
+19000510,Yamaha BD/DVD Behfehls-Pool,Kommunikation,Winfried Winkler (Winni),V   0.1,2017-05-24 08:40:09,2016-12-28 21:33:28
+19000276,Steuerung Yamaha,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2017-05-24 07:25:16,2016-04-04 00:00:00
+19001080,Sleep on Lan,Netzwerk,Martin Ziegler (Brick),V 1.0,2017-05-23 21:38:30,2017-05-23 21:38:30
+19000728,Unifi: WIFI Switch,Netzwerk,Sebastian Kuhn (DerSeppel),V 1.0,2017-05-23 10:20:03,2017-05-23 10:12:43
+19000477,Restzeit-Timer 3-fach seq. nicht retriggerbar,Zeit-Funktionen,Nils Obermiller (nno),V 1.0,2017-05-18 17:00:27,2017-05-18 17:00:27
+19001033,Waterkotte EcoTouch Writer,Heizung-Lueftung-Klima,Michael Pattison (gulp2k),V 0.3,2017-05-16 16:12:56,2017-03-25 20:54:03
+19001030,ModBus TCP Master Read,Modbus,Michael Pattison (gulp2k),V 0.6,2017-05-16 16:10:42,2017-03-02 21:52:49
+19000453,Loggen beliebiger Daten im Logikeditor,Datenaustausch,Winfried Winkler (Winni),V 0.4,2017-05-16 01:10:48,2016-11-06 19:55:34
+19000931,Stringlisten verbinden 10-fach,Listeneingang + Listenausgang,Stefan Ladisch (MrIcemanLE),V 0.1,2017-05-12 15:30:49,2017-01-24 10:13:08
+19001060,Zähler mit Bereichsbeschränkung und loop,Zähler,Philipp Drewes (phili),V 0.1,2017-05-08 12:57:42,2017-05-08 12:54:19
+19000578,Fahrzeitenermittlung / Drive time,Webservice,Frank Wartenberg (mywap),V 0.6,2017-05-01 22:50:47,2017-02-08 01:50:29
+19000521,Klimatische Berechnungen,Wetter,Michael Werski (wintermute),V 0.5,2017-05-01 22:40:37,2016-09-05 00:00:00
+19000474,FRITZ!Box WLAN Info,Netzwerk,Nils Obermiller (nno),V 1.2,2017-04-29 01:12:21,2016-09-14 15:17:05
+19000473,FRITZ!Box WLAN ein- / ausschalten,Netzwerk,Nils Obermiller (nno),V 1.3,2017-04-27 23:37:14,2016-09-14 15:15:09
+19000260,Wettervorhersage mit forecast.io-API,Wetter,Christian (ChristianHS),V 0.1,2017-04-25 08:34:42,2016-03-17 00:00:00
+19000891,Stufenschalter mit 10 Ausgängen,Auswahlschalter,Waleri (juliawf),V 0.7,2017-04-24 19:08:30,2017-01-06 23:55:56
+19000167,Update-Client ddnss.de,Kommunikation,Benjamin Bretz (benji),V 0.1,2017-04-23 11:58:56,2017-04-20 09:15:42
+19000092,Hikvision Alerts,xxAPI,Armin Bock (Wagoklemme),V 0.1,2017-04-21 14:31:29,2016-11-20 00:00:00
+19000770,Flexibler Vergleich zweier Eingänge und setzt einen von zwei Ausgängen auf 1,Vergleicher,Frank Wartenberg (mywap),V 0.1,2017-04-17 16:33:18,2017-04-17 14:48:15
+19000974,Robonect Rasenroboter,Weitere Bausteine,Hartwig Mattes (hartwigm),V 0.4,2017-04-16 13:15:48,2017-04-08 15:54:35
+19000517,LED Simulation wie MDT SCN55,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2017-04-06 08:41:41,2017-04-06 08:41:41
+19000456,Fritzbox Callmonitor,Kommunikation,Winfried Winkler (Winni),V 0.3,2017-03-29 18:43:56,2016-11-24 07:15:36
+19000694,Statusabfrage APC Back-UPS HS 500 (BH500INET),Alarmierung,Staud Marco (mars),V 0.1,2017-03-26 17:18:02,2017-03-26 17:17:22
+19000869,Rechnet Dez-Werte in Hex-Werte um,Wandler,Maximilian Haase (MaxH),V 1.0,2017-03-22 15:49:47,2016-12-29 20:48:15
+19001031,1wire-ownetphp with error handler,1 Wire,Michael Pattison (gulp2k),V 0.2,2017-03-12 14:25:47,2017-03-12 14:25:47
+19000704,Wertumschalter,Gatter,Yves Schumann (starwarsfan),V 1.0,2017-03-04 23:42:26,2017-03-04 23:02:55
+19000972,Json Encode,Ohne,Hartwig Mattes (hartwigm),V 0.1,2017-02-27 17:41:01,2017-02-27 17:38:51
+19000979,Lüften sinnvoll,Regler,Hartwig Mattes (hartwigm),V 0.1,2017-02-27 17:40:49,2017-02-27 17:23:58
+19000897,Mitteltwertbildung  über empfangene Telegramme,Math. Funktionen,Waleri (juliawf),V 0.2,2017-02-24 20:49:38,2017-02-24 11:48:45
+19000140,Impuls/Trigger mit Auswertung des Trigger-Wertes,Zeit-Funktionen,Yves Schumann (starwarsfan),V 1.1,2017-02-23 20:16:53,2016-07-13 09:25:24
+19000205,Squeeze Durchsage,Audio,Michael Werski (wintermute),V 0.5,2017-02-23 17:30:52,2016-03-18 00:00:00
+19000515,FTP Datentransfer,Datenaustausch,Winfried Winkler (Winni),V 0.1,2017-02-21 23:28:41,2017-02-21 23:28:41
+19000895,Baustein für BOSE  SoundTouch,Audio,Waleri (juliawf),V 0.1,2017-02-20 21:53:29,2017-02-20 21:53:08
+19000684,Index aus zehn möglichen Triggern,Auswahlschalter,Tobias Renneke (asto),V 0.1,2017-02-18 13:32:21,2016-12-12 00:00:00
+19000423,Input to conditional output (6),Ohne,Hansjörg Pirpamer (hapi),V 0.01,2017-02-17 07:54:44,2017-02-17 07:54:44
+19000576,Windgeschwindigkeit in Beaufort umrechnen mit Icon,Wetter,Frank Wartenberg (mywap),V 0.2,2017-02-16 21:30:54,2016-12-05 08:41:56
+19000894,Stringsvebinder mit Bedinnung,Webservice,Waleri (juliawf),V 0.1,2017-02-14 23:01:58,2017-02-14 22:54:30
+19000611,Anwesenheitserkennung mit Fritzbox TR64,Alarmierung,Marc Walter (MSW),V 1.0,2017-02-14 19:46:15,2017-02-12 20:36:09
+19000999,Pollenflugprognose,Wetter,Ralph Lautenschläger (Wingfighter),V  0.1,2017-02-13 18:18:47,2017-02-07 19:29:22
+19000991,Date/Time + Offset,Zeit-Funktionen,Ralph Lautenschläger (Wingfighter),V  0.1,2017-02-07 19:54:24,2017-02-07 19:54:13
+19000990,Prozent zu Byte Konverter,Math. Grundfunktionen,Ralph Lautenschläger (Wingfighter),V V 0.1,2017-02-07 19:41:36,2017-02-07 19:41:36
+19000970,Anwesenheit,Weitere Bausteine,Hartwig Mattes (hartwigm),V 0.3,2017-02-06 21:24:40,2017-02-04 16:56:37
+19000980,Junkers KWL AerastarComfort,Heizung-Lueftung-Klima,Lutz Schimmöller (schimmi),V 0.1,2017-02-06 20:05:09,2017-02-06 19:36:09
+19000204,Squeeze ExtInfo,Audio,Michael Werski (wintermute),V 0.1,2017-02-03 13:01:49,2017-02-03 12:58:18
+19000514,adac.de Verkehrsinfo,HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2017-02-01 21:49:01,2017-02-01 21:49:01
+19000513,Abfrage verkehrsinfo.de (Stau / Radar),HS-Webabfragen,Winfried Winkler (Winni),V 0.1,2017-02-01 21:47:39,2017-02-01 21:47:39
+19000747,Dezimalzeit,Zeit-Funktionen,Martin Ziegler (Brick),V 0.1,2017-02-01 15:47:02,2017-02-01 15:47:02
+19000920,Panasonic TV über IP steuern,Home Entertainment,Klobucaric Gernot (murelli146),V 1.1,2017-01-29 16:34:53,2017-01-21 11:38:14
+19000921,LevelJET Füllstandserfassung,Weitere Bausteine,Klobucaric Gernot (murelli146),V 1.0,2017-01-25 21:34:20,2017-01-22 18:52:07
+19000723,NibeUplink API: Parse Parameters 10x,Weitere Bausteine,Sebastian Kuhn (DerSeppel),V 1.0,2017-01-24 16:52:51,2017-01-24 11:25:43
+19000406,Auslesen des XIAOMI Flower Monitor,Ohne,Otterstätter (Panzaeron),V 0.5,2017-01-22 04:44:02,2016-11-06 01:30:00
+19000902,PhilipsTV jointSPACE,Home Entertainment,Sven Brunnet (futschikago),V 0.3,2017-01-21 02:20:25,2017-01-18 20:54:28
+19000630,Pioneer-AVR Control,Home Entertainment,Claußen Lennart (lennartc),V 0.2,2017-01-16 16:47:42,2016-10-18 23:04:42
+19000045,Mondphase ohne Exec,Astro,Armin Bock (Wagoklemme),V 1.1,2017-01-14 13:18:13,2016-02-13 00:00:00
+19000900,Wert Sprung,Math. Funktionen,Sven Brunnet (futschikago),V 0.2,2017-01-14 11:19:09,2017-01-14 11:18:01
+19000745,String Länge,Textfunktionen,Martin Ziegler (Brick),V 0.1,2017-01-11 10:39:27,2017-01-11 10:39:19
+19000129,H/S/V-Regler/Slider nach R/G/B-Dimmer,DALI und Lichtsteuerung,Otterstätter (Panzaeron),V 0.1,2017-01-09 01:27:04,2016-07-08 00:00:00
+19000570,"Bestimmung von Minimum, Maximum und Mittelwert von bis zu 5 Eingängen",Math. Funktionen,Frank Wartenberg (mywap),V 1.1,2017-01-08 01:28:41,2016-09-16 00:00:00
+19000892,Signal Splitter,Gatter,Waleri (juliawf),V 0.1,2017-01-07 00:34:53,2017-01-07 00:10:51
+19000358,Hikvision-Alarmauswertung,Video,toggle (toggle),V 1.0,2016-12-30 13:33:44,2016-12-30 12:17:56
+19000850,DIMPLEX Wäremepumpe,Heizung-Lueftung-Klima,K Andreas (19andy89),V 1.0,2016-12-29 09:16:56,2016-12-29 09:16:56
+19000702,KNX-UF Statistik,Zähler,Yves Schumann (starwarsfan),V 1.1,2016-12-28 22:01:44,2016-12-04 20:16:14
+19000701,Verbrauchswert ermitteln,Zähler,Yves Schumann (starwarsfan),V 1.0,2016-12-28 22:01:23,2016-11-06 00:00:00
+19000147,Min/Avg/Max aus allen Eingängen ermitteln,Math. Funktionen,Yves Schumann (starwarsfan),V 1.0,2016-12-28 21:58:25,2016-09-15 00:00:00
+19000742,Strings verbinden plus 25-fach,Textfunktionen,Martin Ziegler (Brick),V 0.1,2016-12-27 17:04:13,2016-11-22 07:37:58
+19000741,Wandelt 0/1 in z.b Ein/Aus um (10Fach),Wandler,Martin Ziegler (Brick),V 0.1,2016-12-27 17:03:54,2016-11-22 07:36:04
+19000740,Wandelt 0/1 in z.b Ein/Aus um,Wandler,Martin Ziegler (Brick),V 0.1,2016-12-27 17:03:46,2016-11-22 07:35:32
+19000744,Akt. Verbrauchszähler,Zähler,Martin Ziegler (Brick),V 0.3,2016-12-27 14:30:50,2016-11-29 00:00:00
+19000069,Zu einer Zeit hh:mm wird ein Wert add/sub je nach Trigger,Zeit-Funktionen,Hartmut  (Hartmut),V 0.1,2016-12-27 00:00:00,2016-12-12 00:00:00
+19000005,iTunes & AirPlay  |  JSON  |  AirPlay,Audio,Dariusz Salzer (coliflower),V 0.1.0,2016-12-27 00:00:00,2016-05-15 09:09:31
+19000006,iTunes & AirPlay | JSON | Equalizer,Audio,Dariusz Salzer (coliflower),V 0.1.0,2016-12-27 00:00:00,2016-05-15 09:09:00
+19000003,iTunes & AirPlay  |  JSON  |  Track,Audio,Dariusz Salzer (coliflower),V 0.1.1,2016-12-27 00:00:00,2016-05-15 09:01:20
+19000001,iTunes & AirPlay  |  JSON  |  Server,Audio,Dariusz Salzer (coliflower),V 0.1.1,2016-12-27 00:00:00,2016-05-15 08:54:11
+19000061,Sonnenaufgang / Sonnenuntergang,Astro,Hartmut  (Hartmut),V 1.2,2016-12-27 00:00:00,2016-02-21 00:00:00
+19000840,Zähler delta rauf runter,Zähler,Michael (elektrowurm),V 0.1,2016-12-26 00:00:00,2016-12-26 19:48:24
+19000697,"""stufenweises Überblenden"" vom Start- zum Zielwert (Dimmer, Laustärke ...)",Zeit-Funktionen,Staud Marco (mars),V 0.5,2016-12-26 00:00:00,2016-12-11 00:00:00
+19000692,Empfang von Statusmeldungen der Buderus EMS-Steuerung,Heizung-Lueftung-Klima,Staud Marco (mars),V 0.2,2016-12-26 00:00:00,2016-11-17 00:00:00
+19000693,Statustext aus Error- und Servicecode von LBS19000692,Heizung-Lueftung-Klima,Staud Marco (mars),V 0.1,2016-12-26 00:00:00,2016-11-17 00:00:00
+19000695,ganzzahlige Division und Rest (DIV und MOD),Math. Funktionen,Staud Marco (mars),V 1.0,2016-12-26 00:00:00,2016-11-07 21:07:18
+19000830,Gradientenfunktion,Zeit-Funktionen,Vitali Bitykov (DolcheVita),V 1.0,2016-12-25 23:45:36,2016-12-25 23:42:33
+19000577,DVBLink EPG Reader,Home Entertainment,Frank Wartenberg (mywap),V 0.2,2016-12-20 23:44:25,2016-12-20 23:44:25
+19000560,Wertauslöser inkl. 0,Weitere Bausteine,Christoph Spiegel (MrMirror),V 0.11,2016-12-12 17:04:58,2016-12-12 17:04:58
+19000574,Zufallszeit in einem bestimmten Zeitraum,Zeit-Funktionen,Frank Wartenberg (mywap),V 0.2,2016-11-29 21:29:35,2016-11-29 21:29:35
+19000093,Universalzähler,Zähler,Armin Bock (Wagoklemme),V 0.3,2016-11-25 15:59:25,2016-11-25 15:59:25
+19000750,Gerade/Ungerade Ermitteln,Math. Funktionen,Paulus Reiner (urknall),V 1.1,2016-11-24 00:00:00,2016-11-24 00:00:00
+19000461,Erkennung der Sprache eines Strings,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2016-11-21 00:00:00,2016-11-21 00:00:00
+19000730,Simpler Base64 Decoder,Textfunktionen,Stefan Pfützner (pfischi),V 0.1,2016-11-18 00:00:00,2016-11-18 00:00:00
+19000681,Wasserenthärtungsanlage Syr Lex / LimexIQ,Weitere Bausteine,Tobias Renneke (asto),V 0.1,2016-11-16 22:41:15,2016-11-16 22:41:15
+19000682,Abfrage Luxtronik 2.0 Wärmepumpen,Heizung-Lueftung-Klima,Tobias Renneke (asto),V 0.1,2016-11-16 22:40:39,2016-11-16 22:40:39
+19000210,NIBE Uplink,Ohne,Frank Endt (basaltnischl),V 1.1,2016-11-11 10:47:16,2016-11-11 10:47:16
+19000720,Rolladen Fahrt/Stop,Jalousie-Rolladen-Trennwand,Sebastian Kuhn (DerSeppel),V 0.5,2016-11-09 00:00:00,2016-11-09 00:00:00
+19000152,Zeitvergleich,Zeit-Funktionen,Michael Werski (wintermute),V 0.4,2016-11-04 23:43:01,2016-11-04 23:43:01
+19000118,Wert vergleichen mit bis zu 10 VglWerten -> korrespond. 10 Trigger-Ausgänge.,Vergleicher,Carsten (saegefisch),V 0.1,2016-11-01 02:37:30,2016-11-01 02:37:30
+19000431,Division 4 Werte / 1 Wert,Ohne,Lynn Bayer (LynnBayer),V 0.1,2016-10-31 00:00:00,2016-10-31 00:00:00
+19000273,Eingang auf einen von 10 Ausgängen,Auswahlschalter,Winfried Winkler (Winni),V 0.2,2016-10-29 20:46:22,2016-10-29 20:46:22
+19000621,"Zählt Boolsche Werte, 8 Eingänge",Zähler,Strüber Steffen (steffen79),V 0.1,2016-10-24 13:51:33,2016-10-24 13:51:33
+19000338,Vergleicher 10fach,Vergleicher,Winfried Winkler (Winni),V  0.1,2016-10-23 21:39:07,2016-10-23 21:39:07
+19000349,Entprellung / Stabilisierung,Verzögerung,Winfried Winkler (Winni),V 0.2,2016-10-23 21:33:12,2016-10-23 21:33:12
+19000458,Wertauslöser plus,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2016-10-23 00:00:00,2016-10-23 00:00:00
+19000459,Filter von Signalen,Filter,Winfried Winkler (Winni),V 0.1,2016-10-23 00:00:00,2016-10-23 00:00:00
+19000620,1wire-ownetphp,1 Wire,Strüber Steffen (steffen79),V 0.1,2016-10-17 00:00:00,2016-10-17 00:00:00
+19000405,eHZ Elster AS1440 auslesen,Zähler,Otterstätter (Panzaeron),V 0.1,2016-10-10 21:10:34,2016-10-10 21:10:34
+19000610,Comfoair 350,Heizung-Lueftung-Klima,Marc Walter (MSW),V 1.0,2016-10-09 00:00:00,2016-10-09 00:00:00
+19000475,"String: KO-Werte einsetzen, deaktivierbar, mit separatem Trigger",Textfunktionen,Nils Obermiller (nno),V 1.0,2016-09-26 00:00:00,2016-09-26 00:00:00
+19000476,String-Weitergabe mit Bedingung,Textfunktionen,Nils Obermiller (nno),V 1.0,2016-09-26 00:00:00,2016-09-26 00:00:00
+19000396,Android-Apps mit dem Kiosk Browser von der EDOMI Visu aus starten,Ohne,Otterstätter (Panzaeron),V 0.1,2016-09-23 23:39:46,2016-09-23 23:39:46
+19000590,Levenshtein,Textfunktionen,Feld Joshua (JustJofe),V 0.0.2,2016-09-18 10:09:06,2016-09-18 10:09:06
+19000472,Laufzeit in Sekunden,Zeit-Funktionen,Nils Obermiller (nno),V 1.0,2016-09-16 00:00:00,2016-09-16 00:00:00
+19000522,Fuzzy Uhrzeit,Zeit-Funktionen,Michael Werski (wintermute),V 0.2,2016-09-15 11:21:02,2016-09-15 11:21:02
+19000157,Laufzeitüberwachung,Lastmanagement,Michael Werski (wintermute),V 0.1,2016-09-13 01:43:08,2016-09-13 01:43:08
+19000082,SENEC Home Abfrage per HTTP,Ohne,Stephan Schuler (steph),V 1.0,2016-09-09 10:43:58,2016-09-09 10:43:58
+19000221,Prio Wertauslöser,Filter,Esders Bernhard (bernsen),V 0.2,2016-08-28 14:55:45,2016-08-28 14:55:45
+19000155,Behaglichkeitsfeld nach Frank,Heizung-Lueftung-Klima,Michael Werski (wintermute),V 0.6,2016-08-20 22:19:36,2016-08-20 22:19:36
+19000520,Überprüfung auf gültige Uhrzeit,Zeit-Funktionen,Michael Werski (wintermute),V 0.1,2016-08-19 00:00:00,2016-08-19 00:00:00
+19000471,Restzeit-Timer 2-fach seq. nicht retriggerbar,Zeit-Funktionen,Obermiller Nils (nno),V 1.1,2016-08-18 09:40:10,2016-08-18 09:40:10
+19000107,Liste zerlegen,Weitere Bausteine,Michael Werski (wintermute),V 0.2,2016-08-13 02:08:11,2016-08-13 02:08:11
+19000480,Auf eine Uhrzeit einen Wert addieren/subtrahieren,Zeit-Funktionen,S. Tim (Crimson),V 0.1,2016-08-06 13:34:29,2016-08-06 13:34:29
+19000470,Restzeit-Timer nicht retriggerbar,Zeit-Funktionen,Obermiller Nils (nno),V 1.0,2016-08-03 00:00:00,2016-08-03 00:00:00
+19000345,Aufbau Verbrauchsstatistik,Weitere Bausteine,Winfried Winkler (Winni),V 0.2alpha,2016-07-29 08:02:17,2016-07-29 08:02:17
+19000440,Byte zu Prozent Konverter,Math. Grundfunktionen,Müller (Sven),V 0.1,2016-07-24 17:21:18,2016-07-24 17:21:18
+19000346,Ausgabe Verbrauchsstatistik,Weitere Bausteine,Winfried Winkler (Winni),V 0.1alpha,2016-07-15 12:23:05,2016-07-15 12:23:05
+19000344,Detailinfo Tankerkönig Tankstelleninformation,HS-Webabfragen,Winfried Winkler (Winni),V 0.2,2016-07-07 00:00:00,2016-07-07 00:00:00
+19000430,Datenarchiv: Mittelwert/Min/Max/Sum,Math. Funktionen,Lynn Bayer (LynnBayer),V 0.1,2016-07-04 00:00:00,2016-07-04 00:00:00
+19000166,Wert suchen und ersetzen,Weitere Bausteine,Benjamin Bretz (benji),V 0.1,2016-06-02 00:00:00,2016-06-02 00:00:00
+19000161,Abfrage Stiebel Eltron ISG Info,Datenaustausch,Benjamin Bretz (benji),V 1.1,2016-05-31 08:35:08,2016-05-31 08:35:08
+19000160,Abfrage Stiebel Eltron ISG Prozess,Datenaustausch,Benjamin Bretz (benji),V 1.0,2016-05-31 00:00:00,2016-05-31 00:00:00
+19000360,Wertbegrenzer,Math. Funktionen,Michael Werski (wintermute),V 0.1,2016-05-12 17:11:39,2016-05-12 17:11:39
+19000335,Codeschloss,Weitere Bausteine,Winfried Winkler (Winni),V 0.1beta,2016-04-28 00:00:00,2016-04-28 00:00:00
+19000336,DPT5.001 Hilfe 0...100%,Ohne,Winfried Winkler (Winni),V 0.1,2016-04-28 00:00:00,2016-04-28 00:00:00
+19000320,"wetter.com Abfrage, 3 Tage (mit Denro One Unterstützung)",Wetter,Michael Werski (wintermute),V 0.3,2016-04-24 00:00:00,2016-04-24 00:00:00
+19000333,Ausführung beliebger PHP-Routinen auf Eingangswerten,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2016-04-19 00:00:00,2016-04-19 00:00:00
+19000310,Übersetzung interne/externe Darstellung von Werten,Auswahlschalter,Winfried Winkler (Winni),V 0.1,2016-04-13 00:00:00,2016-04-13 00:00:00
+19000311,Wert(e) in anderen Wert umsetzen,Textfunktionen,Winfried Winkler (Winni),V 0.1,2016-04-13 00:00:00,2016-04-13 00:00:00
+19000240,Vergleicht zwei Eingänge miteinander,Vergleicher,Marcus Achilles (tunneltruppe),V 1.0,2016-04-10 00:00:00,2016-04-10 00:00:00
+19000271,Bilder von Remote URL lokal kopieren,Weitere Bausteine,Winfried Winkler (Winni),V 0.1,2016-03-24 00:00:00,2016-03-24 00:00:00
+19000203,Squeeze Display,Audio,Michael Werski (wintermute),V 0.1,2016-03-18 00:00:00,2016-03-18 00:00:00
+19000222,Prio Binärauslöser,Filter,Esders Bernhard (bernsen),V 0.1,2016-03-18 00:00:00,2016-03-18 00:00:00
+19000154,Konkatenation,Textfunktionen,Michael Werski (wintermute),V 0.1,2016-03-14 00:00:00,2016-03-14 00:00:00
+19000159,Brainf*ck Interpreter,Ohne,Michael Werski (wintermute),V 0.1,2016-03-11 00:00:00,2016-03-11 00:00:00
+19000211,Addition 8fach,Math. Grundfunktionen,Frank Endt (basaltnischl),V 1.0,2016-03-02 00:00:00,2016-03-02 00:00:00
+19000212,Addition 4fach,Math. Grundfunktionen,Frank Endt (basaltnischl),V 1.0,2016-03-02 00:00:00,2016-03-02 00:00:00
+19000108,CPU Statistiken,Weitere Bausteine,Michael Werski (wintermute),V 0.2,2016-02-21 00:00:00,2016-02-21 00:00:00
+19000102,XBMC/KODI Script Switch,Weitere Bausteine,Michael Werski (wintermute),V 0.2,2016-02-16 00:00:00,2016-02-16 00:00:00
+19000046,Wochentaglister erzeugt ab Datum 7 Wochentagsnummern + Datum,Wetter,Armin Bock (Wagoklemme),V 1.0,2016-02-12 00:00:00,2016-02-12 00:00:00
+19000047,Aussentemperaturabhängige Vorlauftemperaturermittlung,Heizung-Lueftung-Klima,Armin Bock (Wagoklemme),V 1.0,2016-02-12 00:00:00,2016-02-12 00:00:00
+19000048,16Bits -> Word macht aus 16Bits ein word,Modbus,Armin Bock (Wagoklemme),V 1.0,2016-02-12 00:00:00,2016-02-12 00:00:00
+19000049,2 Byte -> 16 Bits Punktgetrennte Bytes werden in 16 Bits aufgetrennt,Bit und Byte,Armin Bock (Wagoklemme),V 1.0,2016-02-12 00:00:00,2016-02-12 00:00:00
+19000040,Wettervorhersage,Wetter,Armin Bock (Wagoklemme),V 1.1,2016-02-01 00:00:00,2016-02-01 00:00:00
+19000041,Modbus Float lesen (wago oder andere),Modbus,Armin Bock (Wagoklemme),V 1.0,2016-02-01 00:00:00,2016-02-01 00:00:00
+19000043,1Byte → 8Bit,Bit und Byte,Armin Bock (Wagoklemme),V 1.0,2016-02-01 00:00:00,2016-02-01 00:00:00
+19000044,Modbus Word → 16-Bit,Modbus,Armin Bock (Wagoklemme),V 1.0,2016-02-01 00:00:00,2016-02-01 00:00:00
+19000042,ODER-Gatter16x Eing.,Gatter,Armin Bock (Wagoklemme),V 1.0,2016-01-31 00:00:00,2016-01-31 00:00:00
+19000050,8-Bit / Bits = 1 zaehlen,Math. Funktionen,Fritz Egmont (Monti),V 1.0,2016-01-31 00:00:00,2016-01-31 00:00:00

@@ -1,0 +1,27 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Build artifacts (populated from Phase 3 on)
+dist/
+build/
+node_modules/
+*.log
+
+# Local secrets & environments — never commit
+.env
+.env.*
+*.key
+*.pem
+
+# Scratch
+tmp/
+scratch/
+
+# Interne EDOMI-Verhaltensbeobachtungen (Black-Box) — NICHT veroeffentlichen
+research/
+__pycache__/
+*.pyc

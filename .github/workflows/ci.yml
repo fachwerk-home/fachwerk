@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  hygiene:
+    name: Repo hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run repo checks
+        run: bash tools/check-repo.sh
+
+  bus-simulator:
+    name: Bus-Simulator (M1) self-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: KNXnet/IP tunneling handshake self-test
+        run: python selftest.py
+        working-directory: tools/bus-simulator
+
+  # Placeholder jobs — activated as soon as the respective phase delivers code.
+  # build:   core/drivers/ui compile + unit tests   (Phase 3)
+  # container: image build + smoke test             (Phase 3)
+  # sim:     logic acceptance tests vs KNX simulator (Phase 4)
