@@ -28,11 +28,26 @@ zwischen Treibern (Bus/Fremdsysteme), Logik und Visualisierung.
   **semantischen** Wert): Minimum/Maximum, Raster (Quantisierung), Nachkommastellen, Wertliste.
 - **Darstellungs-Format** (nur Anzeige, verändert den Wert NICHT — ADR-0011, FMT-4): der
   Datenpunkt ist die **Heimat** des Formats (Power-BI-Prinzip „einmal setzen, überall gleich").
-  Deklarative Felder statt Formel: `einheit` · `dezimalstellen` · `skalierung`/`offset`
-  (Roh→Anzeige) · `tausendertrenner` · `enum-map` (Wert→Text) · `bool-map` (true/false→Text/
-  Icon). Element und Platzierung (Breakpoint) dürfen einzelne Aspekte überschreiben
-  (Kaskade Datenpunkt → Element → Platzierung, siehe SPEC-003 R-10 / ADR-0010 L-1). Der
-  Roh-/Semantikwert (Logik, Archive, Bus) bleibt davon unberührt.
+  Element und Platzierung (Breakpoint) dürfen einzelne Aspekte überschreiben (Kaskade
+  Datenpunkt → Element → Platzierung, siehe SPEC-003 R-10 / ADR-0010 L-1). Der Roh-/
+  Semantikwert (Logik, Archive, Bus) bleibt unberührt. Deklarative **Felder** je Typ:
+
+  | Typ | Format-Felder |
+  |---|---|
+  | **Zahl** | `einheit` (Suffix) · `praefix` · `dezimalstellen` · `skalierung`+`offset` (linear Roh→Anzeige) · `tausendertrenner` · `leerwert` |
+  | **Bool** | `bool-map` {true→Text/Icon, false→Text/Icon} · `leerwert` |
+  | **Enum** | `enum-map` {wert→Text/Icon, …} · `fallback` (unbekannter Wert) · `leerwert` |
+  | **String** | `praefix`/`suffix` · `max_laenge`+`ellipsis` · `leerwert` |
+  | **Zeit/Datum** | `muster` (Preset `HH:mm`/`dd.MM.yyyy`/`dd.MM. HH:mm` oder eigenes) · `modus` absolut/relativ · `leerwert` |
+
+  **Wichtige Abgrenzung:** `dezimalstellen` (Format) rundet nur die **Anzeige**; die
+  `decimals`-Quantisierung unter Filter/Normalisierung rundet den **gespeicherten** Wert.
+  Beide existieren, die UI benennt sie getrennt („Anzeige-Nachkommastellen" vs. „Wert
+  quantisieren"). **Bool** ist intern ein 2-Werte-Enum (`bool-map` ist der bequeme
+  Sonderfall). **Skalierung** wird kanonisch als `skalierung`(Faktor)+`offset` gespeichert;
+  der Editor bietet einen Helfer „von Rohbereich [a..b] auf [c..d]" (rechnet den Faktor aus).
+  Für echte Komposition steht optional die Ausdruck-Teilmenge bereit (FMT-3, SPEC-003 R-10);
+  auf Datenpunkt-Ebene darf ein Ausdruck nur `#` (self) referenzieren, nie `#{andere}`.
 - **`protected`** — Klasse für Schlösser/Alarm/Tore/Zutritt: nie durch Agenten oder
   Bausteine schreibbar, Freigabe nur über Admin-Rolle (Plan § 4.2, ADR-0008/0009).
 - **Typvalidierung:** Eingehende Werte werden gegen den Typ geprüft; Abweichungen sind
@@ -43,9 +58,10 @@ zwischen Treibern (Bus/Fremdsysteme), Logik und Visualisierung.
 
 - Datenpunkt-Schema (JSON) mit: key, name, klasse, typ, initial, remanent,
   filter{min,max,raster,decimals,valuelist},
-  format{einheit,dezimalstellen,skalierung,offset,tausendertrenner,enum-map,bool-map},
-  protected, notizen.
+  format{…typabhängige Felder gem. Tabelle…}, protected, notizen.
 - Format-Kaskade greift wie spezifiziert (Datenpunkt-Default, ohne Element-/Platzierungs-
   Override); Roh-/Semantikwert bleibt unverändert.
+- Abgrenzungstest: Format-`dezimalstellen` ändert nur die Anzeige, Filter-`decimals` ändert
+  den gespeicherten Wert — beide unabhängig wirksam.
 - Round-trip-Test: anlegen → Wert setzen → lesen → Filter/Validierung greifen wie
   spezifiziert.

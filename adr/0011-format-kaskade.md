@@ -82,5 +82,8 @@ nie den gespeicherten oder auf den Bus geschriebenen Wert.
 - **Kosten/Risiken:** Kaskaden-Auflösung + kontextsensitive UI („dieser Wert wird als … über
   den Datenpunkt-Default angezeigt; hier abweichen?") sauber bauen. Ausdruck-Teilmenge eng
   halten, damit sie nicht zur zweiten Programmiersprache wächst.
-- **Offen:** genaue Feldliste je Datentyp (Zahl/Bool/Enum/String/Zeit) und die formale
-  Grammatik der Ausdruck-Teilmenge — vor Implementierung in SPEC-001/003 festklopfen.
+- **Geklärt (2026-07-13):** Feldliste je Datentyp (Zahl/Bool/Enum/String/Zeit) → SPEC-001;
+  Ausdruck-Teilmenge (Template-Text mit `{…}`-Löchern, `concat()` fürs Textkleben, feste
+  Funktions-Whitelist, pur/total, kein `now()`/`eval`) inkl. formaler Grammatik → SPEC-003
+  Anhang A. Abgrenzung Format-`dezimalstellen` (Anzeige) vs. Filter-`decimals` (Wert)
+  ebenfalls in SPEC-001 festgehalten.

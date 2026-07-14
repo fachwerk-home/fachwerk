@@ -81,6 +81,8 @@ z. B. Tablet 1 Nachkommastelle, Smartphone ganzzahlig. Alles über **Felder**, k
 im Normalfall. Für echte Komposition (Textverkettung, bedingter Text) gibt es eine kleine,
 dokumentierte Ausdruck-Teilmenge als Fluchtweg (FMT-3) — bewusster Gegenentwurf zur „für
 alles ein Template"-Kritik. Format wirkt nur auf die Anzeige, nie auf den Semantikwert.
+Ausdruck-Teilmenge = **Template-Text mit `{…}`-Löchern** (Text außen literal, Ausdruck im
+Loch), `concat(...)` fürs Textkleben, feste kleine Funktionsliste — Details im **Anhang A**.
 
 ### R-11: Struktur — Gruppen/Ebenen und Seitentypen
 Elemente in **Gruppen** (benannte Layer/Container) organisierbar, mit Ebenenreihenfolge
@@ -102,3 +104,46 @@ direkt an Elementen konfigurierbar.
 
 Visueditor-Elementtypen und Bindungsmodell als Zielkatalog ausarbeiten (F-1…F-5), analog zum
 Vorgehen bei KO-Modell/Logikeditor). Danach Elementtypen-Zielkatalog für Fachwerk v1.
+
+## Anhang A: Ausdruck-Teilmenge für Format-Templates (ADR-0011 FMT-3)
+
+Der Fluchtweg für Formatierung, wenn die Felder (R-10 / SPEC-001) nicht reichen. Bewusst
+klein, **pur** (keine Seiteneffekte) und **total** (Fehler → definierter Fallback, nie
+Crash). Kein `now()`/Zufall, kein `eval` (eigener Parser), Auswertung nur bei Wertänderung.
+
+**Fläche = Template-Text mit Löchern.** Text außerhalb `{…}` ist literal; im Loch steht ein
+Ausdruck. Der häufige Fall braucht damit keine Funktion:
+```
+{fixed(#,1)} °C  ·  außen {fixed(#{aussen.temp},0)}°   →   21.4 °C  ·  außen 8°
+```
+
+**Wertreferenzen:** `#` = gebundener Wert des Elements · `#{schluessel}` = anderer Datenpunkt.
+Auf Datenpunkt-Ebene (Default) nur `#` erlaubt (kein Element-Kontext).
+
+**Erlaubt im Loch:** Zahlen, Strings, Wertreferenzen; Klammern; Arithmetik `+ - * / %`
+(numerisch, Punkt-vor-Strich); Vergleiche `== != < <= > >=`; Logik `&& || !`;
+Bedingung `bedingung ? dann : sonst`.
+
+**Funktionen (feste Whitelist, keine Erweiterung im Anzeigepfad):**
+`round(x[,n])` · `fixed(x,n)` · `floor` · `ceil` · `abs` · `min(…)` · `max(…)` ·
+`clamp(x,lo,hi)` · `concat(…)` (Textkleben — nicht `+`) · `upper` · `lower` · `pad(s,n)` ·
+`map(x, k1,v1, k2,v2, …, default)` (Enum-artig).
+
+Alles darüber hinaus (Schleifen, Zustand, Zeit, komplexe Rechnung) gehört in einen **Baustein**
+(ADR-0008), der einen abgeleiteten Datenpunkt schreibt — sichtbar und testbar statt in der
+Anzeige versteckt.
+
+**Formale Grammatik (Parser-Intern, nicht Nutzer-Doku):**
+```
+expr    := ternary
+ternary := or ( "?" expr ":" expr )?
+or      := and ( "||" and )*
+and     := cmp ( "&&" cmp )*
+cmp     := add ( ("=="|"!="|"<"|"<="|">"|">=") add )?
+add     := mul ( ("+"|"-") mul )*
+mul     := unary ( ("*"|"/"|"%") unary )*
+unary   := ("-"|"!")? primary
+primary := zahl | string | wertref | funktion | "(" expr ")"
+wertref := "#" | "#{" schluessel "}"
+funktion:= ident "(" (expr ("," expr)*)? ")"
+```
