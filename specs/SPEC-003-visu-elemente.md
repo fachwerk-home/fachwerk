@@ -90,20 +90,67 @@ Elemente in **Gruppen** (benannte Layer/Container) organisierbar, mit Ebenenreih
 (gemeinsames Layout, in andere Seiten eingebunden). Navigation (Seite/Popup öffnen/schließen)
 direkt an Elementen konfigurierbar.
 
-## Offene Fragen (Zielkatalog ausarbeiten)
+## Elementtyp-Zielkatalog v1 (F-1, festgelegt)
 
-- F-1: Zielkatalog der Elementtypen für Fachwerk v1 (Taster, Dimmer, Jalousie, Wert,
-  Diagramm, Kamera, iFrame …).
-- F-2: Struktur einer Visuseite (Ebenen/Z-Index, Gruppen, Seitenhierarchie).
-- F-3: Template/Instanz-Mechanik (Vererbung, Overrides).
-- F-4: Bindungsmodell: wie bindet ein Element an einen Datenpunkt, wie werden dynamische
-  Eigenschaften (Farbe je Wert etc.) deklariert.
-- F-5: Migrations-Mapping bestehender Elementparameter (Import-Assistent Phase 6).
+**Architektur-Grundsatz — wenige echte Typen:** Statt vieler Spezialelemente gibt es **ein**
+flexibles Basiselement. Was wie „Schalter"/„Taster"/„Wertanzeige" aussieht, sind
+**Presets** (Voreinstellungen) desselben Elements — in der Palette als freundliche Kacheln,
+unter der Haube ein Typ. Eigenen Typ bekommt nur ein Widget, dessen Render-/
+Interaktionsmodell wirklich anders ist (Ziehen, Zeitreihe, Wiederholzeilen, Einbettung).
+
+**Presets sind Startpunkte, kein Korsett (Multi-Rollen-Prinzip):** Dank der Bindungsrollen
+(R-8) trägt **ein** Element mehrere Rollen gleichzeitig — Steuern (`set`), Anzeigen
+(`display`) und Status (`status`) in **einer** kompakten Kachel (wie in FHEM üblich, wo ein
+tief konfiguriertes Element Schalten + Wert + Status vereint). Ein Preset setzt nur sinnvolle
+Defaults; Rollen lassen sich auf demselben Element schichten.
+
+**A) Presets des Basiselements** (Config, kein eigener Code):
+
+| Preset | Tut | Rollen |
+|---|---|---|
+| Taster | sendet bei Druck (z. B. 1) | `set` |
+| Schalter/Toggle | schaltet 0/1, zeigt Zustand | `set` + `status` |
+| Statusanzeige | nur Anzeige, Design je Wert (R-9) | `status` |
+| Wertanzeige | Zahl/Text mit Format-Kaskade (R-10) | `display` |
+| Label | statischer oder Datenpunkt-Text | `display` (optional) |
+| Symbol/Icon | Icon wechselt je Wert | `status` |
+| Navigations-Button | Seite/Popup öffnen/schließen | — |
+
+**B) Spezial-Widgets** (eigener Typ, eigenes Render/Interaktion):
+
+| Widget | Tut | Rollen |
+|---|---|---|
+| Schieberegler (Slider) | stufenlos setzen + anzeigen | `display` + `set` |
+| Dimmer/Farbe | RGB/HSV-Picker | `display` + `set` |
+| Jalousie/Rollladen | auf/stopp/ab + Position (kuratiertes Composite) | mehrfach `set` + `status` |
+| Diagramm | Zeitreihe aus Datenarchiv | `display` (Archiv-Quelle) |
+| Liste/Tabelle | Wiederholzeilen (auch Meldungsarchiv) | `display` (Sammlung) |
+| Bild/Webseite (iframe) | externe URL einbetten | URL (statisch/`display`) |
+| Kamera | MJPEG/Snapshot-Stream | Stream-Quelle |
+
+**C) Eigene Elemente:** v1 = **gespeicherte Vorlagen** (R-4) — ein konfiguriertes Element
+oder eine Gruppe als wiederverwendbares Preset (Änderung an der Vorlage wirkt global). Echte
+Plugin-Widgets (fremder Render-Code) sind ein späterer Stufe-2-Weg über die Baustein-/
+Sandbox-Schiene (ADR-0008).
+
+**Bewusst NICHT in v1:**
+- **Zeitschaltuhr, Terminschaltuhr, Anwesenheitssimulation** — das ist **Logik**
+  (Timer = ADR-0005 E-8, Anwesenheit = B-4), nicht Visu; die Visu zeigt/steuert nur die
+  dahinterliegenden Datenpunkte. Kein eigener Visu-Typ.
+- **Analoguhr, Skizze, Notizen, Codeschloss, Touchpad, Drehregler, Sprachausgabe, Ton-URL,
+  Kamera-/Anrufarchiv** — Nischen; kommen als Presets/Widgets nach Nachfrage nach.
+
+## Offene Fragen
+
+- F-2/F-3/F-4 sind durch R-8 (Bindungsrollen), R-9 (dynamische Darstellung), R-11 (Gruppen/
+  Z-Index/Seitentypen) und den F-1-Katalog adressiert; Detail-Schemata folgen mit Phase 3.
+- F-5: Migrations-Mapping bestehender Elementparameter (Import-Assistent Phase 6) — offen.
 
 ## Nächster Schritt
 
-Visueditor-Elementtypen und Bindungsmodell als Zielkatalog ausarbeiten (F-1…F-5), analog zum
-Vorgehen bei KO-Modell/Logikeditor). Danach Elementtypen-Zielkatalog für Fachwerk v1.
+Elementtyp-Zielkatalog v1 steht (F-1). Detail-Schemata (Basiselement-Felder je Rolle,
+Widget-Parameter) entstehen mit Phase 3 am laufenden Code; Migrations-Mapping (F-5) mit dem
+Import-Assistenten in Phase 6.
 
 ## Anhang A: Ausdruck-Teilmenge für Format-Templates (ADR-0011 FMT-3)
 
