@@ -14,3 +14,10 @@ export {
   datenpunkteZuYaml,
   logikZuYaml,
 } from "./gewerk/canonical.ts";
+export { DatenpunktRegistry } from "./datenpunkte/registry.ts";
+export type {
+  Wert,
+  WertEreignis,
+  SchreibErgebnis,
+  SchreibQuelle,
+} from "./datenpunkte/registry.ts";
