@@ -117,6 +117,32 @@ describe("Import-Bausteine (aus EDOMI-Bedarfsliste)", () => {
     expect(b("WENN_DANN_SONST").rechne({ eingang: 5, op: "EQ", vergleich: 5, dann: 9, sonst: 0 }, ctx())).toEqual({ out: 9 });
     expect(b("WENN_DANN_SONST").rechne({ eingang: 5, op: "LT", vergleich: 5, dann: 9, sonst: 0 }, ctx())).toEqual({ out: 0 });
   });
+
+  it("EXTRACT: JSON-Pfade (Parameter) → nummerierte Wert-Ausgänge + Status", () => {
+    const json = JSON.stringify({ main: { temp: 21.5 }, name: "Zuhause" });
+    const r = b("EXTRACT").rechne(
+      { text: json },
+      ctx({ format: "json", pfad1: "main.temp", pfad2: "name" }),
+    );
+    expect(r).toEqual({ wert1: 21.5, wert2: "Zuhause", status: "ok" });
+  });
+
+  it("EXTRACT: Pfad als dynamischer Eingang, Fehler landet im Status", () => {
+    const r = b("EXTRACT").rechne(
+      { text: '{"a":1}', pfad1: "a", pfad2: "fehlt" },
+      ctx({ format: "json" }),
+    );
+    expect(r).toMatchObject({ wert1: 1, status: expect.stringContaining("pfad2") });
+    expect(r).not.toHaveProperty("wert2");
+  });
+
+  it("EXTRACT: dasselbe Interface für XML (format=xml)", () => {
+    const r = b("EXTRACT").rechne(
+      { text: "<r><t>42</t></r>" },
+      ctx({ format: "xml", pfad1: "r/t" }),
+    );
+    expect(r).toEqual({ wert1: "42", status: "ok" });
+  });
 });
 
 describe("Fachbaustein SPERRLICHT (Community-★★★)", () => {

@@ -190,6 +190,25 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     eingaenge: { 1: "eingang", 2: "op", 3: "vergleich", 4: "dann", 5: "sonst" },
     ausgaenge: { 1: "out" },
   },
+  // JSON Extractor: 1 Dokument, 10 Selector-Pfade → 10 Werte + Status.
+  19001208: {
+    typ: "EXTRACT",
+    eingaenge: {
+      1: "text",
+      2: "pfad1", 3: "pfad2", 4: "pfad3", 5: "pfad4", 6: "pfad5",
+      7: "pfad6", 8: "pfad7", 9: "pfad8", 10: "pfad9", 11: "pfad10",
+    },
+    ausgaenge: {
+      1: "status",
+      2: "wert1", 3: "wert2", 4: "wert3", 5: "wert4", 6: "wert5",
+      7: "wert6", 8: "wert7", 9: "wert8", 10: "wert9", 11: "wert10",
+    },
+    parameterAusEingang: {
+      2: "pfad1", 3: "pfad2", 4: "pfad3", 5: "pfad4", 6: "pfad5",
+      7: "pfad6", 8: "pfad7", 9: "pfad8", 10: "pfad9", 11: "pfad10",
+    },
+    festeParameter: { format: "json" },
+  },
 };
 
 /** FunctionIds, die als „Ausgangsbox" gelten (schreiben auf KO). */
@@ -380,7 +399,9 @@ export function konvertiereSeite(
     if (!abb) continue;
     for (const k of seite.kanten) {
       if (k.elementId !== el.id) continue;
-      if (abb.parameterAusEingang?.[k.eingang]) continue; // ist Parameter
+      // Statischer Wert an einem Parameter-Eingang wurde bereits Parameter;
+      // ein dynamisch gespeister Eingang wird trotzdem verkabelt.
+      if (abb.parameterAusEingang?.[k.eingang] && k.quelle.art === "wert") continue;
       const port = abb.eingaenge[k.eingang];
       if (!port) continue;
       const q = aufloesen(k.quelle);

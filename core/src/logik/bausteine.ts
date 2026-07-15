@@ -5,6 +5,7 @@
  * Die volle Sandbox für Fremd-Bausteine (Worker/WASM) kommt in P4-5.
  */
 import type { Wert } from "../datenpunkte/registry.ts";
+import { extrahiere, type ExtractFormat } from "./extract.ts";
 
 export type Eingaenge = Record<string, Wert | undefined>;
 export type Ausgaenge = Record<string, Wert>;
@@ -313,10 +314,39 @@ const WENN_DANN_SONST: Baustein = {
   },
 };
 
+/**
+ * EXTRACT: extrahiert bis zu 10 Pfade aus einem strukturierten Dokument.
+ * Ein Baustein, zwei Formate (Parameter `format`: json|xml) — je eigene,
+ * passende Pfadsprache (siehe extract.ts). Läuft bei Flanke am `text`-Eingang.
+ * Ports: text (Dokument), pfad1..pfad10 (Eingang ODER Parameter);
+ *        out wert1..wert10 + status ("ok" / Fehlermeldung).
+ */
+const EXTRACT: Baustein = {
+  typ: "EXTRACT",
+  rechne(e, ctx) {
+    const text = e["text"];
+    if (typeof text !== "string") return null;
+    const format: ExtractFormat =
+      String(ctx.parameter["format"] ?? "json") === "xml" ? "xml" : "json";
+    const ausgabe: Ausgaenge = {};
+    const fehler: string[] = [];
+    for (let i = 1; i <= 10; i++) {
+      const pfad = e[`pfad${i}`] ?? (ctx.parameter[`pfad${i}`] as Wert | undefined);
+      if (pfad === undefined || pfad === "") continue;
+      const r = extrahiere(format, text, String(pfad));
+      if (r.ok && r.wert !== undefined) ausgabe[`wert${i}`] = r.wert;
+      else if (!r.ok) fehler.push(`pfad${i}: ${r.fehler}`);
+    }
+    ausgabe["status"] = fehler.length === 0 ? "ok" : fehler.join("; ");
+    return ausgabe;
+  },
+};
+
 const STDLIB = new Map<string, Baustein>(
   [
     NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
     TREPPENLICHT, SPERRLICHT, WERTAUSLOESER, IMPULS, MULT, KLEMME, WENN_DANN_SONST,
+    EXTRACT,
   ].map((b) => [b.typ, b]),
 );
 
