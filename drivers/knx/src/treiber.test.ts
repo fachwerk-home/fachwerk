@@ -1,0 +1,154 @@
+/**
+ * S-5-Tests: Framing gegen einen In-Test-Mock-Server (byte-genau).
+ * Die Integration gegen den echten Bus-Simulator läuft in S-6 (Compose-E2E).
+ */
+import { createSocket, type Socket, type RemoteInfo } from "node:dgram";
+import { afterEach, describe, expect, it } from "vitest";
+import { KnxTreiber, type KnxTelegramm } from "./treiber.ts";
+import { gaZuZahl, zahlZuGa } from "./ga.ts";
+
+describe("Gruppenadressen", () => {
+  it("wandelt hin und zurück", () => {
+    expect(gaZuZahl("1/0/1")).toBe(0x0801);
+    expect(gaZuZahl("31/7/255")).toBe(0xffff);
+    expect(zahlZuGa(0x0802)).toBe("1/0/2");
+  });
+  it("lehnt Unsinn ab", () => {
+    expect(() => gaZuZahl("1/0")).toThrow();
+    expect(() => gaZuZahl("32/0/0")).toThrow();
+    expect(() => gaZuZahl("a/b/c")).toThrow();
+  });
+});
+
+/** Minimaler KNXnet/IP-Server für Tests: CONNECT, ACK, Empfangsprotokoll. */
+class MockServer {
+  socket: Socket;
+  port = 0;
+  empfangeneWrites: Array<{ dst: number; wert: number }> = [];
+  clientAcks: number[] = [];
+  #client: RemoteInfo | null = null;
+
+  constructor() {
+    this.socket = createSocket("udp4");
+    this.socket.on("message", (msg, rinfo) => this.#aufNachricht(msg, rinfo));
+  }
+
+  async start(): Promise<void> {
+    await new Promise<void>((r) => this.socket.bind(0, "127.0.0.1", r));
+    this.port = (this.socket.address() as { port: number }).port;
+  }
+
+  stop(): void {
+    this.socket.close();
+  }
+
+  #frame(service: number, body: Buffer): Buffer {
+    const kopf = Buffer.from([0x06, 0x10, 0, 0, 0, 0]);
+    kopf.writeUInt16BE(service, 2);
+    kopf.writeUInt16BE(6 + body.length, 4);
+    return Buffer.concat([kopf, body]);
+  }
+
+  #aufNachricht(msg: Buffer, rinfo: RemoteInfo): void {
+    const service = msg.readUInt16BE(2);
+    this.#client = rinfo;
+    if (service === 0x0205) {
+      // CONNECT_RESPONSE: Kanal 7, ok, HPAI, CRD (Tunnel, IA 1.1.250)
+      const body = Buffer.concat([
+        Buffer.from([7, 0x00]),
+        Buffer.from([0x08, 0x01, 127, 0, 0, 1, 0, 0]),
+        Buffer.from([0x04, 0x04, 0x11, 0xfa]),
+      ]);
+      this.socket.send(this.#frame(0x0206, body), rinfo.port, rinfo.address);
+    } else if (service === 0x0420) {
+      const seq = msg[8]!;
+      this.socket.send(
+        this.#frame(0x0421, Buffer.from([0x04, msg[7]!, seq, 0x00])),
+        rinfo.port,
+        rinfo.address,
+      );
+      const cemi = msg.subarray(10);
+      if (cemi[0] === 0x11) {
+        // L_Data.req: byte-genau prüfen, was der Treiber sendet
+        const dst = cemi.readUInt16BE(6);
+        const wert = cemi[10]! & 0x3f;
+        this.empfangeneWrites.push({ dst, wert });
+      }
+    } else if (service === 0x0421) {
+      this.clientAcks.push(msg[8]!);
+    } else if (service === 0x0209) {
+      this.socket.send(
+        this.#frame(0x020a, Buffer.from([msg[6]!, 0x00])),
+        rinfo.port,
+        rinfo.address,
+      );
+    }
+  }
+
+  /** L_Data.ind an den verbundenen Client (wie Simulator.inject). */
+  injiziere(ga: number, wert: number, seq: number): void {
+    if (!this.#client) throw new Error("kein Client verbunden");
+    const cemi = Buffer.from([
+      0x29, 0x00, 0xbc, 0xe0, 0x11, 0x0a,
+      (ga >> 8) & 0xff, ga & 0xff,
+      0x01, 0x00, 0x80 | wert,
+    ]);
+    const body = Buffer.concat([Buffer.from([0x04, 7, seq, 0x00]), cemi]);
+    this.socket.send(this.#frame(0x0420, body), this.#client.port, this.#client.address);
+  }
+}
+
+let server: MockServer | null = null;
+let treiber: KnxTreiber | null = null;
+afterEach(async () => {
+  await treiber?.trenne();
+  treiber = null;
+  server?.stop();
+  server = null;
+});
+
+async function verbunden(onTelegramm?: (t: KnxTelegramm) => void) {
+  server = new MockServer();
+  await server.start();
+  treiber = new KnxTreiber({
+    host: "127.0.0.1",
+    port: server.port,
+    ...(onTelegramm ? { onTelegramm } : {}),
+  });
+  await treiber.verbinde();
+  return { server, treiber };
+}
+
+describe("KnxTreiber", () => {
+  it("verbindet (CONNECT-Handshake) und trennt sauber", async () => {
+    const { treiber } = await verbunden();
+    expect(treiber.verbunden).toBe(true);
+    await treiber.trenne();
+    expect(treiber.verbunden).toBe(false);
+  });
+
+  it("sendet GroupValueWrite byte-genau (DPT 1.001)", async () => {
+    const { server, treiber } = await verbunden();
+    treiber.sende("1/0/2", true);
+    treiber.sende("1/0/2", false);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(server.empfangeneWrites).toEqual([
+      { dst: 0x0802, wert: 1 },
+      { dst: 0x0802, wert: 0 },
+    ]);
+  });
+
+  it("empfängt L_Data.ind, meldet Telegramm und quittiert (ACK)", async () => {
+    const telegramme: KnxTelegramm[] = [];
+    const { server } = await verbunden((t) => telegramme.push(t));
+    server.injiziere(gaZuZahl("1/0/1"), 1, 0);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(telegramme).toEqual([{ ga: "1/0/1", wert: 1, art: "write" }]);
+    expect(server.clientAcks).toEqual([0]);
+  });
+
+  it("meldet Timeout, wenn kein Server antwortet", async () => {
+    const t = new KnxTreiber({ host: "127.0.0.1", port: 1 });
+    await expect(t.verbinde(200)).rejects.toThrow(/Timeout/);
+  });
+});
