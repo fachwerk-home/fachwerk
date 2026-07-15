@@ -82,8 +82,144 @@ const TREPPENLICHT: Baustein = {
   },
 };
 
+const OR: Baustein = {
+  typ: "OR",
+  rechne(e) {
+    if (typeof e["a"] !== "boolean" || typeof e["b"] !== "boolean") return null;
+    return { out: e["a"] || e["b"] };
+  },
+};
+
+const XOR: Baustein = {
+  typ: "XOR",
+  rechne(e) {
+    if (typeof e["a"] !== "boolean" || typeof e["b"] !== "boolean") return null;
+    return { out: e["a"] !== e["b"] };
+  },
+};
+
+/**
+ * Toggle: steigende Flanke auf `in` wechselt den Ausgang. Optionaler
+ * `status`-Eingang synchronisiert den internen Zustand (z. B. Ist-Zustand
+ * vom Bus), ohne selbst zu schalten.
+ */
+const TOGGLE: Baustein = {
+  typ: "TOGGLE",
+  rechne(e, ctx) {
+    if (typeof e["status"] === "boolean") ctx.zustand["aktuell"] = e["status"];
+    const vorher = ctx.zustand["letzterIn"] === true;
+    ctx.zustand["letzterIn"] = e["in"] === true;
+    if (e["in"] === true && !vorher) {
+      const neu = !(ctx.zustand["aktuell"] === true);
+      ctx.zustand["aktuell"] = neu;
+      return { out: neu };
+    }
+    return null;
+  },
+};
+
+/** Vergleich: `a` gegen `b` (Eingang) oder Parameter `wert`. */
+const VERGLEICH: Baustein = {
+  typ: "VERGLEICH",
+  rechne(e, ctx) {
+    const a = e["a"];
+    const b = e["b"] ?? (ctx.parameter["wert"] as Wert | undefined);
+    if (typeof a !== "number" || typeof b !== "number") return null;
+    const op = String(ctx.parameter["op"] ?? ">=");
+    switch (op) {
+      case ">": return { out: a > b };
+      case ">=": return { out: a >= b };
+      case "<": return { out: a < b };
+      case "<=": return { out: a <= b };
+      case "==": return { out: a === b };
+      case "!=": return { out: a !== b };
+      default: return null;
+    }
+  },
+};
+
+/**
+ * Hysterese: ein bei `in` ≥ Parameter `ein`, aus bei `in` ≤ Parameter `aus`,
+ * dazwischen halten (kein Flattern an der Schwelle).
+ */
+const HYSTERESE: Baustein = {
+  typ: "HYSTERESE",
+  rechne(e, ctx) {
+    const wert = e["in"];
+    if (typeof wert !== "number") return null;
+    const ein = Number(ctx.parameter["ein"]);
+    const aus = Number(ctx.parameter["aus"]);
+    if (!Number.isFinite(ein) || !Number.isFinite(aus)) return null;
+    const aktiv = ctx.zustand["aktiv"] === true;
+    const neu = wert >= ein ? true : wert <= aus ? false : aktiv;
+    ctx.zustand["aktiv"] = neu;
+    return neu === aktiv && ctx.zustand["initialisiert"] === true
+      ? null // unverändert im Halteband: nichts senden
+      : ((ctx.zustand["initialisiert"] = true), { out: neu });
+  },
+};
+
+/**
+ * Sperre (Gate): `sperre`=true hält `in` zurück; beim Entsperren wird der
+ * zuletzt gehaltene Wert nachgereicht (Parameter `nachreichen`, Default true).
+ */
+const SPERRE: Baustein = {
+  typ: "SPERRE",
+  rechne(e, ctx) {
+    const gesperrt = e["sperre"] === true;
+    const vorherGesperrt = ctx.zustand["gesperrt"] === true;
+    ctx.zustand["gesperrt"] = gesperrt;
+    if (e["in"] !== undefined) ctx.zustand["gehalten"] = e["in"];
+    if (gesperrt) return null;
+    if (vorherGesperrt) {
+      // Entsperr-Flanke: gehaltenen Wert nachreichen (wenn gewünscht)
+      const nachreichen = ctx.parameter["nachreichen"] !== false;
+      const gehalten = ctx.zustand["gehalten"];
+      return nachreichen && gehalten !== undefined ? { out: gehalten } : null;
+    }
+    return e["in"] === undefined ? null : { out: e["in"] };
+  },
+};
+
+/**
+ * Fachbaustein Sperrlicht (kuratiert, Community-★★★): Licht mit Sperre und
+ * definiertem Verhalten — Parameter `beimSperren` ("aus"|"an"|"halten",
+ * Default "aus") und `beimEntsperren` ("wiederherstellen"|"aus"|"halten",
+ * Default "wiederherstellen"). Schaltwünsche während der Sperre werden
+ * gemerkt, nie verworfen.
+ */
+const SPERRLICHT: Baustein = {
+  typ: "SPERRLICHT",
+  rechne(e, ctx) {
+    const gesperrt = e["sperre"] === true;
+    const vorherGesperrt = ctx.zustand["gesperrt"] === true;
+    ctx.zustand["gesperrt"] = gesperrt;
+
+    if (typeof e["schalten"] === "boolean") ctx.zustand["gewuenscht"] = e["schalten"];
+
+    if (gesperrt && !vorherGesperrt) {
+      // Sperr-Flanke
+      const modus = String(ctx.parameter["beimSperren"] ?? "aus");
+      if (modus === "aus") return { out: false };
+      if (modus === "an") return { out: true };
+      return null; // halten
+    }
+    if (!gesperrt && vorherGesperrt) {
+      // Entsperr-Flanke
+      const modus = String(ctx.parameter["beimEntsperren"] ?? "wiederherstellen");
+      if (modus === "wiederherstellen") return { out: ctx.zustand["gewuenscht"] === true };
+      if (modus === "aus") return { out: false };
+      return null; // halten
+    }
+    if (gesperrt) return null; // Wünsche nur merken
+    return typeof e["schalten"] === "boolean" ? { out: e["schalten"] } : null;
+  },
+};
+
 const STDLIB = new Map<string, Baustein>(
-  [NOT, AND, VERZOEGERUNG, TREPPENLICHT].map((b) => [b.typ, b]),
+  [NOT, AND, OR, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG, TREPPENLICHT, SPERRLICHT].map(
+    (b) => [b.typ, b],
+  ),
 );
 
 export function findeBaustein(typ: string): Baustein | undefined {
