@@ -39,6 +39,10 @@ Jeder Baustein besteht aus einem **deklarativen Manifest** (YAML: Schlüssel, Ve
 semver, Eingänge/Ausgänge mit Typen + Trigger-Defaults, Parameter-Schema, benötigte
 **Capabilities**) und dem Code. Manifest ist maschinenlesbar → Editor-Palette,
 Validierung, Linter, Registry und Agenten arbeiten mit derselben Beschreibung.
+**Ergänzt durch ADR-0012:** Ports dürfen statt fest im Manifest auch **konfig-abgeleitet**
+sein (Funktion `ports(parameter)`, statisch zur Projektierungszeit); Bausteine, die
+strukturierte Daten lesen, deklarieren optional eine **Introspektion** (`introspizieren`)
+für den Editor-Feldpicker/Agenten. So entfällt die „N-fach"-Baustein-Familie.
 
 ### S-2: Zwei Baustein-Klassen mit unterschiedlicher Semantik
 - **Rechen-Bausteine (sync, pur):** `evaluate(inputs, state, ctx) → outputs/state`.

@@ -127,6 +127,12 @@ export interface BausteinAbbildung {
   parameterAusEingang?: Record<number, string>;
   /** Feste Parameter (z. B. der Operator einer Vergleicher-Variante). */
   festeParameter?: Record<string, unknown>;
+  /**
+   * Konfig-variabler Baustein (ADR-0012): statische Eingänge ab diesem Index
+   * werden zu Einträgen der `felder`-Liste (name `wert{n}`, pfad = Wert) statt
+   * zu je einem festen Port. So wird der EDOMI-„N-fach"-Selektor zu N Feldern.
+   */
+  felderAusEingang?: number;
 }
 
 /**
@@ -190,24 +196,18 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     eingaenge: { 1: "eingang", 2: "op", 3: "vergleich", 4: "dann", 5: "sonst" },
     ausgaenge: { 1: "out" },
   },
-  // JSON Extractor: 1 Dokument, 10 Selector-Pfade → 10 Werte + Status.
+  // JSON Extractor: 1 Dokument, N Selector-Pfade → N benannte Felder + Status
+  // (konfig-variabel, ADR-0012). Selektoren (Eingang 2..11) werden zu `felder`.
   19001208: {
     typ: "EXTRACT",
-    eingaenge: {
-      1: "text",
-      2: "pfad1", 3: "pfad2", 4: "pfad3", 5: "pfad4", 6: "pfad5",
-      7: "pfad6", 8: "pfad7", 9: "pfad8", 10: "pfad9", 11: "pfad10",
-    },
+    eingaenge: { 1: "text" },
     ausgaenge: {
       1: "status",
       2: "wert1", 3: "wert2", 4: "wert3", 5: "wert4", 6: "wert5",
       7: "wert6", 8: "wert7", 9: "wert8", 10: "wert9", 11: "wert10",
     },
-    parameterAusEingang: {
-      2: "pfad1", 3: "pfad2", 4: "pfad3", 5: "pfad4", 6: "pfad5",
-      7: "pfad6", 8: "pfad7", 9: "pfad8", 10: "pfad9", 11: "pfad10",
-    },
     festeParameter: { format: "json" },
+    felderAusEingang: 2,
   },
 };
 
@@ -386,6 +386,17 @@ export function konvertiereSeite(
         const n = Number(k.quelle.wert);
         parameter[pName] = Number.isFinite(n) ? n : k.quelle.wert;
       }
+    }
+    // Konfig-variabel: statische Eingänge ab felderAusEingang → felder-Liste.
+    if (abb.felderAusEingang !== undefined) {
+      const felder: Array<{ name: string; pfad: string }> = [];
+      for (const k of seite.kanten) {
+        if (k.elementId !== el.id || k.eingang < abb.felderAusEingang) continue;
+        if (k.quelle.art === "wert" && k.quelle.wert !== "") {
+          felder.push({ name: `wert${k.eingang - abb.felderAusEingang + 1}`, pfad: k.quelle.wert });
+        }
+      }
+      if (felder.length > 0) parameter["felder"] = felder;
     }
     knoten[knotenId(el.id)] = {
       baustein: abb.typ,

@@ -128,3 +128,64 @@ function xmlExtract(doc: string, pfad: string): ExtractErgebnis {
 export function extrahiere(format: ExtractFormat, doc: string, pfad: string): ExtractErgebnis {
   return format === "xml" ? xmlExtract(doc, pfad) : jsonExtract(doc, pfad);
 }
+
+// ---- Introspektion (Feldbaum für Editor/Agent, ADR-0012 K-3) ------------------
+
+export interface Feld {
+  /** Voller Pfad, direkt als Selektor verwendbar (z. B. „main.temp"). */
+  pfad: string;
+  /** Letztes Pfadsegment — Vorschlag für den Ausgangs-Namen. */
+  name: string;
+  art: "objekt" | "liste" | "text" | "zahl" | "bool" | "null";
+  /** Beispielwert (gekürzt) für Blattknoten. */
+  beispiel?: string;
+  kinder?: Feld[];
+}
+
+function jsonBaum(wert: unknown, pfad: string, name: string): Feld {
+  if (Array.isArray(wert)) {
+    return {
+      pfad,
+      name,
+      art: "liste",
+      kinder: wert.slice(0, 50).map((v, i) => jsonBaum(v, `${pfad}[${i}]`, String(i))),
+    };
+  }
+  if (wert !== null && typeof wert === "object") {
+    return {
+      pfad,
+      name,
+      art: "objekt",
+      kinder: Object.entries(wert as Record<string, unknown>).map(([k, v]) =>
+        jsonBaum(v, pfad === "" ? k : `${pfad}.${k}`, k),
+      ),
+    };
+  }
+  const art = wert === null ? "null" : typeof wert === "number" ? "zahl" : typeof wert === "boolean" ? "bool" : "text";
+  return { pfad, name, art, beispiel: String(wert).slice(0, 40) };
+}
+
+/**
+ * Liest ein Beispiel-Dokument und liefert den Feldbaum zum Anklicken/Mappen.
+ * XML: knappe Baumsicht (erste Ebene der Elemente); Detailtiefe folgt mit dem Editor.
+ */
+export function introspizieren(format: ExtractFormat, beispiel: string): Feld[] {
+  if (format === "json") {
+    try {
+      return jsonBaum(JSON.parse(beispiel), "", "$").kinder ?? [];
+    } catch {
+      return [];
+    }
+  }
+  // XML: direkte Kind-Elemente der Wurzel als Startpunkte.
+  const felder: Feld[] = [];
+  const tags = /<([A-Za-z_][\w.-]*)(\s[^>]*?)?(\/?)>/g;
+  const gesehen = new Set<string>();
+  for (let m = tags.exec(beispiel); m; m = tags.exec(beispiel)) {
+    const name = m[1]!;
+    if (gesehen.has(name)) continue;
+    gesehen.add(name);
+    felder.push({ pfad: name, name, art: "objekt" });
+  }
+  return felder;
+}

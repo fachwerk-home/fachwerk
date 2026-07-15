@@ -84,6 +84,15 @@ alles ein Template"-Kritik. Format wirkt nur auf die Anzeige, nie auf den Semant
 Ausdruck-Teilmenge = **Template-Text mit `{…}`-Löchern** (Text außen literal, Ausdruck im
 Loch), `concat(...)` fürs Textkleben, feste kleine Funktionsliste — Details im **Anhang A**.
 
+### R-12: Datenfeld-Picker für konfig-variable Bausteine (ADR-0012)
+Bausteine, die strukturierte Daten lesen (JSON/XML), stellen eine
+**Introspektion** bereit: Der Editor liest ein Beispiel (Live-Wert des gebundenen
+Datenpunkts oder eingefügter Text), zeigt den **Feldbaum** und der Nutzer klickt ein Feld
+an ⇒ ein benannter Ausgang mit passendem Pfad entsteht. Man sieht, was man mappt, statt
+Pfade blind zu tippen. Ports sind konfig-abgeleitet (so viele Ausgänge wie gemappte Felder),
+nicht fest. Dieselbe Introspektion nutzt ein Agent (Agent-first). Gilt für den Logik- wie
+den Visu-Editor.
+
 ### R-11: Struktur — Gruppen/Ebenen und Seitentypen
 Elemente in **Gruppen** (benannte Layer/Container) organisierbar, mit Ebenenreihenfolge
 (Z-Index). Seitentypen: normale Seite, **Popup/Overlay**, und **Include-/Master-Seite**

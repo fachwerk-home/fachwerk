@@ -118,30 +118,52 @@ describe("Import-Bausteine (aus EDOMI-Bedarfsliste)", () => {
     expect(b("WENN_DANN_SONST").rechne({ eingang: 5, op: "LT", vergleich: 5, dann: 9, sonst: 0 }, ctx())).toEqual({ out: 0 });
   });
 
-  it("EXTRACT: JSON-Pfade (Parameter) → nummerierte Wert-Ausgänge + Status", () => {
+  it("EXTRACT: konfigurierte Felder → benannte Ausgänge + Status (ADR-0012)", () => {
     const json = JSON.stringify({ main: { temp: 21.5 }, name: "Zuhause" });
-    const r = b("EXTRACT").rechne(
-      { text: json },
-      ctx({ format: "json", pfad1: "main.temp", pfad2: "name" }),
-    );
-    expect(r).toEqual({ wert1: 21.5, wert2: "Zuhause", status: "ok" });
+    const felder = [
+      { name: "temp", pfad: "main.temp" },
+      { name: "stadt", pfad: "name" },
+    ];
+    const r = b("EXTRACT").rechne({ text: json }, ctx({ format: "json", felder }));
+    expect(r).toEqual({ temp: 21.5, stadt: "Zuhause", status: "ok" });
   });
 
-  it("EXTRACT: Pfad als dynamischer Eingang, Fehler landet im Status", () => {
-    const r = b("EXTRACT").rechne(
-      { text: '{"a":1}', pfad1: "a", pfad2: "fehlt" },
-      ctx({ format: "json" }),
-    );
-    expect(r).toMatchObject({ wert1: 1, status: expect.stringContaining("pfad2") });
-    expect(r).not.toHaveProperty("wert2");
+  it("EXTRACT: ports() leitet Ausgänge aus der Config ab", () => {
+    const felder = [{ name: "a", pfad: "x" }, { name: "b", pfad: "y" }];
+    expect(b("EXTRACT").ports!({ felder })).toEqual({
+      eingaenge: ["text"],
+      ausgaenge: ["a", "b", "status"],
+    });
+  });
+
+  it("EXTRACT: Fehler eines Feldes landet im Status, kein Ausgang", () => {
+    const felder = [{ name: "a", pfad: "a" }, { name: "b", pfad: "fehlt" }];
+    const r = b("EXTRACT").rechne({ text: '{"a":1}' }, ctx({ felder }));
+    expect(r).toMatchObject({ a: 1, status: expect.stringContaining("b") });
+    expect(r).not.toHaveProperty("b");
   });
 
   it("EXTRACT: dasselbe Interface für XML (format=xml)", () => {
     const r = b("EXTRACT").rechne(
       { text: "<r><t>42</t></r>" },
-      ctx({ format: "xml", pfad1: "r/t" }),
+      ctx({ format: "xml", felder: [{ name: "t", pfad: "r/t" }] }),
     );
-    expect(r).toEqual({ wert1: "42", status: "ok" });
+    expect(r).toEqual({ t: "42", status: "ok" });
+  });
+
+  it("EXTRACT: introspizieren() zeigt Felder eines Beispiels für den Editor", () => {
+    const baum = b("EXTRACT").introspizieren!(
+      JSON.stringify({ main: { temp: 21.5 }, name: "Zuhause" }),
+      { format: "json" },
+    );
+    // oberste Ebene: main (Objekt) + name (text)
+    expect(baum.map((f) => f.name)).toEqual(["main", "name"]);
+    const main = baum.find((f) => f.name === "main")!;
+    expect(main.art).toBe("objekt");
+    expect(main.kinder!.find((k) => k.name === "temp")).toMatchObject({
+      pfad: "main.temp",
+      art: "zahl",
+    });
   });
 });
 

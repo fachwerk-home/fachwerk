@@ -93,6 +93,47 @@ describe("konvertiereSeite", () => {
     expect(ergebnis!.logik.kanten).toContainEqual({ von: "e21.out", nach: "dp:io.licht" });
   });
 
+  it("JSON Extractor → EXTRACT mit felder-Config (konfig-variabel, ADR-0012)", () => {
+    const fixture = `
+CREATE TABLE \`editKo\` (\`id\` bigint(20),\`name\` varchar(100),\`folderid\` bigint(20),
+  \`ga\` varchar(11),\`gatyp\` tinyint(3),\`valuetyp\` int(10),\`defaultvalue\` varchar(10000),
+  \`remanent\` tinyint(3));
+INSERT INTO \`editKo\` VALUES (200,'Wetter JSON',0,'',2,16,'',0),(201,'Temp',0,'',2,9,'',0);
+CREATE TABLE \`editLogicPage\` (\`id\` bigint(20),\`name\` varchar(200));
+INSERT INTO \`editLogicPage\` VALUES (1,'Wetter');
+CREATE TABLE \`editLogicElement\` (\`id\` bigint(20),\`functionid\` bigint(20),\`pageid\` bigint(20),\`name\` varchar(100));
+INSERT INTO \`editLogicElement\` VALUES (40,19001208,1,''),(41,12000011,1,'');
+CREATE TABLE \`editLogicLink\` (\`id\` bigint(20),\`elementid\` bigint(20),\`eingang\` smallint(5),
+  \`linktyp\` tinyint(3),\`linkid\` bigint(20),\`ausgang\` smallint(5),\`value\` varchar(10000));
+INSERT INTO \`editLogicLink\` VALUES
+(1,40,1,0,200,NULL,NULL),
+(2,40,2,2,NULL,NULL,'main.temp'),
+(3,40,3,2,NULL,NULL,'name'),
+(4,41,1,1,40,2,NULL);
+CREATE TABLE \`editLogicCmdList\` (\`id\` bigint(20),\`targetid\` bigint(20),\`cmd\` tinyint(3),
+  \`cmdid1\` bigint(20),\`cmdid2\` bigint(20),\`cmdoption1\` int(11),\`cmdoption2\` int(11),
+  \`cmdvalue1\` varchar(10000),\`cmdvalue2\` varchar(10000));
+INSERT INTO \`editLogicCmdList\` VALUES (1,41,1,201,0,0,0,NULL,NULL);
+`;
+    const tab = parseDump(fixture);
+    const { koZuSchluessel } = konvertiere(tab);
+    const seite = extrahiereStruktur(tab).find((s) => s.name === "Wetter")!;
+    const { ergebnis, fehler } = konvertiereSeite(seite, koZuSchluessel);
+    expect(fehler).toEqual([]);
+    const knoten = ergebnis!.logik.knoten["e40"]!;
+    expect(knoten.baustein).toBe("EXTRACT");
+    expect(knoten.parameter).toMatchObject({
+      format: "json",
+      felder: [
+        { name: "wert1", pfad: "main.temp" },
+        { name: "wert2", pfad: "name" },
+      ],
+    });
+    // Ausgang „Extracted value 1" (Port 2) → Feldname wert1; Ausgangsbox 41
+    // schreibt ihn auf KO 201 (Temp).
+    expect(ergebnis!.logik.kanten).toContainEqual({ von: "e40.wert1", nach: "dp:allgemein.temp" });
+  });
+
   it("meldet unvollständige Seite statt zu raten", () => {
     const exotik = extrahiereStruktur(tabellen).find((s) => s.name === "Exotik")!;
     const { ergebnis, fehler } = konvertiereSeite(exotik, koZuSchluessel);

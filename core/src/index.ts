@@ -32,3 +32,5 @@ export type {
   TraceAusloeser,
 } from "./logik/engine.ts";
 export type { Baustein, BausteinKontext, Ausloeser } from "./logik/bausteine.ts";
+export { extrahiere, introspizieren } from "./logik/extract.ts";
+export type { ExtractFormat, Feld } from "./logik/extract.ts";

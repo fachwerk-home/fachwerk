@@ -5,7 +5,7 @@
  * Die volle Sandbox für Fremd-Bausteine (Worker/WASM) kommt in P4-5.
  */
 import type { Wert } from "../datenpunkte/registry.ts";
-import { extrahiere, type ExtractFormat } from "./extract.ts";
+import { extrahiere, introspizieren, type ExtractFormat, type Feld } from "./extract.ts";
 
 export type Eingaenge = Record<string, Wert | undefined>;
 export type Ausgaenge = Record<string, Wert>;
@@ -35,6 +35,33 @@ export interface Baustein {
   typ: string;
   /** null = keine Ausgabe (z. B. Eingänge unbelegt oder nur Timer geplant). */
   rechne(eingaenge: Eingaenge, ctx: BausteinKontext): Ausgaenge | null;
+  /**
+   * Konfig-abgeleitete Ports (ADR-0012 K-1). Fehlt sie, gelten feste Ports
+   * (offene Verkabelung). Rein aus der Instanz-Konfiguration berechenbar.
+   */
+  ports?(parameter: Readonly<Record<string, unknown>>): {
+    eingaenge: string[];
+    ausgaenge: string[];
+  };
+  /**
+   * Datenintrospektion (ADR-0012 K-3): liest ein Beispiel und liefert die
+   * verfügbaren Felder für den Editor-Feldpicker/Agenten. Rein, seiteneffektfrei.
+   */
+  introspizieren?(beispiel: string, parameter: Readonly<Record<string, unknown>>): Feld[];
+}
+
+/** Ein gemapptes Feld eines konfig-variablen Extraktions-Bausteins. */
+interface ExtractFeld {
+  name: string;
+  pfad: string;
+}
+
+function extractFelder(parameter: Readonly<Record<string, unknown>>): ExtractFeld[] {
+  const roh = parameter["felder"];
+  if (!Array.isArray(roh)) return [];
+  return roh
+    .filter((f): f is ExtractFeld => !!f && typeof f.name === "string" && typeof f.pfad === "string")
+    .filter((f) => f.name !== "" && f.pfad !== "");
 }
 
 const NOT: Baustein = {
@@ -315,11 +342,13 @@ const WENN_DANN_SONST: Baustein = {
 };
 
 /**
- * EXTRACT: extrahiert bis zu 10 Pfade aus einem strukturierten Dokument.
- * Ein Baustein, zwei Formate (Parameter `format`: json|xml) — je eigene,
- * passende Pfadsprache (siehe extract.ts). Läuft bei Flanke am `text`-Eingang.
- * Ports: text (Dokument), pfad1..pfad10 (Eingang ODER Parameter);
- *        out wert1..wert10 + status ("ok" / Fehlermeldung).
+ * EXTRACT: extrahiert eine KONFIGURIERBARE Menge benannter Felder aus einem
+ * strukturierten Dokument (ADR-0012 — konfig-variable Ports, keine feste
+ * „N-fach"-Arität). Ein Baustein, zwei Formate (Parameter `format`: json|xml)
+ * mit je passender Pfadsprache (extract.ts). Läuft am `text`-Eingang.
+ *
+ * Konfiguration: `felder: [{ name, pfad }]`. Ausgänge = die Feld-Namen + status.
+ * Introspektion zeigt dem Editor/Agenten die verfügbaren Felder eines Beispiels.
  */
 const EXTRACT: Baustein = {
   typ: "EXTRACT",
@@ -330,15 +359,24 @@ const EXTRACT: Baustein = {
       String(ctx.parameter["format"] ?? "json") === "xml" ? "xml" : "json";
     const ausgabe: Ausgaenge = {};
     const fehler: string[] = [];
-    for (let i = 1; i <= 10; i++) {
-      const pfad = e[`pfad${i}`] ?? (ctx.parameter[`pfad${i}`] as Wert | undefined);
-      if (pfad === undefined || pfad === "") continue;
-      const r = extrahiere(format, text, String(pfad));
-      if (r.ok && r.wert !== undefined) ausgabe[`wert${i}`] = r.wert;
-      else if (!r.ok) fehler.push(`pfad${i}: ${r.fehler}`);
+    for (const feld of extractFelder(ctx.parameter)) {
+      const r = extrahiere(format, text, feld.pfad);
+      if (r.ok && r.wert !== undefined) ausgabe[feld.name] = r.wert;
+      else if (!r.ok) fehler.push(`${feld.name}: ${r.fehler}`);
     }
     ausgabe["status"] = fehler.length === 0 ? "ok" : fehler.join("; ");
     return ausgabe;
+  },
+  ports(parameter) {
+    return {
+      eingaenge: ["text"],
+      ausgaenge: [...extractFelder(parameter).map((f) => f.name), "status"],
+    };
+  },
+  introspizieren(beispiel, parameter) {
+    const format: ExtractFormat =
+      String(parameter["format"] ?? "json") === "xml" ? "xml" : "json";
+    return introspizieren(format, beispiel);
   },
 };
 
