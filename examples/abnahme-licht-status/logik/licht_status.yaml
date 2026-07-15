@@ -1,0 +1,21 @@
+notizen: Nachbau der importierten Seite Licht Status - 7 Licht-Status auf ODER-8 auf Sammelmeldung.
+knoten:
+  or8:
+    baustein: OR8
+kanten:
+  - von: dp:eg.ankleide_led
+    nach: or8.e1
+  - von: dp:eg.erker_rot
+    nach: or8.e2
+  - von: dp:eg.ankleide_spots
+    nach: or8.e3
+  - von: dp:eg.erker
+    nach: or8.e4
+  - von: dp:eg.lichtvoute
+    nach: or8.e5
+  - von: dp:eg.gaeste_wc
+    nach: or8.e6
+  - von: dp:eg.kueche_spots
+    nach: or8.e7
+  - von: or8.out
+    nach: dp:eg.licht_eg_status

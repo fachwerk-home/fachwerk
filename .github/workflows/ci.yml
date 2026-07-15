@@ -62,3 +62,5 @@ jobs:
         run: bash tools/e2e-skeleton.sh
       - name: Neustart-Regel T-5 (Treppenlicht überlebt Container-Restart)
         run: bash tools/e2e-neustart.sh
+      - name: Abnahme „Licht Status" (importierte EDOMI-Logik vs Bus)
+        run: bash tools/e2e-licht-status.sh

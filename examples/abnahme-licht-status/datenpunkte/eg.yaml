@@ -1,0 +1,56 @@
+ankleide_led:
+  name: EG Ankleide LED Streifen - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 6/1/134
+  dpt: "1.001"
+erker_rot:
+  name: EG Wohnzimmer Erker Rot - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 7/1/13
+  dpt: "1.001"
+ankleide_spots:
+  name: EG Ankleide Spots - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 6/1/144
+  dpt: "1.001"
+erker:
+  name: EG Wohnzimmer Erker - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 7/1/3
+  dpt: "1.001"
+lichtvoute:
+  name: EG Wohnzimmer Lichtvoute - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 6/1/3
+  dpt: "1.001"
+gaeste_wc:
+  name: EG Gaeste WC Licht - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 6/1/124
+  dpt: "1.001"
+kueche_spots:
+  name: EG Kueche Spots - Status
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 6/1/83
+  dpt: "1.001"
+licht_eg_status:
+  name: Licht EG Status (Sammelmeldung)
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 6/1/200
+  dpt: "1.001"
