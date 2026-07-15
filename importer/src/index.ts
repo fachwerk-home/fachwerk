@@ -7,3 +7,20 @@ export { parseDump } from "./sql-dump.ts";
 export type { Tabelle, Zeile, Zelle } from "./sql-dump.ts";
 export { konvertiere, slug } from "./konvertiere.ts";
 export type { ImportErgebnis, ImportBericht } from "./konvertiere.ts";
+export {
+  extrahiereStruktur,
+  bewerte,
+  konvertiereSeite,
+  ABBILDUNG,
+  AUSGANGSBOX,
+  SENDBYCHANGE,
+} from "./logik.ts";
+export type {
+  RohSeite,
+  RohElement,
+  RohKante,
+  Quelle,
+  LogikReport,
+  SeitenReport,
+  SeitenKonvertierung,
+} from "./logik.ts";

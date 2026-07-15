@@ -1,0 +1,98 @@
+/**
+ * Stufe-2-Tests: Struktur-Extraktion, Bewertung und Konvertierung EINER
+ * Seite — mit synthetischem Dump-Fixture (keine echten Anlagendaten).
+ */
+import { describe, expect, it } from "vitest";
+import { parseDump } from "./sql-dump.ts";
+import { konvertiere } from "./konvertiere.ts";
+import { extrahiereStruktur, bewerte, konvertiereSeite } from "./logik.ts";
+
+/**
+ * Fixture: KO 100 (Taster, bus 1/0/1) → SendByChange (elem 20) → NOT (elem 21)
+ *          → Ausgangsbox (elem 22) schreibt auf KO 101 (Licht, bus 1/0/2).
+ * Zusätzlich Seite mit unbekanntem LBS (99999999) als Lücke.
+ */
+const FIXTURE = `
+CREATE TABLE \`editRoot\` (\`id\` bigint(20),\`name\` varchar(200));
+INSERT INTO \`editRoot\` VALUES (1,'IO');
+
+CREATE TABLE \`editKo\` (\`id\` bigint(20),\`name\` varchar(100),\`folderid\` bigint(20),
+  \`ga\` varchar(11),\`gatyp\` tinyint(3),\`valuetyp\` int(10),\`defaultvalue\` varchar(10000),
+  \`remanent\` tinyint(3));
+INSERT INTO \`editKo\` VALUES
+(100,'Taster',1,'1/0/1',1,1,'',0),
+(101,'Licht',1,'1/0/2',1,1,'',0);
+
+CREATE TABLE \`editLogicPage\` (\`id\` bigint(20),\`name\` varchar(200));
+INSERT INTO \`editLogicPage\` VALUES (1,'Flur'),(2,'Exotik');
+
+CREATE TABLE \`editLogicElement\` (\`id\` bigint(20),\`functionid\` bigint(20),
+  \`pageid\` bigint(20),\`name\` varchar(10000));
+INSERT INTO \`editLogicElement\` VALUES
+(20,13000030,1,''),
+(21,13000031,1,''),
+(22,12000011,1,''),
+(30,99999999,2,'');
+
+CREATE TABLE \`editLogicLink\` (\`id\` bigint(20),\`elementid\` bigint(20),\`eingang\` smallint(5),
+  \`linktyp\` tinyint(3),\`linkid\` bigint(20),\`ausgang\` smallint(5),\`value\` varchar(10000));
+INSERT INTO \`editLogicLink\` VALUES
+(1,20,1,0,100,NULL,NULL),
+(2,21,1,1,20,1,NULL),
+(3,22,1,1,21,1,NULL),
+(4,22,2,0,101,NULL,NULL),
+(5,30,1,2,NULL,NULL,'x');
+`;
+
+const tabellen = parseDump(FIXTURE);
+const { koZuSchluessel } = konvertiere(tabellen);
+
+describe("extrahiereStruktur", () => {
+  it("liefert Seiten mit Elementen und typisierten Kanten", () => {
+    const seiten = extrahiereStruktur(tabellen);
+    const flur = seiten.find((s) => s.name === "Flur")!;
+    expect(flur.elemente.map((e) => e.functionId).sort()).toEqual([
+      12000011, 13000030, 13000031,
+    ]);
+    const koKante = flur.kanten.find((k) => k.elementId === 20)!;
+    expect(koKante.quelle).toEqual({ art: "ko", koId: 100 });
+    const portKante = flur.kanten.find((k) => k.elementId === 21)!;
+    expect(portKante.quelle).toEqual({ art: "port", elementId: 20, ausgang: 1 });
+  });
+});
+
+describe("bewerte", () => {
+  it("erkennt vollständig abbildbare vs. offene Seiten", () => {
+    const report = bewerte(extrahiereStruktur(tabellen));
+    const flur = report.seiten.find((s) => s.seite === "Flur")!;
+    expect(flur.vollstaendig).toBe(true);
+    const exotik = report.seiten.find((s) => s.seite === "Exotik")!;
+    expect(exotik.vollstaendig).toBe(false);
+    expect(report.offen).toEqual([{ functionId: 99999999, anzahl: 1 }]);
+  });
+});
+
+describe("konvertiereSeite", () => {
+  it("kollabiert SendByChange, bildet NOT ab, Ausgangsbox → Datenpunkt-Schreiben", () => {
+    const flur = extrahiereStruktur(tabellen).find((s) => s.name === "Flur")!;
+    const { ergebnis, fehler } = konvertiereSeite(flur, koZuSchluessel);
+    expect(fehler).toEqual([]);
+    expect(ergebnis).not.toBeNull();
+
+    // NOT-Knoten vorhanden, SendByChange/Ausgangsbox sind KEINE Knoten
+    expect(Object.keys(ergebnis!.logik.knoten)).toEqual(["e21"]);
+    expect(ergebnis!.logik.knoten["e21"]!.baustein).toBe("NOT");
+
+    // Kante 1: KO Taster → NOT.in (SendByChange kollabiert, Quelle = KO direkt)
+    expect(ergebnis!.logik.kanten).toContainEqual({ von: "dp:io.taster", nach: "e21.in" });
+    // Kante 2: NOT.out → Datenpunkt Licht (Ausgangsbox)
+    expect(ergebnis!.logik.kanten).toContainEqual({ von: "e21.out", nach: "dp:io.licht" });
+  });
+
+  it("meldet unvollständige Seite statt zu raten", () => {
+    const exotik = extrahiereStruktur(tabellen).find((s) => s.name === "Exotik")!;
+    const { ergebnis, fehler } = konvertiereSeite(exotik, koZuSchluessel);
+    expect(ergebnis).toBeNull();
+    expect(fehler.some((f) => f.meldung.includes("99999999"))).toBe(true);
+  });
+});

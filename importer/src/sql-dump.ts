@@ -13,12 +13,30 @@ export interface Tabelle {
   zeilen: Zeile[];
 }
 
-/** Spaltennamen aus einem CREATE-TABLE-Block ziehen. */
+/** Spaltennamen aus einem CREATE-TABLE-Block ziehen (zeilen- ODER kommagetrennt). */
 function parseSpalten(createBlock: string): string[] {
   const spalten: string[] = [];
-  for (const zeile of createBlock.split("\n")) {
-    const m = /^\s*`([^`]+)`\s/.exec(zeile);
-    if (m) spalten.push(m[1]!);
+  // Auf Paren-Tiefe 0 an Kommas trennen (Typdefs wie „(20)" nicht zerschneiden).
+  const teile: string[] = [];
+  let tiefe = 0;
+  let akt = "";
+  for (const ch of createBlock) {
+    if (ch === "(") tiefe++;
+    else if (ch === ")") tiefe--;
+    if (ch === "," && tiefe === 0) {
+      teile.push(akt);
+      akt = "";
+    } else {
+      akt += ch;
+    }
+  }
+  teile.push(akt);
+
+  const nichtSpalte = /^(PRIMARY|UNIQUE|KEY|INDEX|CONSTRAINT|FULLTEXT|SPATIAL|CHECK)\b/i;
+  for (const teil of teile) {
+    const t = teil.trim();
+    const m = /^`([^`]+)`/.exec(t);
+    if (m && !nichtSpalte.test(t)) spalten.push(m[1]!);
   }
   return spalten;
 }
@@ -72,10 +90,22 @@ function parseWerte(text: string, start: number): { werte: Zelle[]; ende: number
 export function parseDump(sql: string): Map<string, Tabelle> {
   const tabellen = new Map<string, Tabelle>();
 
-  // mysqldump schließt die Spaltenliste mit ")" am Zeilenanfang ab.
-  const createRe = /CREATE TABLE `([^`]+)` \(([\s\S]*?)\n\)/g;
+  // CREATE TABLE `x` ( … ) — Klammern balancieren, da Typdefs „(20)" enthalten.
+  const createRe = /CREATE TABLE `([^`]+)` \(/g;
   for (let m = createRe.exec(sql); m; m = createRe.exec(sql)) {
-    tabellen.set(m[1]!, { name: m[1]!, spalten: parseSpalten(m[2]!), zeilen: [] });
+    let i = createRe.lastIndex;
+    let tiefe = 1;
+    const start = i;
+    for (; i < sql.length && tiefe > 0; i++) {
+      if (sql[i] === "(") tiefe++;
+      else if (sql[i] === ")") tiefe--;
+    }
+    tabellen.set(m[1]!, {
+      name: m[1]!,
+      spalten: parseSpalten(sql.slice(start, i - 1)),
+      zeilen: [],
+    });
+    createRe.lastIndex = i;
   }
 
   const insertRe = /INSERT INTO `([^`]+)` VALUES/g;
