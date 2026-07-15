@@ -21,3 +21,5 @@ export type {
   SchreibErgebnis,
   SchreibQuelle,
 } from "./datenpunkte/registry.ts";
+export { LogikEngine, GraphFehler, analysiereLogik } from "./logik/engine.ts";
+export type { KaskadenTrace, TraceSchritt, TraceSchreiben } from "./logik/engine.ts";

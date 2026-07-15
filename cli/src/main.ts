@@ -2,7 +2,7 @@
  * Einstiegspunkt `fachwerk` — Walking Skeleton (Phase 3).
  * Kommandos entstehen schrittweise: validate (S-2), run (S-6).
  */
-import { loadGewerk, SUPPORTED_GEWERK_FORMAT } from "@fachwerk/core";
+import { analysiereLogik, loadGewerk, SUPPORTED_GEWERK_FORMAT } from "@fachwerk/core";
 import { CLI_VERSION } from "./index.ts";
 
 const [cmd = "--version", ...args] = process.argv.slice(2);
@@ -27,6 +27,13 @@ switch (cmd) {
       for (const f of fehler) {
         console.error(`  ${f.datei}${f.pfad === "/" ? "" : ` ${f.pfad}`}: ${f.meldung}`);
       }
+      process.exit(1);
+    }
+    // Statische Analyse (ADR-0005): Zyklen sind Fehler, Mehrfach-Schreiber Warnungen.
+    const analyse = analysiereLogik(gewerk!);
+    for (const w of analyse.warnungen) console.warn(`WARNUNG: ${w}`);
+    if (analyse.fehler.length > 0) {
+      for (const f of analyse.fehler) console.error(`FEHLER: ${f}`);
       process.exit(1);
     }
     const dpAnzahl = [...gewerk!.datenpunkte.values()].reduce(
