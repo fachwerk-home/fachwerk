@@ -25,3 +25,6 @@ scratch/
 research/
 __pycache__/
 *.pyc
+
+# Lokale Import-Rohdaten (Referenzsystem-Exporte) — NIEMALS committen
+_ingest/
