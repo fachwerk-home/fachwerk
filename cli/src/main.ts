@@ -46,8 +46,19 @@ switch (cmd) {
     break;
   }
 
+  case "run": {
+    const dir = args[0];
+    if (!dir) {
+      console.error("Aufruf: fachwerk run <gewerk-verzeichnis>");
+      process.exit(2);
+    }
+    const { run } = await import("./run.ts");
+    process.exit(await run(dir));
+    break;
+  }
+
   default:
     console.error(`Unbekanntes Kommando: ${cmd}`);
-    console.error("Verfügbar: version · validate <verzeichnis>");
+    console.error("Verfügbar: version · validate <verzeichnis> · run <verzeichnis>");
     process.exit(1);
 }

@@ -53,5 +53,10 @@ jobs:
       - name: Smoke test (validate Beispiel-Gewerk via Volume)
         run: docker compose run --rm fachwerk validate /gewerke/minimal
 
-  # Placeholder — activated as soon as the respective phase delivers code.
-  # sim: logic acceptance tests vs KNX simulator (S-6 / Phase 4)
+  sim:
+    name: E2E Walking Skeleton (vs Bus-Simulator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Injektion 1/0/1 ⇒ Kaskade ⇒ Telegramm 1/0/2
+        run: bash tools/e2e-skeleton.sh

@@ -8,6 +8,7 @@ services:
 
   fachwerk:
     build: .
+    command: ["run", "/gewerke/minimal"]
     depends_on:
       - bus-simulator
     environment:

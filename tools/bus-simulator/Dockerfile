@@ -3,7 +3,7 @@
 FROM python:3.12-slim
 
 WORKDIR /app
-COPY knxnet_sim.py selftest.py ./
+COPY knxnet_sim.py selftest.py simctl.py ./
 
 # Selbsttest beim Build (schlägt fehl, wenn die Protokoll-Zustandsmaschine bricht)
 RUN python selftest.py
