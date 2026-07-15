@@ -1,0 +1,24 @@
+# Fachwerk am ECHTEN Bus — Beobachtungsmodus (empfaengt, sendet NIE).
+# Fuer Portainer: Stack aus diesem Repo, Compose-Pfad docker-compose.beobachten.yml.
+# Nur die Interface-IP als FACHWERK_KNX_HOST setzen. Kein Simulator.
+services:
+  fachwerk:
+    build: .
+    # Host-Netz: erreicht das KNX-Interface direkt und empfaengt dessen Antworten.
+    network_mode: host
+    command: ["run", "/gewerk"]
+    restart: unless-stopped
+    environment:
+      # PFLICHT: IP deines KNXnet/IP-Interface/-Routers (via knx-discover.py finden).
+      FACHWERK_KNX_HOST: ${FACHWERK_KNX_HOST:?bitte FACHWERK_KNX_HOST setzen}
+      FACHWERK_KNX_PORT: ${FACHWERK_KNX_PORT:-3671}
+      # Sicherheitsnetz: empfangen ja, senden NIE.
+      FACHWERK_KNX_MODUS: beobachten
+      FACHWERK_DATEN_DIR: /daten
+    volumes:
+      # Gewerk (Standard: das Abnahme-Beispiel mit deinen echten Licht-GAs).
+      - ${FACHWERK_GEWERK_DIR:-./examples/abnahme-licht-status}:/gewerk:ro
+      - fachwerk-daten:/daten
+
+volumes:
+  fachwerk-daten:

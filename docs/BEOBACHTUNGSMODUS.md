@@ -19,24 +19,48 @@ RX  6/1/83 = true  → eg.kueche_spots        # vom Bus empfangen
 ```
 Die vollständigen Ausführungs-Traces (JSONL) laufen wie gewohnt nach stdout.
 
-## Am echten Bus starten
+## Schritt 0 — Interface finden
 
-Vorausgesetzt: ein erreichbares KNXnet/IP-Interface/-Router (Tunneling). Kein
-Port-Forwarding nötig — Fachwerk läuft im selben Netz.
+Reicht die IP? **Ja** (Port default 3671). Gateway-IP finden:
+```bash
+python tools/knx-discover.py      # listet KNXnet/IP-Interfaces/-Router im Netz
+```
+Alternativ: aus FHEM (`list <knx-io-device>` → `DEF`-Zeile, falls FHEM am KNX hängt),
+aus der Router-Weboberfläche oder dem ETS-Projekt.
+Vorbehalte: ein **freier Tunnel-Slot** nötig (Interfaces haben oft nur 1–4; ein Router mehr);
+**KNX Secure** wird noch nicht unterstützt.
+
+## Am echten Bus starten (lokal)
 
 ```bash
-# Direkt (lokal):
 FACHWERK_KNX_HOST=<ip-des-knx-interface> \
 FACHWERK_KNX_PORT=3671 \
 FACHWERK_KNX_MODUS=beobachten \
   node cli/src/main.ts run <gewerk-verzeichnis>
-
-# Oder via Compose (Host-IP des Interface eintragen):
-FACHWERK_KNX_MODUS=beobachten FACHWERK_KNX_HOST=<ip> docker compose up fachwerk
 ```
-
 `FACHWERK_KNX_MODUS` leer/ungesetzt = normaler Betrieb (sendet). Nur der exakte Wert
 `beobachten` aktiviert den Nur-Lese-Modus.
+
+## Auf dem Portainer-Host deployen
+
+`docker-compose.beobachten.yml` fährt **nur** Fachwerk (kein Simulator), im
+Beobachtungsmodus, mit Host-Netz. Standard-Gewerk ist `examples/abnahme-licht-status`
+(deine echten Licht-Status-GAs → Sammelmeldung).
+
+**Portainer → Stacks → Add stack → Repository:**
+- Repository-URL: `https://github.com/fachwerk-home/fachwerk`
+- Compose-Pfad: `docker-compose.beobachten.yml`
+- Environment variables: `FACHWERK_KNX_HOST` = IP deines Interface (Pflicht);
+  optional `FACHWERK_GEWERK_DIR` = anderer Gewerk-Pfad im Repo.
+- Deploy. Dann **Logs** des `fachwerk`-Containers ansehen:
+  ```
+  RX  6/1/83 = true  → eg.kueche_spots          # echtes Telegramm
+  [BEOBACHTUNG] würde senden  6/1/200 = true     # was die Logik täte (nicht gesendet)
+  ```
+
+Nichts wird an die Anlage geschrieben — der Modus ist doppelt verriegelt (Treiber-Flag +
+kein Transmit). Zum späteren echten Betrieb einfach `FACHWERK_KNX_MODUS` entfernen — aber
+das erst, wenn wir Guardrails (DEV/PROD, ADR-0009) und eine Visu haben.
 
 ## Grenzen (ehrlich)
 
