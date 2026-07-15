@@ -60,3 +60,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Injektion 1/0/1 ⇒ Kaskade ⇒ Telegramm 1/0/2
         run: bash tools/e2e-skeleton.sh
+      - name: Neustart-Regel T-5 (Treppenlicht überlebt Container-Restart)
+        run: bash tools/e2e-neustart.sh

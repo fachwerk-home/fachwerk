@@ -19,6 +19,9 @@ COPY core/ core/
 COPY cli/ cli/
 COPY drivers/ drivers/
 
+# Zustands-Verzeichnis gehört dem Laufzeit-User (Named Volumes erben das).
+RUN mkdir -p /daten && chown node:node /daten
+
 USER node
 ENTRYPOINT ["node", "cli/src/main.ts"]
 CMD ["version"]

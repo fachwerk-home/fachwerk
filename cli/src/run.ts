@@ -3,11 +3,14 @@
  * Registry + Engine starten, KNX-Treiber verbinden, Datenpunkte ↔ Bus koppeln.
  * Traces gehen als JSONL nach stdout (E-5: Pflicht, nicht Option);
  * Statusmeldungen nach stderr. Konfiguration über Env (Container-first):
- * FACHWERK_KNX_HOST / FACHWERK_KNX_PORT.
+ * FACHWERK_KNX_HOST / FACHWERK_KNX_PORT / FACHWERK_DATEN_DIR (Persistenz).
  */
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import {
   DatenpunktRegistry,
   LogikEngine,
+  Speicher,
   analysiereLogik,
   loadGewerk,
   type Wert,
@@ -27,7 +30,23 @@ export async function run(dir: string): Promise<number> {
     return 1;
   }
 
+  // Persistenz (ADR-0006): Zustand lebt auf einem Volume, nie im Image.
+  const datenDir = process.env["FACHWERK_DATEN_DIR"] ?? "./daten";
+  mkdirSync(datenDir, { recursive: true });
+  const speicher = new Speicher(join(datenDir, "zustand.sqlite"));
+
   const registry = new DatenpunktRegistry(gewerk);
+
+  // Remanente Werte VOR dem Engine-Start einspielen (keine Kaskaden dabei).
+  let wiederhergestellt = 0;
+  for (const [schluessel, wert] of speicher.ladeWerte()) {
+    if (registry.definition(schluessel)?.remanent) {
+      if (registry.schreibe(schluessel, wert, "system").angenommen) wiederhergestellt++;
+    }
+  }
+  if (wiederhergestellt > 0) {
+    console.error(`Persistenz: ${wiederhergestellt} remanente(r) Wert(e) wiederhergestellt`);
+  }
   // Timer-Pumpwerk (E-8): setTimeout auf die früheste Fälligkeit, monotone Uhr.
   const uhr = (): number => performance.now();
   let timerHandle: ReturnType<typeof setTimeout> | null = null;
@@ -46,12 +65,33 @@ export async function run(dir: string): Promise<number> {
     timerHandle.unref?.();
   };
   const engine = new LogikEngine(gewerk, registry, {
-    onTrace: (t) => console.log(JSON.stringify(t)),
+    onTrace: (t) => {
+      console.log(JSON.stringify(t));
+      // Nach jeder Kaskade: Timer + Baustein-Zustände sichern (T-5/T-6).
+      speicher.sichereEngine(engine.momentaufnahme());
+    },
     onWarnung: (w) => console.error(`WARNUNG: ${w}`),
     uhr,
     onTimerAenderung: () => pumpe(),
   });
   engine.start();
+
+  // Engine-Zustand (Timer/Baustein-Zustände) aus dem letzten Lauf fortsetzen;
+  // Überfälliges feuert einmal nach — kein hängender Ausgang (T-5).
+  const engineZustand = speicher.ladeEngine();
+  if (engineZustand) {
+    engine.stelleWiederHer(engineZustand);
+    if (engineZustand.timer.length > 0) {
+      console.error(`Persistenz: ${engineZustand.timer.length} Timer fortgesetzt/nachgeholt`);
+    }
+  }
+
+  // Remanente Werte fortlaufend sichern.
+  registry.abonniere((e) => {
+    if (registry.definition(e.schluessel)?.remanent) {
+      speicher.sichereWert(e.schluessel, e.wert);
+    }
+  });
 
   // KNX-Zuordnung: GA ↔ Datenpunkt (Skeleton: nur typ bool auf dem Bus).
   const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
@@ -113,6 +153,8 @@ export async function run(dir: string): Promise<number> {
       void treiber.trenne().then(() => {
         engine.stop();
         if (timerHandle) clearTimeout(timerHandle);
+        speicher.sichereEngine(engine.momentaufnahme()); // letzter Stand (T-5)
+        speicher.schliesse();
         resolve();
       });
     };

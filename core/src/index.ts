@@ -21,6 +21,8 @@ export type {
   SchreibErgebnis,
   SchreibQuelle,
 } from "./datenpunkte/registry.ts";
+export { Speicher } from "./persistenz/speicher.ts";
+export type { EngineMomentaufnahme } from "./persistenz/speicher.ts";
 export { LogikEngine, GraphFehler, analysiereLogik } from "./logik/engine.ts";
 export type {
   KaskadenTrace,

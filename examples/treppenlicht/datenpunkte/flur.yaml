@@ -1,0 +1,12 @@
+impuls:
+  name: Treppenlicht Impuls
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 1/0/3
+licht:
+  name: Treppenlicht
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 1/0/4

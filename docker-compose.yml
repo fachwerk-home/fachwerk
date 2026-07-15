@@ -8,12 +8,18 @@ services:
 
   fachwerk:
     build: .
-    command: ["run", "/gewerke/minimal"]
+    command: ["run", "${FACHWERK_GEWERK:-/gewerke/minimal}"]
     depends_on:
       - bus-simulator
     environment:
       FACHWERK_KNX_HOST: bus-simulator
       FACHWERK_KNX_PORT: "3671"
+      FACHWERK_DATEN_DIR: /daten
     volumes:
       # Gewerk ist Daten, nicht Image-Inhalt: kommt immer per Volume.
       - ./examples:/gewerke:ro
+      # Laufzeitzustand (SQLite) überlebt Container-Neustarts (ADR-0006).
+      - daten:/daten
+
+volumes:
+  daten:

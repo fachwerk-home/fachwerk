@@ -1,0 +1,12 @@
+notizen: "Neustart-Demo: Impuls schaltet ein, nach 15 s automatisch aus (T-5)."
+knoten:
+  tl:
+    baustein: TREPPENLICHT
+    parameter:
+      ms: 15000
+kanten:
+  - von: dp:flur.impuls
+    nach: tl.in
+    trigger: on-receive
+  - von: tl.out
+    nach: dp:flur.licht
