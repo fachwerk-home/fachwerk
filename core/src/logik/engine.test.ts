@@ -169,8 +169,8 @@ describe("E-3: atomare Kaskaden in FIFO-Ordnung", () => {
     registry.schreibe("io.t", true, "treiber");
     registry.schreibe("io.t", false, "treiber");
     expect(traces.map((t) => t.nr)).toEqual([1, 2]);
-    expect(traces[0]!.ausloeser.wert).toBe(true);
-    expect(traces[1]!.ausloeser.wert).toBe(false);
+    expect(traces[0]!.ausloeser).toMatchObject({ art: "dp", wert: true });
+    expect(traces[1]!.ausloeser).toMatchObject({ art: "dp", wert: false });
     expect(registry.get("io.l")).toBe(true);
   });
 });

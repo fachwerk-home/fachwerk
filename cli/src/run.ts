@@ -28,9 +28,28 @@ export async function run(dir: string): Promise<number> {
   }
 
   const registry = new DatenpunktRegistry(gewerk);
+  // Timer-Pumpwerk (E-8): setTimeout auf die früheste Fälligkeit, monotone Uhr.
+  const uhr = (): number => performance.now();
+  let timerHandle: ReturnType<typeof setTimeout> | null = null;
+  const pumpe = (): void => {
+    if (timerHandle) clearTimeout(timerHandle);
+    timerHandle = null;
+    const naechste = engine.naechsteFaelligkeit();
+    if (naechste === null) return;
+    timerHandle = setTimeout(
+      () => {
+        engine.verarbeiteFaellige(uhr());
+        pumpe();
+      },
+      Math.max(0, naechste - uhr()),
+    );
+    timerHandle.unref?.();
+  };
   const engine = new LogikEngine(gewerk, registry, {
     onTrace: (t) => console.log(JSON.stringify(t)),
     onWarnung: (w) => console.error(`WARNUNG: ${w}`),
+    uhr,
+    onTimerAenderung: () => pumpe(),
   });
   engine.start();
 
@@ -93,6 +112,7 @@ export async function run(dir: string): Promise<number> {
       console.error("fachwerk: Shutdown …");
       void treiber.trenne().then(() => {
         engine.stop();
+        if (timerHandle) clearTimeout(timerHandle);
         resolve();
       });
     };

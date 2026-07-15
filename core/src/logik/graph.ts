@@ -29,6 +29,7 @@ export interface Ausgang {
 export interface GraphKnoten {
   id: KnotenId;
   baustein: Baustein;
+  parameter: Readonly<Record<string, unknown>>;
   eingaenge: Eingang[];
   ausgaenge: Ausgang[];
 }
@@ -75,6 +76,7 @@ export function baueGraph(gewerk: Gewerk): LogikGraph {
       knoten.set(`${seite}/${name}`, {
         id: `${seite}/${name}`,
         baustein: impl,
+        parameter: def.parameter ?? {},
         eingaenge: [],
         ausgaenge: [],
       });
