@@ -30,7 +30,10 @@ switch (cmd) {
       process.exit(1);
     }
     // Statische Analyse (ADR-0005): Zyklen sind Fehler, Mehrfach-Schreiber Warnungen.
-    const analyse = analysiereLogik(gewerk!);
+    // Eigene Bausteine zählen als bekannt (Dummy — validate startet keine Sandbox).
+    const analyse = analysiereLogik(gewerk!, (typ) =>
+      gewerk!.bausteine?.has(typ) ? { typ, rechne: () => null } : undefined,
+    );
     for (const w of analyse.warnungen) console.warn(`WARNUNG: ${w}`);
     if (analyse.fehler.length > 0) {
       for (const f of analyse.fehler) console.error(`FEHLER: ${f}`);
@@ -57,8 +60,20 @@ switch (cmd) {
     break;
   }
 
+  case "baustein": {
+    if (args[0] !== "test" || !args[1]) {
+      console.error("Aufruf: fachwerk baustein test <gewerk-verzeichnis>");
+      process.exit(2);
+    }
+    const { bausteinTest } = await import("./baustein-test.ts");
+    process.exit(await bausteinTest(args[1]));
+    break;
+  }
+
   default:
     console.error(`Unbekanntes Kommando: ${cmd}`);
-    console.error("Verfügbar: version · validate <verzeichnis> · run <verzeichnis>");
+    console.error(
+      "Verfügbar: version · validate <verzeichnis> · run <verzeichnis> · baustein test <verzeichnis>",
+    );
     process.exit(1);
 }

@@ -10,10 +10,11 @@ export type { ErrorObject, ValidateFunction };
 import gewerkSchema from "../schemas/gewerk.schema.json" with { type: "json" };
 import datenpunkteSchema from "../schemas/datenpunkte.schema.json" with { type: "json" };
 import logikSchema from "../schemas/logik.schema.json" with { type: "json" };
+import bausteinSchema from "../schemas/baustein.schema.json" with { type: "json" };
 
 export const GEWERK_FORMAT_VERSION = 1;
 
-export { gewerkSchema, datenpunkteSchema, logikSchema };
+export { gewerkSchema, datenpunkteSchema, logikSchema, bausteinSchema };
 
 // ---- TypeScript-Typen (spiegeln die Schemas; Generierung folgt später) ----
 
@@ -61,6 +62,23 @@ export interface LogikSeite {
   kanten: LogikKante[];
 }
 
+export interface BausteinTest {
+  eingaenge: Record<string, unknown>;
+  parameter?: Record<string, unknown>;
+  erwartet?: Record<string, unknown> | null;
+}
+
+export interface BausteinManifest {
+  id: string;
+  name: string;
+  version: number;
+  beschreibung?: string;
+  eingaenge: string[];
+  ausgaenge: string[];
+  parameter?: Record<string, unknown>;
+  tests?: BausteinTest[];
+}
+
 // ---- Kompilierte Validatoren (Ajv, Draft 2020-12) ----
 
 const ajv = new Ajv2020({ allErrors: true, allowUnionTypes: true });
@@ -71,6 +89,8 @@ export const validateDatenpunktDatei: ValidateFunction<DatenpunktDatei> =
   ajv.compile<DatenpunktDatei>(datenpunkteSchema);
 export const validateLogikSeite: ValidateFunction<LogikSeite> =
   ajv.compile<LogikSeite>(logikSchema);
+export const validateBausteinManifest: ValidateFunction<BausteinManifest> =
+  ajv.compile<BausteinManifest>(bausteinSchema);
 
 /** Kanonische Schlüssel-Reihenfolge je Artefakt (ADR-0004: kleine Diffs). */
 export const KEY_ORDER = {

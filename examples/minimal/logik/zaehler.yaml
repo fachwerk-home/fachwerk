@@ -1,0 +1,9 @@
+notizen: "Eigener Baustein (Sandbox): zählt Taster-Flanken in den internen Zähler."
+knoten:
+  fz:
+    baustein: flankenzaehler
+kanten:
+  - von: dp:wohnen.taster
+    nach: fz.in
+  - von: fz.out
+    nach: dp:wohnen.zaehler

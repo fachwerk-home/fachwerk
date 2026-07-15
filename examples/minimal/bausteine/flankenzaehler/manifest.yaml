@@ -1,0 +1,17 @@
+id: flankenzaehler
+name: Flankenzähler
+version: 1
+beschreibung: Zählt steigende Flanken am Eingang und gibt den Zählerstand aus.
+eingaenge:
+  - in
+ausgaenge:
+  - out
+tests:
+  - eingaenge: { in: true }
+    erwartet: { out: 1 }
+  - eingaenge: { in: true }
+    erwartet: null
+  - eingaenge: { in: false }
+    erwartet: null
+  - eingaenge: { in: true }
+    erwartet: { out: 2 }

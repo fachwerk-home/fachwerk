@@ -62,13 +62,19 @@ function parseEndpunkt(ref: string, seite: string): Endpunkt {
   return { art: "port", knoten: `${seite}/${knoten}`, port };
 }
 
-export function baueGraph(gewerk: Gewerk): LogikGraph {
+/** Resolver: Baustein-Typ → Implementierung (Stdlib + eigene Bausteine). */
+export type BausteinResolver = (typ: string) => Baustein | undefined;
+
+export function baueGraph(
+  gewerk: Gewerk,
+  resolver: BausteinResolver = findeBaustein,
+): LogikGraph {
   const knoten = new Map<KnotenId, GraphKnoten>();
   const fehler: string[] = [];
 
   for (const [seite, logik] of gewerk.logik) {
     for (const [name, def] of Object.entries(logik.knoten)) {
-      const impl = findeBaustein(def.baustein);
+      const impl = resolver(def.baustein) ?? findeBaustein(def.baustein);
       if (!impl) {
         fehler.push(`logik/${seite}.yaml: unbekannter Baustein „${def.baustein}" (Knoten ${name})`);
         continue;

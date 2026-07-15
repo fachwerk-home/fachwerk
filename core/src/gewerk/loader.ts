@@ -12,10 +12,12 @@ import {
   validateGewerkManifest,
   validateDatenpunktDatei,
   validateLogikSeite,
+  validateBausteinManifest,
   GEWERK_FORMAT_VERSION,
   type GewerkManifest,
   type DatenpunktDatei,
   type LogikSeite,
+  type BausteinManifest,
 } from "@fachwerk/schema";
 
 export interface LadeFehler {
@@ -24,12 +26,20 @@ export interface LadeFehler {
   meldung: string;
 }
 
+export interface EigenerBaustein {
+  manifest: BausteinManifest;
+  /** Absoluter Pfad zu baustein.js (plain JS, ESM). */
+  jsPfad: string;
+}
+
 export interface Gewerk {
   manifest: GewerkManifest;
   /** Gruppe (Dateiname ohne .yaml) → Datenpunkte. */
   datenpunkte: Map<string, DatenpunktDatei>;
   /** Seite (Dateiname ohne .yaml) → Logikseite. */
   logik: Map<string, LogikSeite>;
+  /** Eigene Bausteine (bausteine/<id>/), Schlüssel = Manifest-Id. */
+  bausteine?: Map<string, EigenerBaustein>;
 }
 
 export interface LadeErgebnis {
@@ -158,6 +168,45 @@ export function loadGewerk(dir: string): LadeErgebnis {
     datenpunkte.set(basename(datei, ".yaml"), roh);
   }
 
+  // Eigene Bausteine (bausteine/<verzeichnis>/manifest.yaml + baustein.js)
+  const bausteine = new Map<string, EigenerBaustein>();
+  const bausteinDir = join(dir, "bausteine");
+  if (existsSync(bausteinDir)) {
+    for (const eintrag of readdirSync(bausteinDir, { withFileTypes: true })) {
+      if (!eintrag.isDirectory()) continue;
+      const rel = `bausteine/${eintrag.name}/manifest.yaml`;
+      const manifestPfad2 = join(bausteinDir, eintrag.name, "manifest.yaml");
+      if (!existsSync(manifestPfad2)) {
+        fehler.push({ datei: rel, pfad: "/", meldung: "manifest.yaml fehlt" });
+        continue;
+      }
+      const roh = parseYaml(manifestPfad2, fehler);
+      if (roh === undefined) continue;
+      if (!validateBausteinManifest(roh)) {
+        fehler.push(...ajvFehler(rel, validateBausteinManifest.errors));
+        continue;
+      }
+      if (roh.id !== eintrag.name) {
+        fehler.push({
+          datei: rel,
+          pfad: "/id",
+          meldung: `Id „${roh.id}" muss dem Verzeichnisnamen „${eintrag.name}" entsprechen`,
+        });
+        continue;
+      }
+      const jsPfad = join(bausteinDir, eintrag.name, "baustein.js");
+      if (!existsSync(jsPfad)) {
+        fehler.push({
+          datei: `bausteine/${eintrag.name}/baustein.js`,
+          pfad: "/",
+          meldung: "baustein.js fehlt (plain JS, ESM, default-Export rechne)",
+        });
+        continue;
+      }
+      bausteine.set(roh.id, { manifest: roh, jsPfad });
+    }
+  }
+
   // Logikseiten
   const logik = new Map<string, LogikSeite>();
   for (const datei of yamlDateien(join(dir, "logik"))) {
@@ -175,7 +224,7 @@ export function loadGewerk(dir: string): LadeErgebnis {
     return { gewerk: null, fehler };
   }
 
-  const gewerk: Gewerk = { manifest, datenpunkte, logik };
+  const gewerk: Gewerk = { manifest, datenpunkte, logik, bausteine };
   pruefeReferenzen(gewerk, fehler);
   return fehler.length > 0 ? { gewerk: null, fehler } : { gewerk, fehler: [] };
 }

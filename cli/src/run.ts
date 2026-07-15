@@ -8,11 +8,14 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
+  BausteinSandbox,
   DatenpunktRegistry,
   LogikEngine,
   Speicher,
   analysiereLogik,
   loadGewerk,
+  sandboxAlsBaustein,
+  type Baustein,
   type Wert,
 } from "@fachwerk/core";
 import { KnxTreiber } from "@fachwerk/driver-knx";
@@ -23,7 +26,17 @@ export async function run(dir: string): Promise<number> {
     for (const f of fehler) console.error(`FEHLER: ${f.datei} ${f.pfad}: ${f.meldung}`);
     return 1;
   }
-  const analyse = analysiereLogik(gewerk);
+  // Eigene Bausteine in Sandboxen (P4-5): plain JS im Worker, Zeit-/Speicher-Limit.
+  const sandboxen: BausteinSandbox[] = [];
+  const eigene = new Map<string, Baustein>();
+  for (const [id, def] of gewerk.bausteine ?? []) {
+    const sandbox = new BausteinSandbox(def.jsPfad);
+    sandboxen.push(sandbox);
+    eigene.set(id, sandboxAlsBaustein(id, sandbox));
+  }
+  const resolver = (typ: string): Baustein | undefined => eigene.get(typ);
+
+  const analyse = analysiereLogik(gewerk, resolver);
   for (const w of analyse.warnungen) console.error(`WARNUNG: ${w}`);
   if (analyse.fehler.length > 0) {
     for (const f of analyse.fehler) console.error(`FEHLER: ${f}`);
@@ -71,6 +84,7 @@ export async function run(dir: string): Promise<number> {
       speicher.sichereEngine(engine.momentaufnahme());
     },
     onWarnung: (w) => console.error(`WARNUNG: ${w}`),
+    bausteine: resolver,
     uhr,
     onTimerAenderung: () => pumpe(),
   });
@@ -157,6 +171,7 @@ export async function run(dir: string): Promise<number> {
         if (timerHandle) clearTimeout(timerHandle);
         speicher.sichereEngine(engine.momentaufnahme()); // letzter Stand (T-5)
         speicher.schliesse();
+        for (const s of sandboxen) s.beende();
         resolve();
       });
     };

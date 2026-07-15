@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fachwerk.dev/schemas/baustein.schema.json",
+  "title": "Baustein-Manifest (bausteine/<id>/manifest.yaml) — ADR-0008",
+  "description": "Ein eigener Baustein = Verzeichnis mit manifest.yaml + baustein.js (plain JavaScript, ESM, default-Export rechne(eingaenge, ctx)). Null-Toolchain: kein Build noetig.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "version", "eingaenge", "ausgaenge"],
+  "properties": {
+    "id": {
+      "description": "Baustein-Typ-Kennung (klein geschrieben — Stdlib ist GROSS, dadurch kollisionsfrei).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "beschreibung": { "type": "string" },
+    "eingaenge": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+    },
+    "ausgaenge": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+    },
+    "parameter": {
+      "description": "Default-Parameter (im Gewerk je Knoten überschreibbar).",
+      "type": "object"
+    },
+    "tests": {
+      "description": "Testvektoren — `fachwerk baustein test` führt sie in der Sandbox aus.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eingaenge"],
+        "properties": {
+          "eingaenge": { "type": "object" },
+          "parameter": { "type": "object" },
+          "erwartet": {
+            "description": "Erwartete Ausgänge; null = keine Ausgabe.",
+            "type": ["object", "null"]
+          }
+        }
+      }
+    }
+  }
+}

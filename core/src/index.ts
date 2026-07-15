@@ -8,7 +8,8 @@ import { GEWERK_FORMAT_VERSION } from "@fachwerk/schema";
 export const SUPPORTED_GEWERK_FORMAT = GEWERK_FORMAT_VERSION;
 
 export { loadGewerk } from "./gewerk/loader.ts";
-export type { Gewerk, LadeErgebnis, LadeFehler } from "./gewerk/loader.ts";
+export type { Gewerk, LadeErgebnis, LadeFehler, EigenerBaustein } from "./gewerk/loader.ts";
+export { BausteinSandbox, sandboxAlsBaustein } from "./logik/sandbox.ts";
 export {
   manifestZuYaml,
   datenpunkteZuYaml,
