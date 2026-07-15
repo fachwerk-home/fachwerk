@@ -55,6 +55,7 @@ export class BausteinSandbox {
     parameter: Readonly<Record<string, unknown>>;
     zustand: Record<string, Wert>;
     ausloeser: Ausloeser;
+    frischeEingaenge?: string[];
   }): SandboxAntwort {
     if (!this.#worker) return { fehler: "Sandbox wurde beendet (vorheriger Verstoß?)" };
 
@@ -98,6 +99,7 @@ export function sandboxAlsBaustein(typ: string, sandbox: BausteinSandbox): Baust
         parameter: ctx.parameter,
         zustand: { ...ctx.zustand },
         ausloeser: ctx.ausloeser,
+        frischeEingaenge: [...ctx.frischeEingaenge],
       });
       if ("fehler" in antwort) {
         throw new Error(`Baustein „${typ}": ${antwort.fehler}`);

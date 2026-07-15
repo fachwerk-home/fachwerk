@@ -41,6 +41,7 @@ port.on("message", (auftrag: {
   parameter: Record<string, unknown>;
   zustand: Record<string, unknown>;
   ausloeser: unknown;
+  frischeEingaenge?: string[];
 }) => {
   let antwort: unknown;
   try {
@@ -51,6 +52,7 @@ port.on("message", (auftrag: {
       parameter: auftrag.parameter,
       zustand: auftrag.zustand,
       ausloeser: auftrag.ausloeser,
+      frischeEingaenge: new Set(auftrag.frischeEingaenge ?? []),
       planeTimer: (id: string, ms: number) => timerBefehle.push({ art: "plane", id, ms }),
       brichAb: (id: string) => timerBefehle.push({ art: "brichab", id }),
     };

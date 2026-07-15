@@ -19,6 +19,12 @@ export interface BausteinKontext {
   /** Knoten-lokaler Zustand; wird persistiert (SPEC-002 T-6). */
   zustand: Record<string, Wert>;
   ausloeser: Ausloeser;
+  /**
+   * Portnamen der Eingänge, deren Quelle in DIESER Kaskade einen frischen Wert
+   * bekommen hat (das auslösende Ereignis + alles, was daraus geschrieben
+   * wurde). Für flankengetriebene Bausteine (Wertauslöser, Impuls, Klemme).
+   */
+  frischeEingaenge: ReadonlySet<string>;
   /** Plant/ersetzt den Timer (knoten, id) — SPEC-002 T-1/T-2. */
   planeTimer(id: string, ms: number): void;
   brichAb(id: string): void;
@@ -233,10 +239,85 @@ const SPERRLICHT: Baustein = {
   },
 };
 
+/** Wertauslöser: bei Flanke am `trigger`-Eingang den Wert `wert` ausgeben. */
+const WERTAUSLOESER: Baustein = {
+  typ: "WERTAUSLOESER",
+  rechne(e, ctx) {
+    if (!ctx.frischeEingaenge.has("trigger")) return null;
+    const wert = e["wert"] ?? (ctx.parameter["wert"] as Wert | undefined);
+    return wert === undefined ? null : { out: wert };
+  },
+};
+
+/** Impuls: bei Flanke am `trigger` out=true, nach `dauer` ms wieder false. */
+const IMPULS: Baustein = {
+  typ: "IMPULS",
+  rechne(e, ctx) {
+    if (ctx.ausloeser.art === "timer") return { out: false };
+    if (!ctx.frischeEingaenge.has("trigger")) return null;
+    const dauer = Number(e["dauer"] ?? ctx.parameter["ms"] ?? 1000);
+    ctx.planeTimer("aus", dauer);
+    return { out: true };
+  },
+};
+
+/** Multiplikation a·b. */
+const MULT: Baustein = {
+  typ: "MULT",
+  rechne(e) {
+    if (typeof e["a"] !== "number" || typeof e["b"] !== "number") return null;
+    return { out: e["a"] * e["b"] };
+  },
+};
+
+/** Klemme: leitet den zuletzt frisch eingetroffenen Eingang (in1/in2) durch. */
+const KLEMME: Baustein = {
+  typ: "KLEMME",
+  rechne(e, ctx) {
+    // Bei mehreren frischen Eingängen gewinnt der höher nummerierte (deterministisch).
+    for (const port of ["in2", "in1"]) {
+      if (ctx.frischeEingaenge.has(port) && e[port] !== undefined) return { out: e[port] as Wert };
+    }
+    return null;
+  },
+};
+
+/**
+ * Wenn-Dann-Sonst: `eingang` OP `vergleich` ? `dann` : `sonst`.
+ * OP als Parameter/Eingang `op` (EQ/NE/GT/GE/LT/LE). Werte per Eingang ODER
+ * Parameter. Gibt bei jeder Auswertung die passende Seite aus.
+ */
+const WENN_DANN_SONST: Baustein = {
+  typ: "WENN_DANN_SONST",
+  rechne(e, ctx) {
+    const p = ctx.parameter;
+    const eingang = e["eingang"];
+    if (typeof eingang !== "number") return null;
+    const vergleich = Number(e["vergleich"] ?? p["vergleich"]);
+    if (!Number.isFinite(vergleich)) return null;
+    const op = String(e["op"] ?? p["op"] ?? "EQ").toUpperCase();
+    let wahr: boolean;
+    switch (op) {
+      case "EQ": wahr = eingang === vergleich; break;
+      case "NE": wahr = eingang !== vergleich; break;
+      case "GT": wahr = eingang > vergleich; break;
+      case "GE": wahr = eingang >= vergleich; break;
+      case "LT": wahr = eingang < vergleich; break;
+      case "LE": wahr = eingang <= vergleich; break;
+      default: return null; // BT/IN/AB/LS noch nicht unterstützt
+    }
+    const dann = e["dann"] ?? (p["dann"] as Wert | undefined);
+    const sonst = e["sonst"] ?? (p["sonst"] as Wert | undefined);
+    const out = wahr ? dann : sonst;
+    return out === undefined ? null : { out };
+  },
+};
+
 const STDLIB = new Map<string, Baustein>(
-  [NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG, TREPPENLICHT, SPERRLICHT].map(
-    (b) => [b.typ, b],
-  ),
+  [
+    NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
+    TREPPENLICHT, SPERRLICHT, WERTAUSLOESER, IMPULS, MULT, KLEMME, WENN_DANN_SONST,
+  ].map((b) => [b.typ, b]),
 );
 
 export function findeBaustein(typ: string): Baustein | undefined {

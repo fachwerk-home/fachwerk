@@ -125,6 +125,8 @@ export interface BausteinAbbildung {
   ausgaenge: Record<number, string>;
   /** Statischer Eingang, der zu einem Parameter wird: Index → Parametername. */
   parameterAusEingang?: Record<number, string>;
+  /** Feste Parameter (z. B. der Operator einer Vergleicher-Variante). */
+  festeParameter?: Record<string, unknown>;
 }
 
 /**
@@ -144,12 +146,49 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     typ: "VERGLEICH",
     eingaenge: { 1: "a", 2: "b" },
     ausgaenge: { 1: "out" },
+    festeParameter: { op: "==" }, // A=B
+  },
+  15000041: {
+    typ: "VERGLEICH",
+    eingaenge: { 1: "a", 2: "b" },
+    ausgaenge: { 1: "out" },
+    festeParameter: { op: "!=" }, // A≠B
+  },
+  15000042: {
+    typ: "VERGLEICH",
+    eingaenge: { 1: "a", 2: "b" },
+    ausgaenge: { 1: "out" },
+    festeParameter: { op: ">" }, // A>B
+  },
+  15000043: {
+    typ: "VERGLEICH",
+    eingaenge: { 1: "a", 2: "b" },
+    ausgaenge: { 1: "out" },
+    festeParameter: { op: "<" }, // A<B
   },
   16000112: {
     typ: "VERZOEGERUNG",
     eingaenge: { 1: "in" },
     ausgaenge: { 1: "out" },
     parameterAusEingang: { 2: "ms" },
+  },
+  13000022: {
+    typ: "WERTAUSLOESER",
+    eingaenge: { 1: "trigger", 2: "wert" },
+    ausgaenge: { 1: "out" },
+  },
+  16000110: {
+    typ: "IMPULS",
+    eingaenge: { 1: "trigger" },
+    ausgaenge: { 1: "out" },
+    parameterAusEingang: { 2: "ms" },
+  },
+  15000052: { typ: "MULT", eingaenge: { 1: "a", 2: "b" }, ausgaenge: { 1: "out" } },
+  13000011: { typ: "KLEMME", eingaenge: { 1: "in1", 2: "in2" }, ausgaenge: { 1: "out" } },
+  19000119: {
+    typ: "WENN_DANN_SONST",
+    eingaenge: { 1: "eingang", 2: "op", 3: "vergleich", 4: "dann", 5: "sonst" },
+    ausgaenge: { 1: "out" },
   },
 };
 
@@ -320,7 +359,7 @@ export function konvertiereSeite(
       meld(`Element ${el.id}: LBS ${el.functionId} nicht abbildbar`);
       continue;
     }
-    const parameter: Record<string, unknown> = {};
+    const parameter: Record<string, unknown> = { ...abb.festeParameter };
     for (const k of seite.kanten) {
       if (k.elementId !== el.id) continue;
       const pName = abb.parameterAusEingang?.[k.eingang];

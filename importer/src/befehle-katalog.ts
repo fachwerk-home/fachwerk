@@ -29,19 +29,12 @@ export interface BefehlDef {
 }
 
 /**
- * Bekannte Lücken im Katalog — bewusst dokumentiert statt still übergangen:
- * - Kamera-Befehle (Kameraarchiv: Bild hinzufügen/entfernen) sind in EDOMI
- *   nur mit eingerichteter Kamera anlegbar; ohne Hardware nicht erfassbar.
- *   Kategorie wäre „archiv". cmd-Nummern noch unbekannt.
- * - Option-Untervarianten mehrerer Befehle (optionVarianten=true) sind nicht
- *   im Detail dekodiert.
- * Unbekannte cmd-Nummern behandelt der Importer generisch (Report), nie raten.
+ * Bekannte Lücken im Katalog. Nach Dekodierung dreier Referenz-Ausgangsboxen
+ * (inkl. fiktiver Kamera und aller Multi-Auswahlen) sind alle Palette-Befehle
+ * erfasst. Unbekannte cmd-Nummern behandelt der Importer weiterhin generisch
+ * (Report), nie raten — falls ein Produktivsystem Exoten nutzt.
  */
-export const BEKANNTE_LUECKEN = [
-  "Kameraarchiv: Kamerabild hinzufügen (archiv, cmd unbekannt — keine Kamera)",
-  "Kameraarchiv: Kamerabild entfernen (archiv, cmd unbekannt — keine Kamera)",
-  "Option-Untervarianten (cmdoption1) bei EDOMI-Steuerung u. a.",
-] as const;
+export const BEKANNTE_LUECKEN: readonly string[] = [];
 
 /**
  * cmd-Nummer → Definition. Vollständig aus der Referenz-Palette abgeleitet.
@@ -61,7 +54,12 @@ export const BEFEHLE: Record<number, BefehlDef> = {
     kategorie: "ko-schreiben",
     felder: "id1=KO value1=Wert",
   },
-  5: { name: "KO: Rasterwert addieren", kategorie: "ko-schreiben", felder: "id1=KO option1=Raster" },
+  5: {
+    name: "KO: Rasterwert addieren/subtrahieren",
+    kategorie: "ko-schreiben",
+    felder: "id1=KO option1=Raster (negativ=subtrahieren)",
+    optionVarianten: true,
+  },
   6: {
     name: "KO: Wechseln zwischen 0 und Wert (mit Status-KO)",
     kategorie: "ko-schreiben",
@@ -76,6 +74,13 @@ export const BEFEHLE: Record<number, BefehlDef> = {
     felder: "id1=KO id2=StatusKO value1=Wert",
   },
 
+  12: { name: "Kameraarchiv: Kamerabild hinzufügen", kategorie: "archiv", felder: "id1=Archiv" },
+  52: {
+    name: "Kameraarchiv: Kamerabild entfernen",
+    kategorie: "archiv",
+    felder: "id1=Archiv option1=0 neustes/1 ältestes/2 alle",
+    optionVarianten: true,
+  },
   13: { name: "Datenarchiv: Eingangswert hinzufügen", kategorie: "archiv", felder: "id1=Archiv" },
   40: { name: "Datenarchiv: Wert hinzufügen", kategorie: "archiv", felder: "id1=Archiv value1=Wert" },
   42: {
@@ -83,7 +88,12 @@ export const BEFEHLE: Record<number, BefehlDef> = {
     kategorie: "archiv",
     felder: "id1=Archiv id2=KO",
   },
-  50: { name: "Datenarchiv: neusten Eintrag entfernen", kategorie: "archiv", felder: "id1=Archiv" },
+  50: {
+    name: "Datenarchiv: Eintrag entfernen",
+    kategorie: "archiv",
+    felder: "id1=Archiv option1=0 neuster/1 ältester/2 alle",
+    optionVarianten: true,
+  },
   14: {
     name: "Meldungsarchiv: Eingangswert hinzufügen",
     kategorie: "archiv",
@@ -94,7 +104,12 @@ export const BEFEHLE: Record<number, BefehlDef> = {
     kategorie: "archiv",
     felder: "id1=Archiv value1=Text",
   },
-  51: { name: "Meldungsarchiv: neuste Meldung entfernen", kategorie: "archiv", felder: "id1=Archiv" },
+  51: {
+    name: "Meldungsarchiv: Meldung entfernen",
+    kategorie: "archiv",
+    felder: "id1=Archiv option1=0 neuste/1 älteste/2 alle",
+    optionVarianten: true,
+  },
   53: { name: "Anrufarchiv: neusten Eintrag entfernen", kategorie: "archiv", felder: "id1=Archiv" },
 
   18: {
@@ -110,18 +125,33 @@ export const BEFEHLE: Record<number, BefehlDef> = {
   27: { name: "Visuaccount: Sprachausgabe", kategorie: "visu", felder: "id1=Account value1=Text" },
   23: { name: "Visu: Logout", kategorie: "visu", felder: "id1=Visu id2=Account" },
 
-  10: { name: "Szene: Abrufen", kategorie: "aktion", felder: "id1=Szene" },
-  11: { name: "Sequenz: Abrufen", kategorie: "aktion", felder: "id1=Sequenz" },
+  10: {
+    name: "Szene: Abrufen/Lernen",
+    kategorie: "aktion",
+    felder: "id1=Szene option1=0 Abrufen/1 Lernen",
+    optionVarianten: true,
+  },
+  11: {
+    name: "Sequenz: Abrufen/Stoppen",
+    kategorie: "aktion",
+    felder: "id1=Sequenz option1=0 Abrufen/1 Stoppen",
+    optionVarianten: true,
+  },
   17: { name: "Makro: Ausführen", kategorie: "aktion", felder: "id1=Makro" },
   15: { name: "HTTP/UDP/SHELL: Ausführen", kategorie: "aktion", felder: "id1=Befehl" },
   16: { name: "IR-Befehl: Senden", kategorie: "aktion", felder: "id1=IR option1=Kanal" },
   20: { name: "Email: Senden", kategorie: "aktion", felder: "id1=Email" },
-  22: { name: "Telefonbucheintrag: Anrufen", kategorie: "aktion", felder: "id1=Eintrag" },
+  22: {
+    name: "Telefonbucheintrag: Anrufen",
+    kategorie: "aktion",
+    felder: "id1=Eintrag option1=Auflege-Verzögerung (s)",
+    optionVarianten: true,
+  },
 
   30: {
-    name: "System (EDOMI-Steuerung): Neustart u. a.",
+    name: "System (Plattform-Steuerung)",
     kategorie: "system",
-    felder: "option1=Aktion",
+    felder: "option1=1 Neustart/2 Server neu/3 Herunterfahren/4 Pause/9 Autobackup",
     optionVarianten: true,
   },
 };

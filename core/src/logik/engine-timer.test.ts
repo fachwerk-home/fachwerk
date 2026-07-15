@@ -219,6 +219,30 @@ describe("T-5: Neustart — Momentaufnahme & Wiederherstellung", () => {
   });
 });
 
+describe("IMPULS (Flanke → true, nach Dauer → false)", () => {
+  it("Trigger erzeugt Impuls, der nach der Dauer endet", () => {
+    const g = gewerk(
+      { io: { t: boolDp("T"), out: boolDp("O") } },
+      {
+        s: {
+          knoten: { imp: { baustein: "IMPULS", parameter: { ms: 2000 } } },
+          kanten: [
+            { von: "dp:io.t", nach: "imp.trigger", trigger: "on-receive" },
+            { von: "imp.out", nach: "dp:io.out" },
+          ],
+        },
+      },
+    );
+    const { registry, vor } = aufbau(g);
+    registry.schreibe("io.t", true, "treiber");
+    expect(registry.get("io.out")).toBe(true);
+    vor(1999);
+    expect(registry.get("io.out")).toBe(true);
+    vor(1);
+    expect(registry.get("io.out")).toBe(false);
+  });
+});
+
 describe("Pumpwerk-Schnittstelle", () => {
   it("naechsteFaelligkeit und onTimerAenderung", () => {
     const { registry, engine, vor, timerSignale } = aufbau(verzoegerungsGewerk(500));

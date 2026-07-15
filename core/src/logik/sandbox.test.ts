@@ -45,6 +45,7 @@ describe("BausteinSandbox", () => {
       parameter: {},
       zustand: {},
       ausloeser: { art: "eingang" },
+      frischeEingaenge: ["in"],
     });
     expect(r).toEqual({ ausgaenge: { out: false }, zustand: {}, timerBefehle: [] });
   });

@@ -10,11 +10,13 @@ import type { Wert } from "../datenpunkte/registry.ts";
 function ctx(
   parameter: Record<string, unknown> = {},
   zustand: Record<string, Wert> = {},
+  frischeEingaenge: string[] = [],
 ): BausteinKontext & { zustand: Record<string, Wert> } {
   return {
     parameter,
     zustand,
     ausloeser: { art: "eingang" },
+    frischeEingaenge: new Set(frischeEingaenge),
     planeTimer: () => {},
     brichAb: () => {},
   };
@@ -79,6 +81,41 @@ describe("Logik-Grundstock", () => {
     const c = ctx({ nachreichen: false });
     expect(b("SPERRE").rechne({ in: true, sperre: true }, c)).toBeNull();
     expect(b("SPERRE").rechne({ in: true, sperre: false }, c)).toBeNull(); // nur Entsperr-Flanke
+  });
+});
+
+describe("Import-Bausteine (aus EDOMI-Bedarfsliste)", () => {
+  it("WERTAUSLOESER: nur bei Trigger-Flanke, gibt Wert aus", () => {
+    // Trigger nicht frisch ⇒ nichts
+    expect(b("WERTAUSLOESER").rechne({ trigger: true, wert: 42 }, ctx())).toBeNull();
+    // Trigger frisch ⇒ Wert (aus Eingang)
+    expect(b("WERTAUSLOESER").rechne({ trigger: true, wert: 42 }, ctx({}, {}, ["trigger"]))).toEqual(
+      { out: 42 },
+    );
+    // Wert aus Parameter
+    expect(b("WERTAUSLOESER").rechne({ trigger: true }, ctx({ wert: 7 }, {}, ["trigger"]))).toEqual({
+      out: 7,
+    });
+  });
+
+  it("MULT: Produkt zweier Zahlen", () => {
+    expect(b("MULT").rechne({ a: 6, b: 7 }, ctx())).toEqual({ out: 42 });
+    expect(b("MULT").rechne({ a: 3 }, ctx())).toBeNull();
+  });
+
+  it("KLEMME: leitet den frisch eingetroffenen Eingang durch", () => {
+    expect(b("KLEMME").rechne({ in1: 5, in2: 9 }, ctx({}, {}, ["in1"]))).toEqual({ out: 5 });
+    expect(b("KLEMME").rechne({ in1: 5, in2: 9 }, ctx({}, {}, ["in2"]))).toEqual({ out: 9 });
+    expect(b("KLEMME").rechne({ in1: 5, in2: 9 }, ctx())).toBeNull(); // keiner frisch
+  });
+
+  it("WENN_DANN_SONST: Operator entscheidet Ausgabe", () => {
+    const c = ctx({ op: "GE", vergleich: 20, dann: 1, sonst: 0 });
+    expect(b("WENN_DANN_SONST").rechne({ eingang: 25 }, c)).toEqual({ out: 1 });
+    expect(b("WENN_DANN_SONST").rechne({ eingang: 15 }, c)).toEqual({ out: 0 });
+    // Operatoren
+    expect(b("WENN_DANN_SONST").rechne({ eingang: 5, op: "EQ", vergleich: 5, dann: 9, sonst: 0 }, ctx())).toEqual({ out: 9 });
+    expect(b("WENN_DANN_SONST").rechne({ eingang: 5, op: "LT", vergleich: 5, dann: 9, sonst: 0 }, ctx())).toEqual({ out: 0 });
   });
 });
 
