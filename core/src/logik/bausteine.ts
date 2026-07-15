@@ -380,11 +380,74 @@ const EXTRACT: Baustein = {
   },
 };
 
+/** Anzahl konfig-variabler Ports (default 2), begrenzt auf sinnvolle Grenze. */
+function portAnzahl(parameter: Readonly<Record<string, unknown>>): number {
+  const n = Number(parameter["anzahl"] ?? 2);
+  return Number.isFinite(n) ? Math.max(1, Math.min(100, Math.trunc(n))) : 2;
+}
+
+/**
+ * SPLIT: zerlegt `text` am `separator` in konfigurierbar viele benannte Teile
+ * (ADR-0012 — Anzahl aus Config, nicht fix „10-fach"). Ports: text (Eingang);
+ * out teil1..teilN + optional rest (übrige Teile, wieder mit Separator verbunden).
+ */
+const SPLIT: Baustein = {
+  typ: "SPLIT",
+  rechne(e, ctx) {
+    const text = e["text"];
+    if (typeof text !== "string") return null;
+    const sep = String(e["separator"] ?? ctx.parameter["separator"] ?? "");
+    const teile = sep === "" ? [...text] : text.split(sep);
+    const n = portAnzahl(ctx.parameter);
+    const ausgabe: Ausgaenge = {};
+    for (let i = 1; i <= n; i++) ausgabe[`teil${i}`] = teile[i - 1] ?? "";
+    if (ctx.parameter["rest"] !== false) ausgabe["rest"] = teile.slice(n).join(sep);
+    return ausgabe;
+  },
+  ports(parameter) {
+    const n = portAnzahl(parameter);
+    const ausgaenge: string[] = [];
+    for (let i = 1; i <= n; i++) ausgaenge.push(`teil${i}`);
+    if (parameter["rest"] !== false) ausgaenge.push("rest");
+    return { eingaenge: ["text"], ausgaenge };
+  },
+};
+
+/**
+ * JOIN: verbindet konfigurierbar viele Eingänge teil1..teilN mit `separator`
+ * zu einem String (ADR-0012). Parameter `modus`: „ohne_leere" überspringt leere
+ * Eingänge (Default: alle verbinden). Ports: teil1..teilN (Eingang) → out text.
+ */
+const JOIN: Baustein = {
+  typ: "JOIN",
+  rechne(e, ctx) {
+    const n = portAnzahl(ctx.parameter);
+    const sep = String(ctx.parameter["separator"] ?? "");
+    const ohneLeere = String(ctx.parameter["modus"] ?? "") === "ohne_leere";
+    const teile: string[] = [];
+    for (let i = 1; i <= n; i++) {
+      const v = e[`teil${i}`];
+      if (v === undefined) continue;
+      const s = String(v);
+      if (ohneLeere && s === "") continue;
+      teile.push(s);
+    }
+    if (teile.length === 0) return null;
+    return { text: teile.join(sep) };
+  },
+  ports(parameter) {
+    const n = portAnzahl(parameter);
+    const eingaenge: string[] = [];
+    for (let i = 1; i <= n; i++) eingaenge.push(`teil${i}`);
+    return { eingaenge, ausgaenge: ["text"] };
+  },
+};
+
 const STDLIB = new Map<string, Baustein>(
   [
     NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
     TREPPENLICHT, SPERRLICHT, WERTAUSLOESER, IMPULS, MULT, KLEMME, WENN_DANN_SONST,
-    EXTRACT,
+    EXTRACT, SPLIT, JOIN,
   ].map((b) => [b.typ, b]),
 );
 

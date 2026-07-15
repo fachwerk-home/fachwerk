@@ -134,6 +134,41 @@ INSERT INTO \`editLogicCmdList\` VALUES (1,41,1,201,0,0,0,NULL,NULL);
     expect(ergebnis!.logik.kanten).toContainEqual({ von: "e40.wert1", nach: "dp:allgemein.temp" });
   });
 
+  it("String zerteilen → SPLIT, Anzahl aus genutzten Ausgängen (ADR-0012)", () => {
+    const fixture = `
+CREATE TABLE \`editKo\` (\`id\` bigint(20),\`name\` varchar(100),\`folderid\` bigint(20),
+  \`ga\` varchar(11),\`gatyp\` tinyint(3),\`valuetyp\` int(10),\`defaultvalue\` varchar(10000),
+  \`remanent\` tinyint(3));
+INSERT INTO \`editKo\` VALUES (300,'CSV',0,'',2,16,'',0),(301,'A',0,'',2,16,'',0),(302,'B',0,'',2,16,'',0);
+CREATE TABLE \`editLogicPage\` (\`id\` bigint(20),\`name\` varchar(200));
+INSERT INTO \`editLogicPage\` VALUES (1,'Zerlegen');
+CREATE TABLE \`editLogicElement\` (\`id\` bigint(20),\`functionid\` bigint(20),\`pageid\` bigint(20),\`name\` varchar(100));
+INSERT INTO \`editLogicElement\` VALUES (50,18000003,1,''),(51,12000011,1,''),(52,12000011,1,'');
+CREATE TABLE \`editLogicLink\` (\`id\` bigint(20),\`elementid\` bigint(20),\`eingang\` smallint(5),
+  \`linktyp\` tinyint(3),\`linkid\` bigint(20),\`ausgang\` smallint(5),\`value\` varchar(10000));
+INSERT INTO \`editLogicLink\` VALUES
+(1,50,1,0,300,NULL,NULL),
+(2,50,2,2,NULL,NULL,';'),
+(3,51,1,1,50,1,NULL),
+(4,52,1,1,50,2,NULL);
+CREATE TABLE \`editLogicCmdList\` (\`id\` bigint(20),\`targetid\` bigint(20),\`cmd\` tinyint(3),
+  \`cmdid1\` bigint(20),\`cmdid2\` bigint(20),\`cmdoption1\` int(11),\`cmdoption2\` int(11),
+  \`cmdvalue1\` varchar(10000),\`cmdvalue2\` varchar(10000));
+INSERT INTO \`editLogicCmdList\` VALUES (1,51,1,301,0,0,0,NULL,NULL),(2,52,1,302,0,0,0,NULL,NULL);
+`;
+    const tab = parseDump(fixture);
+    const { koZuSchluessel } = konvertiere(tab);
+    const seite = extrahiereStruktur(tab).find((s) => s.name === "Zerlegen")!;
+    const { ergebnis, fehler } = konvertiereSeite(seite, koZuSchluessel);
+    expect(fehler).toEqual([]);
+    const knoten = ergebnis!.logik.knoten["e50"]!;
+    expect(knoten.baustein).toBe("SPLIT");
+    // nur teil1 + teil2 genutzt ⇒ anzahl 2 (nicht fix 10)
+    expect(knoten.parameter).toMatchObject({ separator: ";", anzahl: 2 });
+    expect(ergebnis!.logik.kanten).toContainEqual({ von: "e50.teil1", nach: "dp:allgemein.a" });
+    expect(ergebnis!.logik.kanten).toContainEqual({ von: "e50.teil2", nach: "dp:allgemein.b" });
+  });
+
   it("meldet unvollständige Seite statt zu raten", () => {
     const exotik = extrahiereStruktur(tabellen).find((s) => s.name === "Exotik")!;
     const { ergebnis, fehler } = konvertiereSeite(exotik, koZuSchluessel);

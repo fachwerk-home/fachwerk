@@ -133,6 +133,13 @@ export interface BausteinAbbildung {
    * zu je einem festen Port. So wird der EDOMI-„N-fach"-Selektor zu N Feldern.
    */
   felderAusEingang?: number;
+  /**
+   * Konfig-variable Port-Anzahl (ADR-0012): Setzt den Parameter `anzahl` auf
+   * die tatsächlich genutzte Port-Zahl (statt fixe „10-fach"). `richtung`
+   * bestimmt, ob benutzte Eingänge (JOIN) oder Ausgänge (SPLIT) gezählt werden;
+   * nur Ports im Bereich [1, max] zählen (z. B. ohne Trigger/Separator/Rest).
+   */
+  anzahlAusPorts?: { richtung: "eingang" | "ausgang"; max: number };
 }
 
 /**
@@ -208,6 +215,30 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     },
     festeParameter: { format: "json" },
     felderAusEingang: 2,
+  },
+  // String zerteilen: text (Eingang 1) → teil1..teilN + rest. Anzahl = genutzte
+  // Ausgänge; Separator (Eingang 2) wird Parameter (konfig-variabel, ADR-0012).
+  18000003: {
+    typ: "SPLIT",
+    eingaenge: { 1: "text" },
+    ausgaenge: {
+      1: "teil1", 2: "teil2", 3: "teil3", 4: "teil4", 5: "teil5",
+      6: "teil6", 7: "teil7", 8: "teil8", 9: "teil9", 10: "teil10", 11: "rest",
+    },
+    parameterAusEingang: { 2: "separator" },
+    anzahlAusPorts: { richtung: "ausgang", max: 10 },
+  },
+  // Strings verbinden: teil1..teilN (Eingang 1..10) → text. Anzahl = genutzte
+  // Eingänge; Modus (12)/Separator (13) werden Parameter. Trigger (11) entfällt.
+  18000001: {
+    typ: "JOIN",
+    eingaenge: {
+      1: "teil1", 2: "teil2", 3: "teil3", 4: "teil4", 5: "teil5",
+      6: "teil6", 7: "teil7", 8: "teil8", 9: "teil9", 10: "teil10",
+    },
+    ausgaenge: { 1: "text" },
+    parameterAusEingang: { 12: "modus", 13: "separator" },
+    anzahlAusPorts: { richtung: "eingang", max: 10 },
   },
 };
 
@@ -386,6 +417,30 @@ export function konvertiereSeite(
         const n = Number(k.quelle.wert);
         parameter[pName] = Number.isFinite(n) ? n : k.quelle.wert;
       }
+    }
+    // Konfig-variabel: Port-Anzahl aus tatsächlich benutzten Ports ableiten.
+    if (abb.anzahlAusPorts) {
+      const { richtung, max } = abb.anzahlAusPorts;
+      let genutzt = 0;
+      if (richtung === "eingang") {
+        for (const k of seite.kanten) {
+          if (k.elementId === el.id && k.eingang >= 1 && k.eingang <= max) {
+            genutzt = Math.max(genutzt, k.eingang);
+          }
+        }
+      } else {
+        for (const k of seite.kanten) {
+          if (
+            k.quelle.art === "port" &&
+            k.quelle.elementId === el.id &&
+            k.quelle.ausgang >= 1 &&
+            k.quelle.ausgang <= max
+          ) {
+            genutzt = Math.max(genutzt, k.quelle.ausgang);
+          }
+        }
+      }
+      if (genutzt > 0) parameter["anzahl"] = genutzt;
     }
     // Konfig-variabel: statische Eingänge ab felderAusEingang → felder-Liste.
     if (abb.felderAusEingang !== undefined) {

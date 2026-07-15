@@ -151,6 +151,40 @@ describe("Import-Bausteine (aus EDOMI-Bedarfsliste)", () => {
     expect(r).toEqual({ t: "42", status: "ok" });
   });
 
+  it("SPLIT: zerlegt am Separator, teil-Ports aus Config, Rest gesammelt", () => {
+    const c = ctx({ separator: ";", anzahl: 2 });
+    expect(b("SPLIT").rechne({ text: "a;b;c;d" }, c)).toEqual({
+      teil1: "a",
+      teil2: "b",
+      rest: "c;d",
+    });
+    // ports() leitet aus Config ab
+    expect(b("SPLIT").ports!({ separator: ";", anzahl: 3 })).toEqual({
+      eingaenge: ["text"],
+      ausgaenge: ["teil1", "teil2", "teil3", "rest"],
+    });
+    // fehlende Teile → leer, rest abschaltbar
+    expect(b("SPLIT").rechne({ text: "x" }, ctx({ separator: ";", anzahl: 2, rest: false }))).toEqual(
+      { teil1: "x", teil2: "" },
+    );
+  });
+
+  it("JOIN: verbindet konfigurierbar viele Eingänge, modus ohne_leere", () => {
+    expect(b("JOIN").rechne({ teil1: "a", teil2: "b", teil3: "c" }, ctx({ separator: "-", anzahl: 3 }))).toEqual(
+      { text: "a-b-c" },
+    );
+    // leere überspringen
+    expect(
+      b("JOIN").rechne({ teil1: "a", teil2: "", teil3: "c" }, ctx({ separator: ",", anzahl: 3, modus: "ohne_leere" })),
+    ).toEqual({ text: "a,c" });
+    expect(b("JOIN").ports!({ anzahl: 2 })).toEqual({
+      eingaenge: ["teil1", "teil2"],
+      ausgaenge: ["text"],
+    });
+    // kein Eingang belegt → nichts
+    expect(b("JOIN").rechne({}, ctx({ anzahl: 3 }))).toBeNull();
+  });
+
   it("EXTRACT: introspizieren() zeigt Felder eines Beispiels für den Editor", () => {
     const baum = b("EXTRACT").introspizieren!(
       JSON.stringify({ main: { temp: 21.5 }, name: "Zuhause" }),
