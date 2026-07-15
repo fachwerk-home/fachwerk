@@ -11,10 +11,13 @@ export {
   extrahiereStruktur,
   bewerte,
   konvertiereSeite,
+  befehlsStatistik,
   ABBILDUNG,
   AUSGANGSBOX,
   SENDBYCHANGE,
 } from "./logik.ts";
+export { BEFEHLE, befehlDef } from "./befehle-katalog.ts";
+export type { BefehlDef, BefehlKategorie } from "./befehle-katalog.ts";
 export type {
   RohSeite,
   RohElement,

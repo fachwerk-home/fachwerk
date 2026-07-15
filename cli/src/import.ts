@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { datenpunkteZuYaml, logikZuYaml, manifestZuYaml, loadGewerk } from "@fachwerk/core";
 import {
+  befehlsStatistik,
   bewerte,
   extrahiereStruktur,
   konvertiere,
@@ -108,6 +109,13 @@ export function importiere(dumpPfad: string, ziel: string): number {
   for (const o of logikReport.offen.slice(0, 12)) {
     const name = b.bausteinBedarf.find((x) => x.id === o.functionId)?.name ?? "?";
     console.log(`  ${String(o.anzahl).padStart(4)}× ${o.functionId} ${name}`);
+  }
+  // Ausgangsbox-Befehle nach Fachwerk-Zuständigkeit (KO-Schreiben abbildbar,
+  // Archiv→SPEC-004, Visu→SPEC-003, Aktion/System → eigene Treiber).
+  const bs = befehlsStatistik(seiten);
+  if (bs.gesamt > 0) {
+    console.log(`Ausgangsbox-Befehle nach Zuständigkeit (${bs.gesamt} gesamt):`);
+    for (const k of bs.proKategorie) console.log(`  ${String(k.anzahl).padStart(4)}× ${k.kategorie}`);
   }
 
   console.log(`\nOK: Gewerk geschrieben nach ${ziel} (validate bestanden)`);

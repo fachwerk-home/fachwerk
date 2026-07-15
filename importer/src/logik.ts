@@ -11,6 +11,7 @@
 import type { LogikSeite } from "@fachwerk/schema";
 import type { Tabelle, Zeile } from "./sql-dump.ts";
 import { slug } from "./konvertiere.ts";
+import { befehlDef, type BefehlKategorie } from "./befehle-katalog.ts";
 
 function zahl(z: Zeile, k: string): number {
   const v = z[k];
@@ -211,6 +212,31 @@ export function bewerte(seiten: RohSeite[]): LogikReport {
   };
 }
 
+/** Zählt alle Ausgangsbox-Befehle über alle Seiten nach Fachwerk-Kategorie. */
+export function befehlsStatistik(seiten: RohSeite[]): {
+  proKategorie: Array<{ kategorie: BefehlKategorie | "unbekannt"; anzahl: number }>;
+  gesamt: number;
+} {
+  const zaehler = new Map<BefehlKategorie | "unbekannt", number>();
+  let gesamt = 0;
+  for (const seite of seiten) {
+    for (const el of seite.elemente) {
+      if (!AUSGANGSBOX.has(el.functionId)) continue;
+      for (const bf of el.befehle) {
+        const kat = befehlDef(bf.cmd)?.kategorie ?? "unbekannt";
+        zaehler.set(kat, (zaehler.get(kat) ?? 0) + 1);
+        gesamt++;
+      }
+    }
+  }
+  return {
+    proKategorie: [...zaehler.entries()]
+      .map(([kategorie, anzahl]) => ({ kategorie, anzahl }))
+      .sort((a, b) => b.anzahl - a.anzahl),
+    gesamt,
+  };
+}
+
 // ---- Konvertierung einer vollständig abbildbaren Seite ------------------------
 
 export interface KonvertierungsFehler {
@@ -343,6 +369,7 @@ export function konvertiereSeite(
     }
     for (const bf of box.befehle) {
       if (bf.cmd === 1) {
+        // Eingangswert auf KO zuweisen → direkt als Datenpunkt-Schreiben.
         const schluessel = koZuSchluessel.get(bf.id1);
         if (!schluessel) {
           meld(`Ausgangsbox ${box.id}: Ziel-KO ${bf.id1} ohne Datenpunkt`);
@@ -353,10 +380,10 @@ export function konvertiereSeite(
           continue;
         }
         kanten.push({ von: wertVon, nach: `dp:${schluessel}` });
-      } else if (bf.cmd === 13) {
-        meld(`Ausgangsbox ${box.id}: Datenarchiv-Befehl (SPEC-004, noch nicht) — übersprungen`);
       } else {
-        meld(`Ausgangsbox ${box.id}: Befehlstyp ${bf.cmd} noch nicht abgebildet — übersprungen`);
+        const def = befehlDef(bf.cmd);
+        const bez = def ? `${def.name} (${def.kategorie})` : `Befehlstyp ${bf.cmd}`;
+        meld(`Ausgangsbox ${box.id}: ${bez} noch nicht abgebildet — übersprungen`);
       }
     }
   }
