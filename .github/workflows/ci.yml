@@ -64,3 +64,5 @@ jobs:
         run: bash tools/e2e-neustart.sh
       - name: Abnahme „Licht Status" (importierte EDOMI-Logik vs Bus)
         run: bash tools/e2e-licht-status.sh
+      - name: Beobachtungsmodus (empfängt, sendet garantiert nie)
+        run: bash tools/e2e-beobachtung.sh

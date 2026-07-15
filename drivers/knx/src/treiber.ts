@@ -40,6 +40,14 @@ export interface KnxTreiberOptionen {
   onFehler?: (meldung: string) => void;
   /** Heartbeat-Intervall in ms (Default 60_000; Tests setzen kleiner). */
   heartbeatMs?: number;
+  /**
+   * Beobachtungsmodus: empfangen ja, senden NIE. `sende()` überträgt nichts,
+   * sondern meldet nur über `onWuerdeSenden` (Dry-Run). Für risikofreien
+   * Betrieb am echten Bus.
+   */
+  beobachten?: boolean;
+  /** Im Beobachtungsmodus: was der Treiber senden WÜRDE (statt zu senden). */
+  onWuerdeSenden?: (ga: string, wert: boolean | number) => void;
 }
 
 /** HPAI im NAT-Modus: Server antwortet an die Paketquelle. */
@@ -117,8 +125,17 @@ export class KnxTreiber {
     this.#verbunden = false;
   }
 
+  get beobachtet(): boolean {
+    return this.#opts.beobachten === true;
+  }
+
   /** GroupValueWrite; kodiert gemäß DPT-Karte (Default 1.001). */
   sende(ga: string, wert: boolean | number): void {
+    // Beobachtungsmodus: NIEMALS übertragen — nur melden, was gesendet würde.
+    if (this.#opts.beobachten) {
+      this.#opts.onWuerdeSenden?.(ga, wert);
+      return;
+    }
     if (!this.#socket || this.#kanal < 0) throw new Error("nicht verbunden");
     const dst = gaZuZahl(ga);
     const dpt = this.#opts.dpts?.get(ga) ?? "1.001";

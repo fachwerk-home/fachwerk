@@ -15,6 +15,8 @@ services:
       FACHWERK_KNX_HOST: bus-simulator
       FACHWERK_KNX_PORT: "3671"
       FACHWERK_DATEN_DIR: /daten
+      # Beobachtungsmodus vom Host durchreichen (leer = normal senden).
+      FACHWERK_KNX_MODUS: ${FACHWERK_KNX_MODUS:-}
     volumes:
       # Gewerk ist Daten, nicht Image-Inhalt: kommt immer per Volume.
       - ./examples:/gewerke:ro

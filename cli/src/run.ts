@@ -124,12 +124,19 @@ export async function run(dir: string): Promise<number> {
 
   const host = process.env["FACHWERK_KNX_HOST"] ?? "127.0.0.1";
   const port = Number(process.env["FACHWERK_KNX_PORT"] ?? 3671);
+  // Beobachtungsmodus: empfangen ja, senden NIE (risikofrei am echten Bus).
+  const beobachten = process.env["FACHWERK_KNX_MODUS"] === "beobachten";
   const treiber = new KnxTreiber({
     host,
     port,
     dpts,
+    beobachten,
+    onWuerdeSenden: (ga, wert) => console.error(`[BEOBACHTUNG] würde senden  ${ga} = ${wert}`),
     onTelegramm: (t) => {
       const dp = gaZuDp.get(t.ga);
+      if (beobachten && dp) {
+        console.error(`RX  ${t.ga} = ${t.wert}  → ${dp.schluessel}`);
+      }
       if (!dp || t.art !== "write") return;
       const erg = registry.schreibe(dp.schluessel, t.wert as Wert, "treiber");
       if (!erg.angenommen) console.error(`WARNUNG: Bus→${dp.schluessel}: ${erg.grund}`);
@@ -161,6 +168,12 @@ export async function run(dir: string): Promise<number> {
   console.error(
     `fachwerk läuft: „${gewerk.manifest.name}" — ${gaZuDp.size} KNX-Zuordnung(en), Endpunkt ${host}:${port}`,
   );
+  if (beobachten) {
+    console.error(
+      "== BEOBACHTUNGSMODUS == empfange Bustelegramme, sende NIE. " +
+        "RX = vom Bus empfangen; [BEOBACHTUNG] wuerde senden = was die Logik taete.",
+    );
+  }
 
   // Sauberer Shutdown (Container-first: SIGTERM ist der normale Weg).
   await new Promise<void>((resolve) => {

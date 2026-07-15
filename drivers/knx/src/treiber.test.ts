@@ -175,6 +175,38 @@ describe("KnxTreiber", () => {
     await expect(t.verbinde(200)).rejects.toThrow(/Timeout/);
   });
 
+  it("Beobachtungsmodus: empfängt, sendet aber NIE (nur Dry-Run-Meldung)", async () => {
+    const empfangen: KnxTelegramm[] = [];
+    const wuerdeSenden: Array<{ ga: string; wert: boolean | number }> = [];
+    server = new MockServer();
+    await server.start();
+    treiber = new KnxTreiber({
+      host: "127.0.0.1",
+      port: server.port,
+      beobachten: true,
+      onTelegramm: (t) => empfangen.push(t),
+      onWuerdeSenden: (ga, wert) => wuerdeSenden.push({ ga, wert }),
+    });
+    await treiber.verbinde();
+    expect(treiber.beobachtet).toBe(true);
+
+    // Empfang funktioniert normal:
+    server.injiziere(gaZuZahl("1/0/1"), 1, 0);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(empfangen).toEqual([{ ga: "1/0/1", wert: 1, art: "write" }]);
+
+    // Senden überträgt NICHTS, meldet nur den Dry-Run:
+    treiber.sende("1/0/2", true);
+    treiber.sende("2/0/1", 42);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(server.empfangeneWrites).toEqual([]);
+    expect(server.empfangeneBytes).toEqual([]);
+    expect(wuerdeSenden).toEqual([
+      { ga: "1/0/2", wert: true },
+      { ga: "2/0/1", wert: 42 },
+    ]);
+  });
+
   it("DPT 9.001: sendet 2-Byte-Payload und dekodiert Empfangenes (P4-4)", async () => {
     const telegramme: KnxTelegramm[] = [];
     server = new MockServer();
