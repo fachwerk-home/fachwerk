@@ -48,8 +48,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build stack (fachwerk + bus-simulator)
         run: docker compose build
-      - name: Smoke test
+      - name: Smoke test (version)
         run: docker compose run --rm fachwerk version
+      - name: Smoke test (validate Beispiel-Gewerk via Volume)
+        run: docker compose run --rm fachwerk validate /gewerke/minimal
 
   # Placeholder — activated as soon as the respective phase delivers code.
   # sim: logic acceptance tests vs KNX simulator (S-6 / Phase 4)

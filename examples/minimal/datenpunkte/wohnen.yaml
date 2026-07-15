@@ -1,0 +1,17 @@
+licht:
+  name: Licht Flur
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 1/0/2
+taster:
+  name: Taster Flur
+  klasse: bus
+  typ: bool
+  treiber: knx
+  adresse: 1/0/1
+zaehler:
+  name: Schaltzähler (intern)
+  klasse: intern
+  typ: zahl
+  initial: 0

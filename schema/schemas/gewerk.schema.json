@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fachwerk.dev/schemas/gewerk.schema.json",
+  "title": "Gewerk-Manifest (gewerk.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "name"],
+  "properties": {
+    "format": {
+      "description": "Version des Gewerk-Dateiformats.",
+      "type": "integer",
+      "const": 1
+    },
+    "name": {
+      "description": "Anzeigename des Gewerks.",
+      "type": "string",
+      "minLength": 1
+    },
+    "notizen": {
+      "type": "string"
+    }
+  }
+}

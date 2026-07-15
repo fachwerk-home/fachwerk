@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fachwerk.dev/schemas/datenpunkte.schema.json",
+  "title": "Datenpunkt-Datei (datenpunkte/<gruppe>.yaml) — SPEC-001",
+  "description": "Eine Datei buendelt Datenpunkte einer Gruppe. Der volle Schluessel eines Datenpunkts ist <dateiname>.<schluessel>.",
+  "type": "object",
+  "minProperties": 1,
+  "propertyNames": {
+    "pattern": "^[a-z][a-z0-9_]*$"
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/datenpunkt"
+  },
+  "$defs": {
+    "datenpunkt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "klasse", "typ"],
+      "properties": {
+        "name": {
+          "description": "Anzeigename.",
+          "type": "string",
+          "minLength": 1
+        },
+        "klasse": {
+          "description": "intern = nur in Fachwerk; bus = an Treiber-Adresse gebunden; system = von Fachwerk bereitgestellt.",
+          "enum": ["intern", "bus", "system"]
+        },
+        "typ": {
+          "description": "Werttyp (Skeleton: bool/zahl/text; DPT-Feintypen folgen).",
+          "enum": ["bool", "zahl", "text"]
+        },
+        "treiber": {
+          "description": "Treiber-Kennung (nur klasse=bus), z. B. knx.",
+          "type": "string",
+          "minLength": 1
+        },
+        "adresse": {
+          "description": "Treiber-Adresse (nur klasse=bus), z. B. KNX-Gruppenadresse 1/0/1.",
+          "type": "string",
+          "minLength": 1
+        },
+        "initial": {
+          "description": "Initialwert.",
+          "type": ["boolean", "number", "string"]
+        },
+        "remanent": {
+          "description": "Wert ueberlebt Neustart.",
+          "type": "boolean",
+          "default": false
+        },
+        "protected": {
+          "description": "Nie durch Agenten/Bausteine schreibbar (Plan 4.2).",
+          "type": "boolean",
+          "default": false
+        },
+        "notizen": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "klasse": { "const": "bus" } }
+          },
+          "then": {
+            "required": ["treiber", "adresse"]
+          }
+        }
+      ]
+    }
+  }
+}

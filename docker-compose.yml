@@ -13,3 +13,6 @@ services:
     environment:
       FACHWERK_KNX_HOST: bus-simulator
       FACHWERK_KNX_PORT: "3671"
+    volumes:
+      # Gewerk ist Daten, nicht Image-Inhalt: kommt immer per Volume.
+      - ./examples:/gewerke:ro

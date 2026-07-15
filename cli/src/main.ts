@@ -2,10 +2,10 @@
  * Einstiegspunkt `fachwerk` — Walking Skeleton (Phase 3).
  * Kommandos entstehen schrittweise: validate (S-2), run (S-6).
  */
-import { SUPPORTED_GEWERK_FORMAT } from "@fachwerk/core";
+import { loadGewerk, SUPPORTED_GEWERK_FORMAT } from "@fachwerk/core";
 import { CLI_VERSION } from "./index.ts";
 
-const cmd = process.argv[2] ?? "--version";
+const [cmd = "--version", ...args] = process.argv.slice(2);
 
 switch (cmd) {
   case "--version":
@@ -14,8 +14,33 @@ switch (cmd) {
       `fachwerk ${CLI_VERSION} (Gewerk-Format v${SUPPORTED_GEWERK_FORMAT}) — Walking Skeleton`,
     );
     break;
+
+  case "validate": {
+    const dir = args[0];
+    if (!dir) {
+      console.error("Aufruf: fachwerk validate <gewerk-verzeichnis>");
+      process.exit(2);
+    }
+    const { gewerk, fehler } = loadGewerk(dir);
+    if (fehler.length > 0) {
+      console.error(`FEHLER: ${fehler.length} Problem(e) in ${dir}`);
+      for (const f of fehler) {
+        console.error(`  ${f.datei}${f.pfad === "/" ? "" : ` ${f.pfad}`}: ${f.meldung}`);
+      }
+      process.exit(1);
+    }
+    const dpAnzahl = [...gewerk!.datenpunkte.values()].reduce(
+      (n, datei) => n + Object.keys(datei).length,
+      0,
+    );
+    console.log(
+      `OK: „${gewerk!.manifest.name}" — ${dpAnzahl} Datenpunkte, ${gewerk!.logik.size} Logikseite(n)`,
+    );
+    break;
+  }
+
   default:
     console.error(`Unbekanntes Kommando: ${cmd}`);
-    console.error("Verfügbar: version");
+    console.error("Verfügbar: version · validate <verzeichnis>");
     process.exit(1);
 }

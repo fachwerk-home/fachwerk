@@ -1,0 +1,9 @@
+notizen: "Skeleton-Logik: Taster invertiert auf Licht (bewusst trivial)."
+knoten:
+  not1:
+    baustein: NOT
+kanten:
+  - von: dp:wohnen.taster
+    nach: not1.in
+  - von: not1.out
+    nach: dp:wohnen.licht
