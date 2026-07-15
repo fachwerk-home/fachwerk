@@ -31,6 +31,12 @@ describe("Logik-Grundstock", () => {
     expect(b("OR").rechne({ a: true }, ctx())).toBeNull(); // unbelegt ⇒ nichts
   });
 
+  it("OR8: ODER über belegte Eingänge, unbelegt = false, keiner = null", () => {
+    expect(b("OR8").rechne({ e1: false, e3: false, e7: false }, ctx())).toEqual({ out: false });
+    expect(b("OR8").rechne({ e1: false, e5: true }, ctx())).toEqual({ out: true });
+    expect(b("OR8").rechne({}, ctx())).toBeNull();
+  });
+
   it("TOGGLE: steigende Flanke wechselt, Halten/Fallen nicht", () => {
     const c = ctx();
     expect(b("TOGGLE").rechne({ in: true }, c)).toEqual({ out: true });

@@ -33,10 +33,20 @@ export interface RohKante {
   quelle: Quelle;
 }
 
+/** Ein Ausgangsbox-Befehl (aus editLogicCmdList). */
+export interface RohBefehl {
+  cmd: number;
+  id1: number;
+  id2: number;
+  wert1: string;
+}
+
 export interface RohElement {
   id: number;
   functionId: number;
   name: string;
+  /** Nur bei Ausgangsboxen: die Befehlsliste (Ziel-KOs etc.). */
+  befehle: RohBefehl[];
 }
 
 export interface RohSeite {
@@ -59,16 +69,32 @@ export function extrahiereStruktur(tabellen: Map<string, Tabelle>): RohSeite[] {
       kanten: [],
     });
   }
+  // Ausgangsbox-Befehle je Element (targetid → Befehle).
+  const befehle = new Map<number, RohBefehl[]>();
+  for (const c of zeilen("editLogicCmdList")) {
+    const tid = zahl(c, "targetid");
+    const liste = befehle.get(tid) ?? [];
+    liste.push({
+      cmd: zahl(c, "cmd"),
+      id1: zahl(c, "cmdid1"),
+      id2: zahl(c, "cmdid2"),
+      wert1: text(c, "cmdvalue1"),
+    });
+    befehle.set(tid, liste);
+  }
+
   const elementSeite = new Map<number, number>();
   for (const e of zeilen("editLogicElement")) {
     const seite = seiten.get(zahl(e, "pageid"));
     if (!seite) continue;
+    const id = zahl(e, "id");
     seite.elemente.push({
-      id: zahl(e, "id"),
+      id,
       functionId: zahl(e, "functionid"),
       name: text(e, "name"),
+      befehle: befehle.get(id) ?? [],
     });
-    elementSeite.set(zahl(e, "id"), zahl(e, "pageid"));
+    elementSeite.set(id, zahl(e, "pageid"));
   }
   for (const l of zeilen("editLogicLink")) {
     const pid = elementSeite.get(zahl(l, "elementid"));
@@ -108,6 +134,11 @@ export interface BausteinAbbildung {
 export const ABBILDUNG: Record<number, BausteinAbbildung> = {
   13000031: { typ: "NOT", eingaenge: { 1: "in" }, ausgaenge: { 1: "out" } },
   14000023: { typ: "OR", eingaenge: { 1: "a", 2: "b" }, ausgaenge: { 1: "out" } },
+  14000025: {
+    typ: "OR8",
+    eingaenge: { 1: "e1", 2: "e2", 3: "e3", 4: "e4", 5: "e5", 6: "e6", 7: "e7", 8: "e8" },
+    ausgaenge: { 1: "out" },
+  },
   15000040: {
     typ: "VERGLEICH",
     eingaenge: { 1: "a", 2: "b" },
@@ -294,24 +325,40 @@ export function konvertiereSeite(
     }
   }
 
-  // Ausgangsbox → Schreiben auf KO (nur wenn ein KO-Ziel eindeutig vorliegt).
+  // Ausgangsbox → Befehle ausführen (Ziel-KO steckt in editLogicCmdList).
+  //   cmd 1  = Eingangswert auf KO cmdid1 schreiben  (Hauptfall)
+  //   cmd 2  = festen Wert cmdvalue1 auf KO cmdid1 schreiben
+  //   cmd 13 = Datenarchiv (SPEC-004, noch nicht) → Report
+  //   sonst  = seltener Spezialbefehl → Report
   for (const box of seite.elemente.filter((e) => AUSGANGSBOX.has(e.functionId))) {
-    const boxKanten = seite.kanten.filter((k) => k.elementId === box.id);
-    const koKante = boxKanten.find((k) => k.quelle.art === "ko");
-    const wertKante = boxKanten.find((k) => k.quelle.art === "port");
-    if (!koKante || koKante.quelle.art !== "ko") {
-      meld(`Ausgangsbox ${box.id}: kein eindeutiges KO-Ziel in den Nutzdaten — übersprungen`);
+    // Wertquelle = der verbundene (nicht-statische) Box-Eingang.
+    const wertKante = seite.kanten.find(
+      (k) => k.elementId === box.id && k.quelle.art !== "wert",
+    );
+    const wertVon = wertKante ? endpunkt(aufloesen(wertKante.quelle) ?? wertKante.quelle) : null;
+
+    if (box.befehle.length === 0) {
+      meld(`Ausgangsbox ${box.id}: keine Befehle`);
       continue;
     }
-    const schluessel = koZuSchluessel.get(koKante.quelle.koId);
-    if (!schluessel) continue;
-    if (!wertKante) {
-      meld(`Ausgangsbox ${box.id}: keine Wertquelle — übersprungen`);
-      continue;
+    for (const bf of box.befehle) {
+      if (bf.cmd === 1) {
+        const schluessel = koZuSchluessel.get(bf.id1);
+        if (!schluessel) {
+          meld(`Ausgangsbox ${box.id}: Ziel-KO ${bf.id1} ohne Datenpunkt`);
+          continue;
+        }
+        if (!wertVon) {
+          meld(`Ausgangsbox ${box.id}: keine Wertquelle für „zuweisen"`);
+          continue;
+        }
+        kanten.push({ von: wertVon, nach: `dp:${schluessel}` });
+      } else if (bf.cmd === 13) {
+        meld(`Ausgangsbox ${box.id}: Datenarchiv-Befehl (SPEC-004, noch nicht) — übersprungen`);
+      } else {
+        meld(`Ausgangsbox ${box.id}: Befehlstyp ${bf.cmd} noch nicht abgebildet — übersprungen`);
+      }
     }
-    const q = aufloesen(wertKante.quelle);
-    const von = q ? endpunkt(q) : null;
-    if (von) kanten.push({ von, nach: `dp:${schluessel}` });
   }
 
   if (fehler.length > 0) return { ergebnis: null, fehler };

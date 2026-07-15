@@ -40,8 +40,12 @@ INSERT INTO \`editLogicLink\` VALUES
 (1,20,1,0,100,NULL,NULL),
 (2,21,1,1,20,1,NULL),
 (3,22,1,1,21,1,NULL),
-(4,22,2,0,101,NULL,NULL),
 (5,30,1,2,NULL,NULL,'x');
+
+CREATE TABLE \`editLogicCmdList\` (\`id\` bigint(20),\`targetid\` bigint(20),\`cmd\` tinyint(3),
+  \`cmdid1\` bigint(20),\`cmdid2\` bigint(20),\`cmdoption1\` int(11),\`cmdoption2\` int(11),
+  \`cmdvalue1\` varchar(10000),\`cmdvalue2\` varchar(10000));
+INSERT INTO \`editLogicCmdList\` VALUES (1,22,1,101,0,0,0,NULL,NULL);
 `;
 
 const tabellen = parseDump(FIXTURE);

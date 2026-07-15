@@ -98,6 +98,23 @@ const XOR: Baustein = {
   },
 };
 
+/** ODER über bis zu 8 Eingänge e1..e8; unbelegte Eingänge zählen als false. */
+const OR8: Baustein = {
+  typ: "OR8",
+  rechne(e) {
+    let einer = false;
+    let irgendein = false;
+    for (let i = 1; i <= 8; i++) {
+      const v = e[`e${i}`];
+      if (typeof v === "boolean") {
+        irgendein = true;
+        einer = einer || v;
+      }
+    }
+    return irgendein ? { out: einer } : null;
+  },
+};
+
 /**
  * Toggle: steigende Flanke auf `in` wechselt den Ausgang. Optionaler
  * `status`-Eingang synchronisiert den internen Zustand (z. B. Ist-Zustand
@@ -217,7 +234,7 @@ const SPERRLICHT: Baustein = {
 };
 
 const STDLIB = new Map<string, Baustein>(
-  [NOT, AND, OR, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG, TREPPENLICHT, SPERRLICHT].map(
+  [NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG, TREPPENLICHT, SPERRLICHT].map(
     (b) => [b.typ, b],
   ),
 );
