@@ -5,6 +5,7 @@
  */
 import { createSocket, type Socket } from "node:dgram";
 import { gaZuZahl, zahlZuGa } from "./ga.ts";
+import { decodeDpt, encodeDpt, type Dpt } from "./dpt.ts";
 
 const HEADER_LEN = 0x06;
 const VERSION_10 = 0x10;
@@ -25,14 +26,16 @@ const APCI_RESPONSE = 0x040;
 
 export interface KnxTelegramm {
   ga: string;
-  /** Rohwert (Skeleton: 6-Bit / DPT 1.001). */
-  wert: number;
+  /** Dekodiert gemäß DPT-Karte; ohne Eintrag: Rohwert (6-Bit oder Big-Endian). */
+  wert: boolean | number;
   art: "write" | "response";
 }
 
 export interface KnxTreiberOptionen {
   host: string;
   port?: number;
+  /** DPT je Gruppenadresse (wie in ETS: die GA hat einen Typ). Default 1.001. */
+  dpts?: ReadonlyMap<string, Dpt>;
   onTelegramm?: (t: KnxTelegramm) => void;
   onFehler?: (meldung: string) => void;
   /** Heartbeat-Intervall in ms (Default 60_000; Tests setzen kleiner). */
@@ -114,20 +117,30 @@ export class KnxTreiber {
     this.#verbunden = false;
   }
 
-  /** GroupValueWrite, DPT 1.001 (Skeleton). */
-  sende(ga: string, wert: boolean): void {
+  /** GroupValueWrite; kodiert gemäß DPT-Karte (Default 1.001). */
+  sende(ga: string, wert: boolean | number): void {
     if (!this.#socket || this.#kanal < 0) throw new Error("nicht verbunden");
     const dst = gaZuZahl(ga);
-    // cEMI L_Data.req: mc, addlen, ctrl1, ctrl2, src, dst, npdu_len, TPCI, APCI|wert
-    const cemi = Buffer.from([
+    const dpt = this.#opts.dpts?.get(ga) ?? "1.001";
+    const apdu = encodeDpt(dpt, wert);
+    // cEMI L_Data.req: mc, addlen, ctrl1, ctrl2, src, dst, npdu_len, TPCI, APCI…
+    const kopf7 = Buffer.from([
       L_DATA_REQ, 0x00, 0xbc, 0xe0,
       0x00, 0x00, // Quelladresse überlässt der Client dem Interface
       (dst >> 8) & 0xff, dst & 0xff,
-      0x01, 0x00, APCI_WRITE | (wert ? 1 : 0),
     ]);
+    const nutzlast =
+      apdu.art === "klein"
+        ? Buffer.from([0x01, 0x00, APCI_WRITE | (apdu.wert & 0x3f)])
+        : Buffer.concat([
+            Buffer.from([1 + apdu.bytes.length, 0x00, APCI_WRITE]),
+            Buffer.from(apdu.bytes),
+          ]);
     const kopf = Buffer.from([0x04, this.#kanal, this.#sendeSeq, 0x00]);
     this.#sendeSeq = (this.#sendeSeq + 1) & 0xff;
-    this.#sendeAnServer(frame(TUNNELING_REQUEST, Buffer.concat([kopf, cemi])));
+    this.#sendeAnServer(
+      frame(TUNNELING_REQUEST, Buffer.concat([kopf, kopf7, nutzlast])),
+    );
   }
 
   #sendeAnServer(paket: Buffer): void {
@@ -181,11 +194,24 @@ export class KnxTreiber {
     const apci = ((cemi[p + 7]! & 0x03) << 8) | apciHigh;
     const art = (apci & 0x3c0) === APCI_RESPONSE ? "response" : "write";
 
-    const wert =
-      npduLen === 1
-        ? apciHigh & 0x3f
-        : cemi.subarray(p + 9, p + 9 + npduLen - 1).reduce((a, b) => a * 256 + b, 0);
+    const ga = zahlZuGa(dst);
+    const dpt = this.#opts.dpts?.get(ga);
+    let wert: boolean | number;
+    if (dpt) {
+      wert = decodeDpt(
+        dpt,
+        npduLen === 1
+          ? { art: "klein", wert: apciHigh & 0x3f }
+          : { art: "bytes", bytes: Uint8Array.from(cemi.subarray(p + 9, p + 9 + npduLen - 1)) },
+      );
+    } else {
+      // Ohne DPT-Karte: Rohwert (6-Bit oder Big-Endian-Ganzzahl).
+      wert =
+        npduLen === 1
+          ? apciHigh & 0x3f
+          : cemi.subarray(p + 9, p + 9 + npduLen - 1).reduce((a, b) => a * 256 + b, 0);
+    }
 
-    this.#opts.onTelegramm?.({ ga: zahlZuGa(dst), wert, art });
+    this.#opts.onTelegramm?.({ ga, wert, art });
   }
 }

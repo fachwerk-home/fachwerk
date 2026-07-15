@@ -25,6 +25,7 @@ class MockServer {
   socket: Socket;
   port = 0;
   empfangeneWrites: Array<{ dst: number; wert: number }> = [];
+  empfangeneBytes: Array<{ dst: number; bytes: number[] }> = [];
   clientAcks: number[] = [];
   #client: RemoteInfo | null = null;
 
@@ -71,8 +72,15 @@ class MockServer {
       if (cemi[0] === 0x11) {
         // L_Data.req: byte-genau prüfen, was der Treiber sendet
         const dst = cemi.readUInt16BE(6);
-        const wert = cemi[10]! & 0x3f;
-        this.empfangeneWrites.push({ dst, wert });
+        const npduLen = cemi[8]!;
+        if (npduLen === 1) {
+          this.empfangeneWrites.push({ dst, wert: cemi[10]! & 0x3f });
+        } else {
+          this.empfangeneBytes.push({
+            dst,
+            bytes: [...cemi.subarray(11, 11 + npduLen - 1)],
+          });
+        }
       }
     } else if (service === 0x0421) {
       this.clientAcks.push(msg[8]!);
@@ -92,6 +100,21 @@ class MockServer {
       0x29, 0x00, 0xbc, 0xe0, 0x11, 0x0a,
       (ga >> 8) & 0xff, ga & 0xff,
       0x01, 0x00, 0x80 | wert,
+    ]);
+    const body = Buffer.concat([Buffer.from([0x04, 7, seq, 0x00]), cemi]);
+    this.socket.send(this.#frame(0x0420, body), this.#client.port, this.#client.address);
+  }
+
+  /** L_Data.ind mit Byte-Payload (z. B. DPT 9.001). */
+  injiziereBytes(ga: number, bytes: number[], seq: number): void {
+    if (!this.#client) throw new Error("kein Client verbunden");
+    const cemi = Buffer.concat([
+      Buffer.from([
+        0x29, 0x00, 0xbc, 0xe0, 0x11, 0x0a,
+        (ga >> 8) & 0xff, ga & 0xff,
+        1 + bytes.length, 0x00, 0x80,
+      ]),
+      Buffer.from(bytes),
     ]);
     const body = Buffer.concat([Buffer.from([0x04, 7, seq, 0x00]), cemi]);
     this.socket.send(this.#frame(0x0420, body), this.#client.port, this.#client.address);
@@ -150,5 +173,28 @@ describe("KnxTreiber", () => {
   it("meldet Timeout, wenn kein Server antwortet", async () => {
     const t = new KnxTreiber({ host: "127.0.0.1", port: 1 });
     await expect(t.verbinde(200)).rejects.toThrow(/Timeout/);
+  });
+
+  it("DPT 9.001: sendet 2-Byte-Payload und dekodiert Empfangenes (P4-4)", async () => {
+    const telegramme: KnxTelegramm[] = [];
+    server = new MockServer();
+    await server.start();
+    treiber = new KnxTreiber({
+      host: "127.0.0.1",
+      port: server.port,
+      dpts: new Map([["2/0/1", "9.001"]]),
+      onTelegramm: (t) => telegramme.push(t),
+    });
+    await treiber.verbinde();
+
+    treiber.sende("2/0/1", 21.5);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(server.empfangeneBytes).toEqual([
+      { dst: gaZuZahl("2/0/1"), bytes: [0x0c, 0x33] },
+    ]);
+
+    server.injiziereBytes(gaZuZahl("2/0/1"), [0x0c, 0x33], 0);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(telegramme).toEqual([{ ga: "2/0/1", wert: 21.5, art: "write" }]);
   });
 });

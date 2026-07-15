@@ -93,15 +93,17 @@ export async function run(dir: string): Promise<number> {
     }
   });
 
-  // KNX-Zuordnung: GA ↔ Datenpunkt (Skeleton: nur typ bool auf dem Bus).
+  // KNX-Zuordnung: GA ↔ Datenpunkt + DPT-Karte (P4-4).
   const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
   const dpZuGa = new Map<string, string>();
+  const dpts = new Map<string, "1.001" | "5.001" | "9.001">();
   for (const [gruppe, datei] of gewerk.datenpunkte) {
     for (const [key, def] of Object.entries(datei)) {
       if (def.klasse === "bus" && def.treiber === "knx" && def.adresse) {
         const schluessel = `${gruppe}.${key}`;
         gaZuDp.set(def.adresse, { schluessel, typ: def.typ });
         dpZuGa.set(schluessel, def.adresse);
+        dpts.set(def.adresse, def.dpt ?? (def.typ === "bool" ? "1.001" : "9.001"));
       }
     }
   }
@@ -111,11 +113,11 @@ export async function run(dir: string): Promise<number> {
   const treiber = new KnxTreiber({
     host,
     port,
+    dpts,
     onTelegramm: (t) => {
       const dp = gaZuDp.get(t.ga);
       if (!dp || t.art !== "write") return;
-      const wert: Wert = dp.typ === "bool" ? t.wert !== 0 : t.wert;
-      const erg = registry.schreibe(dp.schluessel, wert, "treiber");
+      const erg = registry.schreibe(dp.schluessel, t.wert as Wert, "treiber");
       if (!erg.angenommen) console.error(`WARNUNG: Bus→${dp.schluessel}: ${erg.grund}`);
     },
     onFehler: (m) => console.error(`KNX: ${m}`),
@@ -125,7 +127,7 @@ export async function run(dir: string): Promise<number> {
   registry.abonniere((e) => {
     if (e.quelle === "treiber") return; // kam vom Bus — kein Echo
     const ga = dpZuGa.get(e.schluessel);
-    if (ga !== undefined && typeof e.wert === "boolean") {
+    if (ga !== undefined && typeof e.wert !== "string") {
       treiber.sende(ga, e.wert);
     }
   });

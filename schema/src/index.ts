@@ -32,6 +32,7 @@ export interface Datenpunkt {
   typ: DatenpunktTyp;
   treiber?: string;
   adresse?: string;
+  dpt?: "1.001" | "5.001" | "9.001";
   initial?: boolean | number | string;
   remanent?: boolean;
   protected?: boolean;
@@ -80,6 +81,7 @@ export const KEY_ORDER = {
     "typ",
     "treiber",
     "adresse",
+    "dpt",
     "initial",
     "remanent",
     "protected",

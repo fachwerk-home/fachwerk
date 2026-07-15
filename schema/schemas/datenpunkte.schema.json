@@ -40,6 +40,10 @@
           "type": "string",
           "minLength": 1
         },
+        "dpt": {
+          "description": "KNX-Datenpunkttyp der Adresse (nur treiber=knx). Default: bool 1.001, zahl 9.001.",
+          "enum": ["1.001", "5.001", "9.001"]
+        },
         "initial": {
           "description": "Initialwert.",
           "type": ["boolean", "number", "string"]
