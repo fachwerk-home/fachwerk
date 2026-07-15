@@ -1,0 +1,5 @@
+packages:
+  - core
+  - schema
+  - cli
+  - drivers/*

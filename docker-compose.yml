@@ -1,0 +1,15 @@
+# Fachwerk + Bus-Simulator als Stack (SPEC-008).
+# Lokal wie in CI: `docker compose build && docker compose run --rm fachwerk`.
+# Ab S-6 fährt `fachwerk run` hier den End-zu-End-Akzeptanztest.
+services:
+  bus-simulator:
+    build: ./tools/bus-simulator
+    # KNXnet/IP-Tunneling (UDP 3671) + Steuerkanal (UDP 3672) im Compose-Netz.
+
+  fachwerk:
+    build: .
+    depends_on:
+      - bus-simulator
+    environment:
+      FACHWERK_KNX_HOST: bus-simulator
+      FACHWERK_KNX_PORT: "3671"

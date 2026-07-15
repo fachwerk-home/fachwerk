@@ -21,13 +21,14 @@ grep -qi "clean-room" CONTRIBUTING.md || err "CONTRIBUTING.md lacks clean-room p
 grep -q "Signed-off-by" CONTRIBUTING.md || err "CONTRIBUTING.md lacks DCO sign-off rule"
 
 # Forbidden: EDOMI as part of product/package identifiers or file names.
-# (Descriptive mentions in prose/docs are fine; file or dir names are not.)
-if find . -path ./.git -prune -o -iname "*edomi*" -print | grep -q .; then
+# (Descriptive mentions in prose/docs are fine; file or dir names are not.
+#  node_modules is third-party code and exempt from repo rules.)
+if find . \( -path ./.git -o -name node_modules \) -prune -o -iname "*edomi*" -print | grep -q .; then
   err "found file/dir with 'edomi' in its name (naming rule violation)"
 fi
 
 # UTF-8 sanity: no stray replacement characters in tracked text files
-if grep -rIl $'\xEF\xBF\xBD' --exclude-dir=.git . 2>/dev/null | grep -q .; then
+if grep -rIl $'\xEF\xBF\xBD' --exclude-dir=.git --exclude-dir=node_modules . 2>/dev/null | grep -q .; then
   err "found UTF-8 replacement characters (broken encoding)"
 fi
 

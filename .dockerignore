@@ -1,0 +1,10 @@
+.git
+node_modules
+research
+docs
+adr
+specs
+ui
+tools
+*.md
+.env*

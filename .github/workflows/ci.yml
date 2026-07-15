@@ -26,7 +26,30 @@ jobs:
         run: python selftest.py
         working-directory: tools/bus-simulator
 
-  # Placeholder jobs — activated as soon as the respective phase delivers code.
-  # build:   core/drivers/ui compile + unit tests   (Phase 3)
-  # container: image build + smoke test             (Phase 3)
-  # sim:     logic acceptance tests vs KNX simulator (Phase 4)
+  build:
+    name: Typecheck, lint & unit tests (TS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+  container:
+    name: Container build & smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build stack (fachwerk + bus-simulator)
+        run: docker compose build
+      - name: Smoke test
+        run: docker compose run --rm fachwerk version
+
+  # Placeholder — activated as soon as the respective phase delivers code.
+  # sim: logic acceptance tests vs KNX simulator (S-6 / Phase 4)
