@@ -2,4 +2,5 @@ packages:
   - core
   - schema
   - cli
+  - importer
   - drivers/*

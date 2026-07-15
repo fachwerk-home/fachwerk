@@ -6,6 +6,7 @@ export default defineConfig({
       "core/src/**/*.test.ts",
       "schema/src/**/*.test.ts",
       "cli/src/**/*.test.ts",
+      "importer/src/**/*.test.ts",
       "drivers/*/src/**/*.test.ts",
     ],
   },

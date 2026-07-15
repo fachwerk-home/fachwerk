@@ -60,6 +60,17 @@ switch (cmd) {
     break;
   }
 
+  case "import": {
+    const [dump, ziel] = [args[0], args[1]];
+    if (!dump || !ziel) {
+      console.error("Aufruf: fachwerk import <projekt-dump.sql> <ziel-verzeichnis>");
+      process.exit(2);
+    }
+    const { importiere } = await import("./import.ts");
+    process.exit(importiere(dump, ziel));
+    break;
+  }
+
   case "baustein": {
     if (args[0] !== "test" || !args[1]) {
       console.error("Aufruf: fachwerk baustein test <gewerk-verzeichnis>");

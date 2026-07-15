@@ -22,13 +22,14 @@ grep -q "Signed-off-by" CONTRIBUTING.md || err "CONTRIBUTING.md lacks DCO sign-o
 
 # Forbidden: EDOMI as part of product/package identifiers or file names.
 # (Descriptive mentions in prose/docs are fine; file or dir names are not.
-#  node_modules is third-party code and exempt from repo rules.)
-if find . \( -path ./.git -o -name node_modules \) -prune -o -iname "*edomi*" -print | grep -q .; then
+#  Exempt: node_modules (third-party), research/ und _ingest/ (lokal,
+#  gitignored — enthalten Referenzsystem-Daten und duerfen so heissen).)
+if find . \( -path ./.git -o -name node_modules -o -path ./research -o -path ./_ingest \) -prune -o -iname "*edomi*" -print | grep -q .; then
   err "found file/dir with 'edomi' in its name (naming rule violation)"
 fi
 
 # UTF-8 sanity: no stray replacement characters in tracked text files
-if grep -rIl $'\xEF\xBF\xBD' --exclude-dir=.git --exclude-dir=node_modules . 2>/dev/null | grep -q .; then
+if grep -rIl $'\xEF\xBF\xBD' --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=_ingest --exclude-dir=research . 2>/dev/null | grep -q .; then
   err "found UTF-8 replacement characters (broken encoding)"
 fi
 

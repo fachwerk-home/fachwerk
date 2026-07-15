@@ -1,5 +1,5 @@
 {
-  "name": "@fachwerk/cli",
+  "name": "@fachwerk/importer",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,8 +12,6 @@
   },
   "dependencies": {
     "@fachwerk/core": "workspace:*",
-    "@fachwerk/driver-knx": "workspace:*",
-    "@fachwerk/importer": "workspace:*",
     "@fachwerk/schema": "workspace:*"
   }
 }

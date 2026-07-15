@@ -32,6 +32,9 @@ importers:
       '@fachwerk/driver-knx':
         specifier: workspace:*
         version: link:../drivers/knx
+      '@fachwerk/importer':
+        specifier: workspace:*
+        version: link:../importer
       '@fachwerk/schema':
         specifier: workspace:*
         version: link:../schema
@@ -50,6 +53,15 @@ importers:
       '@fachwerk/core':
         specifier: workspace:*
         version: link:../../core
+
+  importer:
+    dependencies:
+      '@fachwerk/core':
+        specifier: workspace:*
+        version: link:../core
+      '@fachwerk/schema':
+        specifier: workspace:*
+        version: link:../schema
 
   schema:
     dependencies:
