@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { datenpunkteZuYaml, logikZuYaml, manifestZuYaml, loadGewerk } from "@fachwerk/core";
 import {
+  BEKANNTE_LUECKEN,
   befehlsStatistik,
   bewerte,
   extrahiereStruktur,
@@ -116,7 +117,13 @@ export function importiere(dumpPfad: string, ziel: string): number {
   if (bs.gesamt > 0) {
     console.log(`Ausgangsbox-Befehle nach Zuständigkeit (${bs.gesamt} gesamt):`);
     for (const k of bs.proKategorie) console.log(`  ${String(k.anzahl).padStart(4)}× ${k.kategorie}`);
+    // „unbekannt" > 0 wäre ein Hinweis auf noch nicht katalogisierte cmd-Nummern.
+    if (bs.proKategorie.some((k) => k.kategorie === "unbekannt")) {
+      console.log("  (Kategorie unbekannt = noch nicht katalogisierte Befehlstypen)");
+    }
   }
+  console.log("Bekannte Katalog-Lücken:");
+  for (const l of BEKANNTE_LUECKEN) console.log(`  · ${l}`);
 
   console.log(`\nOK: Gewerk geschrieben nach ${ziel} (validate bestanden)`);
   return 0;

@@ -19,7 +19,29 @@ export interface BefehlDef {
   kategorie: BefehlKategorie;
   /** Kurzform der Feldbelegung (id1/id2/value1/option1) für die Doku. */
   felder: string;
+  /**
+   * true, wenn `cmdoption1` eine Unter-Auswahl kodiert, die die konkrete
+   * Aktion bestimmt (z. B. „EDOMI Steuerung" → ganzer Server-Neustart vs.
+   * Teilneustart). Die genaue option→Aktion-Zuordnung ist noch nicht
+   * vollständig erfasst (bräuchte je eine Referenzbox pro Variante).
+   */
+  optionVarianten?: boolean;
 }
+
+/**
+ * Bekannte Lücken im Katalog — bewusst dokumentiert statt still übergangen:
+ * - Kamera-Befehle (Kameraarchiv: Bild hinzufügen/entfernen) sind in EDOMI
+ *   nur mit eingerichteter Kamera anlegbar; ohne Hardware nicht erfassbar.
+ *   Kategorie wäre „archiv". cmd-Nummern noch unbekannt.
+ * - Option-Untervarianten mehrerer Befehle (optionVarianten=true) sind nicht
+ *   im Detail dekodiert.
+ * Unbekannte cmd-Nummern behandelt der Importer generisch (Report), nie raten.
+ */
+export const BEKANNTE_LUECKEN = [
+  "Kameraarchiv: Kamerabild hinzufügen (archiv, cmd unbekannt — keine Kamera)",
+  "Kameraarchiv: Kamerabild entfernen (archiv, cmd unbekannt — keine Kamera)",
+  "Option-Untervarianten (cmdoption1) bei EDOMI-Steuerung u. a.",
+] as const;
 
 /**
  * cmd-Nummer → Definition. Vollständig aus der Referenz-Palette abgeleitet.
@@ -96,7 +118,12 @@ export const BEFEHLE: Record<number, BefehlDef> = {
   20: { name: "Email: Senden", kategorie: "aktion", felder: "id1=Email" },
   22: { name: "Telefonbucheintrag: Anrufen", kategorie: "aktion", felder: "id1=Eintrag" },
 
-  30: { name: "System: Neustarten", kategorie: "system", felder: "option1=1" },
+  30: {
+    name: "System (EDOMI-Steuerung): Neustart u. a.",
+    kategorie: "system",
+    felder: "option1=Aktion",
+    optionVarianten: true,
+  },
 };
 
 export function befehlDef(cmd: number): BefehlDef | undefined {
