@@ -39,17 +39,22 @@ def lokale_ip() -> str:
         s.close()
 
 
+def hpai(ip: str, port: int) -> bytes:
+    """HPAI (len, Protokoll UDP, IP, Port). 0.0.0.0:0 = NAT-Modus: der Server
+    antwortet an die Paketquelle — robust bei mehreren Netzwerkadaptern."""
+    return struct.pack("!BB4sH", 0x08, 0x01, socket.inet_aton(ip), port)
+
+
 def search_request(ip: str, port: int) -> bytes:
-    # Header (6) + HPAI (8: len, protocol=UDP(0x01), IP(4), Port(2))
-    hpai = struct.pack("!BB4sH", 0x08, 0x01, socket.inet_aton(ip), port)
-    header = struct.pack("!BBHH", 0x06, 0x10, SEARCH_REQUEST, 6 + len(hpai))
-    return header + hpai
+    body = hpai(ip, port)
+    header = struct.pack("!BBHH", 0x06, 0x10, SEARCH_REQUEST, 6 + len(body))
+    return header + body
 
 
 def description_request(ip: str, port: int) -> bytes:
-    hpai = struct.pack("!BB4sH", 0x08, 0x01, socket.inet_aton(ip), port)
-    header = struct.pack("!BBHH", 0x06, 0x10, DESCRIPTION_REQUEST, 6 + len(hpai))
-    return header + hpai
+    body = hpai(ip, port)
+    header = struct.pack("!BBHH", 0x06, 0x10, DESCRIPTION_REQUEST, 6 + len(body))
+    return header + body
 
 
 def geraetename(body: bytes, start: int = 8) -> str:
@@ -68,14 +73,18 @@ def geraetename(body: bytes, start: int = 8) -> str:
 
 
 def pruefe_host(host: str, port: int, timeout: float) -> int:
-    """Gezielter DESCRIPTION_REQUEST an EINE IP (kein Tunnel, kein Slot)."""
-    ip = lokale_ip()
+    """Gezielter DESCRIPTION_REQUEST an EINE IP (kein Tunnel, kein Slot).
+
+    NAT-Modus (HPAI 0.0.0.0:0) + Bind auf alle Adapter: funktioniert auch auf
+    Rechnern mit mehreren Interfaces (Docker/WSL/VPN), wo das Erraten der
+    lokalen IP danebengeht.
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind((ip, 0))
+    s.bind(("0.0.0.0", 0))
     s.settimeout(timeout)
-    print(f"Prüfe {host}:{port} (DESCRIPTION_REQUEST) …\n")
+    print(f"Prüfe {host}:{port} (DESCRIPTION_REQUEST, NAT-Modus) …\n")
     try:
-        s.sendto(description_request(ip, s.getsockname()[1]), (host, port))
+        s.sendto(description_request("0.0.0.0", 0), (host, port))
     except OSError as e:
         print(f"  Netzwerkfehler: {e}")
         print(f"  → {host} nicht erreichbar (falsches Subnetz? läuft der Host?).")
@@ -100,21 +109,26 @@ def main() -> int:
     ap.add_argument("--timeout", type=float, default=5.0, help="Lauschdauer in Sekunden")
     ap.add_argument("--host", help="gezielt EINE IP prüfen (statt Multicast-Suche)")
     ap.add_argument("--port", type=int, default=3671, help="Port (Default 3671)")
+    ap.add_argument("--iface", help="lokale IP des Netzwerkadapters erzwingen "
+                                    "(bei mehreren Adaptern: Docker/WSL/VPN)")
     a = ap.parse_args()
 
     if a.host:
         return pruefe_host(a.host, a.port, a.timeout)
 
-    ip = lokale_ip()
+    ip = a.iface or lokale_ip()
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(ip))
     s.bind((ip, 0))
     port = s.getsockname()[1]
-    s.sendto(search_request(ip, port), MCAST)
+    # NAT-HPAI: Antwort geht an die Paketquelle (robust bei mehreren Adaptern).
+    s.sendto(search_request("0.0.0.0", 0), MCAST)
     s.settimeout(a.timeout)
 
-    print(f"Suche KNXnet/IP-Interfaces (von {ip}:{port}, {a.timeout:.0f}s) …\n")
+    print(f"Suche KNXnet/IP-Interfaces über Adapter {ip} ({a.timeout:.0f}s) …")
+    print(f"(Falls {ip} nicht dein LAN-Adapter ist: --iface <deine-LAN-IP>)\n")
     gefunden = {}
     while True:
         try:
