@@ -168,6 +168,10 @@ export async function run(dir: string): Promise<number> {
   console.error(
     `fachwerk läuft: „${gewerk.manifest.name}" — ${gaZuDp.size} KNX-Zuordnung(en), Endpunkt ${host}:${port}`,
   );
+  // Welchen Tunnel/welche Individualadresse hat uns der Router gegeben?
+  console.error(
+    `KNX verbunden: Tunnel-Kanal ${treiber.kanal}, Individualadresse ${treiber.adresse ?? "?"}`,
+  );
   if (beobachten) {
     console.error(
       "== BEOBACHTUNGSMODUS == empfange Bustelegramme, sende NIE. " +

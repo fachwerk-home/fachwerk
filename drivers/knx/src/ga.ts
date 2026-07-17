@@ -17,3 +17,11 @@ export function gaZuZahl(ga: string): number {
 export function zahlZuGa(n: number): string {
   return `${(n >> 11) & 0x1f}/${(n >> 8) & 0x07}/${n & 0xff}`;
 }
+
+/**
+ * Individualadresse (physikalische Adresse) als Text: Bereich.Linie.Gerät.
+ * Der Router weist jedem Tunnel eine eigene IA aus seinem Pool zu.
+ */
+export function zahlZuIa(n: number): string {
+  return `${(n >> 12) & 0x0f}.${(n >> 8) & 0x0f}.${n & 0xff}`;
+}

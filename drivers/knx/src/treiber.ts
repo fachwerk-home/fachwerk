@@ -4,7 +4,7 @@
  * Paketquelle). Skeleton-Umfang: DPT 1.001 (Bool, 6-Bit-APDU).
  */
 import { createSocket, type Socket } from "node:dgram";
-import { gaZuZahl, zahlZuGa } from "./ga.ts";
+import { gaZuZahl, zahlZuGa, zahlZuIa } from "./ga.ts";
 import { decodeDpt, encodeDpt, type Dpt } from "./dpt.ts";
 
 const HEADER_LEN = 0x06;
@@ -70,6 +70,7 @@ export class KnxTreiber {
   #sendeSeq = 0;
   #heartbeat: ReturnType<typeof setInterval> | null = null;
   #verbunden = false;
+  #adresse: string | null = null;
 
   constructor(opts: KnxTreiberOptionen) {
     this.#opts = { port: 3671, heartbeatMs: 60_000, ...opts };
@@ -103,6 +104,10 @@ export class KnxTreiber {
     this.#kanal = antwort[6]!;
     this.#sendeSeq = 0;
     this.#verbunden = true;
+    // CONNECT_RESPONSE: [6]=Kanal, [7]=Status, [8..15]=HPAI, [16..19]=CRD
+    // (len, Typ, Individualadresse) — der Router weist uns eine IA seines
+    // Tunnel-Pools zu; sichtbar machen (welcher Tunnel sind wir?).
+    this.#adresse = antwort.length >= 20 ? zahlZuIa(antwort.readUInt16BE(18)) : null;
 
     this.#heartbeat = setInterval(() => this.#sendeHeartbeat(), this.#opts.heartbeatMs);
     this.#heartbeat.unref?.();
@@ -122,11 +127,22 @@ export class KnxTreiber {
     this.#socket?.close();
     this.#socket = null;
     this.#kanal = -1;
+    this.#adresse = null;
     this.#verbunden = false;
   }
 
   get beobachtet(): boolean {
     return this.#opts.beobachten === true;
+  }
+
+  /** Vom Router zugewiesene Individualadresse dieses Tunnels (z. B. „1.1.250"). */
+  get adresse(): string | null {
+    return this.#adresse;
+  }
+
+  /** Tunnel-Kanal-Nummer des Routers. */
+  get kanal(): number {
+    return this.#kanal;
   }
 
   /** GroupValueWrite; kodiert gemäß DPT-Karte (Default 1.001). */

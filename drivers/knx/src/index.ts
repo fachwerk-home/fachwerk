@@ -8,6 +8,6 @@ export const DRIVER_ID = "knx";
 
 export { KnxTreiber } from "./treiber.ts";
 export type { KnxTreiberOptionen, KnxTelegramm } from "./treiber.ts";
-export { gaZuZahl, zahlZuGa } from "./ga.ts";
+export { gaZuZahl, zahlZuGa, zahlZuIa } from "./ga.ts";
 export { encodeDpt, decodeDpt } from "./dpt.ts";
 export type { Dpt, Apdu } from "./dpt.ts";

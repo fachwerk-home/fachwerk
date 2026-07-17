@@ -5,7 +5,7 @@
 import { createSocket, type Socket, type RemoteInfo } from "node:dgram";
 import { afterEach, describe, expect, it } from "vitest";
 import { KnxTreiber, type KnxTelegramm } from "./treiber.ts";
-import { gaZuZahl, zahlZuGa } from "./ga.ts";
+import { gaZuZahl, zahlZuGa, zahlZuIa } from "./ga.ts";
 
 describe("Gruppenadressen", () => {
   it("wandelt hin und zurück", () => {
@@ -17,6 +17,12 @@ describe("Gruppenadressen", () => {
     expect(() => gaZuZahl("1/0")).toThrow();
     expect(() => gaZuZahl("32/0/0")).toThrow();
     expect(() => gaZuZahl("a/b/c")).toThrow();
+  });
+
+  it("Individualadresse: Bereich.Linie.Gerät", () => {
+    expect(zahlZuIa(0x11fa)).toBe("1.1.250");
+    expect(zahlZuIa(0x1105)).toBe("1.1.5"); // z. B. FHEM
+    expect(zahlZuIa(0xffff)).toBe("15.15.255");
   });
 });
 
@@ -148,6 +154,15 @@ describe("KnxTreiber", () => {
     expect(treiber.verbunden).toBe(true);
     await treiber.trenne();
     expect(treiber.verbunden).toBe(false);
+  });
+
+  it("übernimmt die vom Router zugewiesene Individualadresse + Kanal", async () => {
+    // MockServer antwortet mit Kanal 7 und CRD-IA 0x11FA = 1.1.250.
+    const { treiber } = await verbunden();
+    expect(treiber.kanal).toBe(7);
+    expect(treiber.adresse).toBe("1.1.250");
+    await treiber.trenne();
+    expect(treiber.adresse).toBeNull();
   });
 
   it("sendet GroupValueWrite byte-genau (DPT 1.001)", async () => {
