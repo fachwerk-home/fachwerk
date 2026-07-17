@@ -58,9 +58,8 @@ Es gibt **kein Image zum Hochladen** — zwei Wege:
 
 **Weg B — fertiges Image ziehen (schneller, kein Build auf dem Host):**
 Der Workflow `.github/workflows/image.yml` veröffentlicht das Image bei jedem
-Push nach `ghcr.io/fachwerk-home/fachwerk:latest`. Einmalig das Paket öffentlich
-schalten (GitHub → Packages → fachwerk → Package settings → Change visibility),
-sonst braucht Portainer eine Registry-Anmeldung. Dann:
+Push nach `ghcr.io/fachwerk-home/fachwerk:latest`. Es ist **öffentlich ziehbar**
+(kein Login nötig, geprüft) — Portainer braucht keine Registry-Anmeldung. Dann:
 - Portainer → Stacks → Add stack → **Web editor**, Inhalt von
   `docker-compose.ghcr.yml` einfügen
 - Env: `FACHWERK_KNX_HOST` = Router-IP, `FACHWERK_GEWERK_DIR` = Gewerk-Verzeichnis

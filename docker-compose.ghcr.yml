@@ -2,9 +2,7 @@
 # ghcr.io, baut nichts. Fuer Portainer: Stack -> Web editor, diesen Inhalt
 # einfuegen, FACHWERK_KNX_HOST setzen, deployen.
 #
-# Voraussetzung: das Paket ghcr.io/fachwerk-home/fachwerk ist oeffentlich
-# (GitHub -> Packages -> fachwerk -> Package settings -> Change visibility).
-# Sonst braucht Portainer eine Registry-Anmeldung.
+# Das Image ist oeffentlich ziehbar — keine Registry-Anmeldung noetig.
 services:
   fachwerk:
     image: ghcr.io/fachwerk-home/fachwerk:latest
