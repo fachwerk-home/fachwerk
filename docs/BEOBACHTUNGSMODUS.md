@@ -47,23 +47,30 @@ FACHWERK_KNX_MODUS=beobachten \
 Beobachtungsmodus, mit Host-Netz. Standard-Gewerk ist `examples/abnahme-licht-status`
 (deine echten Licht-Status-GAs → Sammelmeldung).
 
-Es gibt **kein Image zum Hochladen** — zwei Wege:
+Es gibt **kein Image zum Hochladen** — zwei Wege. Beide laufen **ohne Volume**:
+die Beispiel-Gewerke sind im Image (Projekt-Artefakte); nur *eigene* Gewerke
+kommen per Volume.
 
-**Weg A — Portainer baut selbst (nichts hochladen, funktioniert sofort):**
+**Weg A — Portainer baut selbst:**
 - Portainer → Stacks → Add stack → **Repository**
-- Repository-URL: `https://github.com/fachwerk-home/fachwerk`
-- Compose-Pfad: `docker-compose.beobachten.yml`  (enthält `build: .`)
-- Environment variables: `FACHWERK_KNX_HOST` = IP deines Routers (Pflicht);
-  optional `FACHWERK_GEWERK_DIR` = anderer Gewerk-Pfad im Repo.
+- Repository URL: `https://github.com/fachwerk-home/fachwerk`
+- **Repository reference: `refs/heads/main`** ← wichtig! Portainers Default
+  (`master`) und ein blosses `main` schlagen mit „reference not found" fehl.
+- Compose path: `docker-compose.beobachten.yml`
+- Environment: `FACHWERK_KNX_HOST` = IP deines Routers (Pflicht)
 
-**Weg B — fertiges Image ziehen (schneller, kein Build auf dem Host):**
-Der Workflow `.github/workflows/image.yml` veröffentlicht das Image bei jedem
-Push nach `ghcr.io/fachwerk-home/fachwerk:latest`. Es ist **öffentlich ziehbar**
-(kein Login nötig, geprüft) — Portainer braucht keine Registry-Anmeldung. Dann:
+**Weg B — fertiges Image ziehen (kein Build auf dem Host):**
+`.github/workflows/image.yml` veröffentlicht bei jedem Push nach
+`ghcr.io/fachwerk-home/fachwerk:latest`; **öffentlich ziehbar** (kein Login).
 - Portainer → Stacks → Add stack → **Web editor**, Inhalt von
   `docker-compose.ghcr.yml` einfügen
-- Env: `FACHWERK_KNX_HOST` = Router-IP, `FACHWERK_GEWERK_DIR` = Gewerk-Verzeichnis
-  **auf dem Host** (das Image bringt keine Gewerke mit — Gewerk = Daten)
+- Environment: `FACHWERK_KNX_HOST` = Router-IP
+
+**Eigenes Gewerk statt Beispiel:** im Compose die Mount-Zeile einkommentieren
+(Host-Pfad!) und `FACHWERK_GEWERK=/gewerk` setzen. Achtung bei Git-Stacks:
+relative Pfade ins geklonte Repo funktionieren **nicht** — Portainer klont in
+seinen eigenen Container, der Docker-Daemon löst Bind-Mounts aber auf dem Host
+auf und legt bei fehlender Quelle stillschweigend ein *leeres* Verzeichnis an.
 
 Danach in beiden Fällen die **Logs** des `fachwerk`-Containers ansehen:
   ```

@@ -18,6 +18,10 @@ COPY schema/ schema/
 COPY core/ core/
 COPY cli/ cli/
 COPY drivers/ drivers/
+# Beispiel-Gewerke gehoeren zum Projekt (versioniert mit dem Code) und machen
+# den ersten Start ohne Volume moeglich. ECHTE Gewerke kommen weiterhin per
+# Volume — Nutzerdaten gehoeren nie ins Image.
+COPY examples/ examples/
 
 # Zustands-Verzeichnis gehört dem Laufzeit-User (Named Volumes erben das).
 RUN mkdir -p /daten && chown node:node /daten

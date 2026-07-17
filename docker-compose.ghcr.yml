@@ -1,14 +1,16 @@
 # Fachwerk am ECHTEN Bus (Beobachtungsmodus) — zieht das FERTIGE Image aus
-# ghcr.io, baut nichts. Fuer Portainer: Stack -> Web editor, diesen Inhalt
-# einfuegen, FACHWERK_KNX_HOST setzen, deployen.
-#
+# ghcr.io, baut nichts. Fuer Portainer: Stacks -> Add stack -> Web editor,
+# diesen Inhalt einfuegen, FACHWERK_KNX_HOST setzen, deployen.
 # Das Image ist oeffentlich ziehbar — keine Registry-Anmeldung noetig.
+#
+# Laeuft OHNE Volume: das Image bringt die Beispiel-Gewerke mit.
 services:
   fachwerk:
     image: ghcr.io/fachwerk-home/fachwerk:latest
     pull_policy: always
     network_mode: host
-    command: ["run", "/gewerk"]
+    # Standard: Beispiel-Gewerk AUS DEM IMAGE.
+    command: ["run", "${FACHWERK_GEWERK:-/app/examples/abnahme-licht-status}"]
     restart: unless-stopped
     environment:
       # PFLICHT: IP deines KNXnet/IP-Routers.
@@ -18,10 +20,10 @@ services:
       FACHWERK_KNX_MODUS: beobachten
       FACHWERK_DATEN_DIR: /daten
     volumes:
-      # Gewerk-Verzeichnis auf dem Host (muss dort liegen — das Image bringt
-      # keine Gewerke mit; Gewerk = Daten, nicht Image-Inhalt).
-      - ${FACHWERK_GEWERK_DIR:?bitte FACHWERK_GEWERK_DIR auf ein Gewerk-Verzeichnis setzen}:/gewerk:ro
       - fachwerk-daten:/daten
+      # EIGENES Gewerk: Zeile einkommentieren, Host-Pfad eintragen und
+      # FACHWERK_GEWERK=/gewerk setzen (Pfad muss auf dem DOCKER-HOST liegen).
+      # - /pfad/auf/dem/host/mein-gewerk:/gewerk:ro
 
 volumes:
   fachwerk-daten:

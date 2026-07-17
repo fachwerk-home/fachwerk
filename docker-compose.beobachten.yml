@@ -1,12 +1,20 @@
 # Fachwerk am ECHTEN Bus — Beobachtungsmodus (empfaengt, sendet NIE).
-# Fuer Portainer: Stack aus diesem Repo, Compose-Pfad docker-compose.beobachten.yml.
-# Nur die Interface-IP als FACHWERK_KNX_HOST setzen. Kein Simulator.
+# Fuer Portainer: Stacks -> Add stack -> Repository
+#   Repository URL:       https://github.com/fachwerk-home/fachwerk
+#   Repository reference: refs/heads/main        <- wichtig (nicht master, nicht nur "main")
+#   Compose path:         docker-compose.beobachten.yml
+#   Environment:          FACHWERK_KNX_HOST = <IP deines KNX-IP-Routers>
+#
+# Laeuft OHNE Volume: das Image bringt die Beispiel-Gewerke mit. Ein eigenes
+# Gewerk mountest du unten (siehe Kommentar) und setzt FACHWERK_GEWERK.
 services:
   fachwerk:
     build: .
     # Host-Netz: erreicht das KNX-Interface direkt und empfaengt dessen Antworten.
     network_mode: host
-    command: ["run", "/gewerk"]
+    # Standard: Beispiel-Gewerk AUS DEM IMAGE (kein Bind-Mount noetig — der wuerde
+    # beim Portainer-Git-Stack ins Leere zeigen, weil der Daemon den Klon nicht sieht).
+    command: ["run", "${FACHWERK_GEWERK:-/app/examples/abnahme-licht-status}"]
     restart: unless-stopped
     environment:
       # PFLICHT: IP deines KNXnet/IP-Interface/-Routers (via knx-discover.py finden).
@@ -16,9 +24,11 @@ services:
       FACHWERK_KNX_MODUS: beobachten
       FACHWERK_DATEN_DIR: /daten
     volumes:
-      # Gewerk (Standard: das Abnahme-Beispiel mit deinen echten Licht-GAs).
-      - ${FACHWERK_GEWERK_DIR:-./examples/abnahme-licht-status}:/gewerk:ro
+      # Laufzeitzustand (SQLite) ueberlebt Neustarts (ADR-0006).
       - fachwerk-daten:/daten
+      # EIGENES Gewerk: Zeile einkommentieren, Host-Pfad eintragen und
+      # FACHWERK_GEWERK=/gewerk setzen (Pfad muss auf dem DOCKER-HOST liegen).
+      # - /pfad/auf/dem/host/mein-gewerk:/gewerk:ro
 
 volumes:
   fachwerk-daten:
