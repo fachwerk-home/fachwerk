@@ -47,12 +47,26 @@ FACHWERK_KNX_MODUS=beobachten \
 Beobachtungsmodus, mit Host-Netz. Standard-Gewerk ist `examples/abnahme-licht-status`
 (deine echten Licht-Status-GAs → Sammelmeldung).
 
-**Portainer → Stacks → Add stack → Repository:**
+Es gibt **kein Image zum Hochladen** — zwei Wege:
+
+**Weg A — Portainer baut selbst (nichts hochladen, funktioniert sofort):**
+- Portainer → Stacks → Add stack → **Repository**
 - Repository-URL: `https://github.com/fachwerk-home/fachwerk`
-- Compose-Pfad: `docker-compose.beobachten.yml`
-- Environment variables: `FACHWERK_KNX_HOST` = IP deines Interface (Pflicht);
+- Compose-Pfad: `docker-compose.beobachten.yml`  (enthält `build: .`)
+- Environment variables: `FACHWERK_KNX_HOST` = IP deines Routers (Pflicht);
   optional `FACHWERK_GEWERK_DIR` = anderer Gewerk-Pfad im Repo.
-- Deploy. Dann **Logs** des `fachwerk`-Containers ansehen:
+
+**Weg B — fertiges Image ziehen (schneller, kein Build auf dem Host):**
+Der Workflow `.github/workflows/image.yml` veröffentlicht das Image bei jedem
+Push nach `ghcr.io/fachwerk-home/fachwerk:latest`. Einmalig das Paket öffentlich
+schalten (GitHub → Packages → fachwerk → Package settings → Change visibility),
+sonst braucht Portainer eine Registry-Anmeldung. Dann:
+- Portainer → Stacks → Add stack → **Web editor**, Inhalt von
+  `docker-compose.ghcr.yml` einfügen
+- Env: `FACHWERK_KNX_HOST` = Router-IP, `FACHWERK_GEWERK_DIR` = Gewerk-Verzeichnis
+  **auf dem Host** (das Image bringt keine Gewerke mit — Gewerk = Daten)
+
+Danach in beiden Fällen die **Logs** des `fachwerk`-Containers ansehen:
   ```
   RX  6/1/83 = true  → eg.kueche_spots          # echtes Telegramm
   [BEOBACHTUNG] würde senden  6/1/200 = true     # was die Logik täte (nicht gesendet)
