@@ -11,10 +11,12 @@ import {
   BEKANNTE_LUECKEN,
   befehlsStatistik,
   bewerte,
+  defInfos,
   extrahiereStruktur,
   konvertiere,
   konvertiereSeite,
   parseDump,
+  type StubInfo,
 } from "@fachwerk/importer";
 
 export function importiere(dumpPfad: string, ziel: string): number {
@@ -37,14 +39,18 @@ export function importiere(dumpPfad: string, ziel: string): number {
     writeFileSync(join(ziel, "datenpunkte", `${gruppe}.yaml`), datenpunkteZuYaml(datei), "utf8");
   }
 
-  // ---- Stufe 2: Logik (nur vollständig abbildbare Seiten schreiben) ----------
+  // ---- Stufe 2: Logik — jede Seite konvertiert; Fremd-LBS werden Stubs ------
   const seiten = extrahiereStruktur(tabellen);
+  const defs = defInfos(tabellen);
   const logikReport = bewerte(seiten);
   let seitenGeschrieben = 0;
   const seitenFehler: string[] = [];
+  const alleStubs = new Map<number, StubInfo>();
   if (seiten.some((s) => s.elemente.length > 0)) mkdirSync(join(ziel, "logik"), { recursive: true });
+  let hinweisAnzahl = 0;
   for (const seite of seiten) {
-    const { ergebnis, fehler } = konvertiereSeite(seite, koZuSchluessel);
+    const { ergebnis, fehler, hinweise } = konvertiereSeite(seite, koZuSchluessel, defs);
+    hinweisAnzahl += hinweise.length;
     if (ergebnis) {
       writeFileSync(
         join(ziel, "logik", `${ergebnis.seiteSlug}.yaml`),
@@ -52,8 +58,57 @@ export function importiere(dumpPfad: string, ziel: string): number {
         "utf8",
       );
       seitenGeschrieben++;
+      // Erzeugte Datenpunkte (z. B. MQTT-Topics) einsammeln.
+      for (const [gruppe, datei] of ergebnis.neueDatenpunkte) {
+        const vorhanden = datenpunkte.get(gruppe) ?? {};
+        Object.assign(vorhanden, datei);
+        datenpunkte.set(gruppe, vorhanden);
+      }
+      for (const s of ergebnis.stubs) alleStubs.set(s.functionId, s);
     } else if (fehler.length > 0) {
       seitenFehler.push(`${seite.name}: ${fehler.length} offene(r) Punkt(e)`);
+    }
+  }
+  // Datenpunkt-Dateien neu schreiben (inkl. der aus LBS erzeugten Topics).
+  for (const [gruppe, datei] of datenpunkte) {
+    writeFileSync(join(ziel, "datenpunkte", `${gruppe}.yaml`), datenpunkteZuYaml(datei), "utf8");
+  }
+
+  // Stub-Bausteine schreiben: Struktur importiert, Verhalten = Portierungs-TODO.
+  // Clean-Room: nur Portzahlen/Name aus Nutzdaten — KEIN Code des Originals.
+  if (alleStubs.size > 0) {
+    for (const stub of alleStubs.values()) {
+      const dir = join(ziel, "bausteine", `lbs${stub.functionId}`);
+      mkdirSync(dir, { recursive: true });
+      const eingaenge = Array.from({ length: stub.eingaenge }, (_, i) => `e${i + 1}`);
+      const ausgaenge = Array.from({ length: stub.ausgaenge }, (_, i) => `a${i + 1}`);
+      writeFileSync(
+        join(dir, "manifest.yaml"),
+        [
+          `id: lbs${stub.functionId}`,
+          `name: "${stub.name.replaceAll('"', "'")} (Stub)"`,
+          "version: 1",
+          `beschreibung: "Portierungs-TODO: Verhalten des Original-Bausteins ist NICHT implementiert."`,
+          `eingaenge: [${eingaenge.join(", ")}]`,
+          `ausgaenge: [${ausgaenge.join(", ")}]`,
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+      writeFileSync(
+        join(dir, "baustein.js"),
+        [
+          `// STUB fuer "${stub.name}" — beim Import erzeugt.`,
+          "// Die Verdrahtung ist vollstaendig importiert; das VERHALTEN fehlt bewusst",
+          "// (Portierungs-TODO). Implementiere gemaess docs/BAUSTEIN-SDK.md:",
+          "//   export default function rechne(eingaenge, ctx) { ... }",
+          "export default function rechne() {",
+          "  return null; // Stub: keine Ausgabe",
+          "}",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
     }
   }
 
@@ -89,8 +144,11 @@ export function importiere(dumpPfad: string, ziel: string): number {
   console.log(`\n── Logik (Stufe 2) ──`);
   console.log(
     `${seitenGeschrieben} von ${logikReport.seiten.length} Seiten als Logik-Entwurf geschrieben` +
-      (seitenFehler.length > 0 ? `, ${seitenFehler.length} mit offenen Punkten.` : "."),
+      (hinweisAnzahl > 0
+        ? ` (${hinweisAnzahl} übersprungene Befehle/Nebenausgänge — Archiv/Visu/Aktion).`
+        : "."),
   );
+  for (const f of seitenFehler) console.log(`  ! FEHLER ${f}`);
   // Reine Ausgangsbox-Seiten = Archiv-/KO-Schreibmuster (SPEC-004, nicht Logik).
   const archiv = logikReport.seiten.filter(
     (s) => s.elemente > 0 && s.ausgangsboxen === s.elemente,
@@ -101,15 +159,22 @@ export function importiere(dumpPfad: string, ziel: string): number {
         archiv.map((s) => s.seite).join(", "),
     );
   }
-  const kandidaten = logikReport.seiten.filter((s) => s.vollstaendig && s.ausgangsboxen < s.elemente);
-  if (kandidaten.length > 0) {
-    console.log("Logik-Abnahme-Kandidaten (vollständig abbildbar):");
-    for (const s of kandidaten.slice(0, 12)) console.log(`  ✓ ${s.seite} (${s.elemente} Elemente)`);
+  const voll = logikReport.seiten.filter(
+    (s) => s.elemente > 0 && s.ausgangsboxen < s.elemente && s.stubFunctionIds.length === 0,
+  );
+  if (voll.length > 0) {
+    console.log("Voll lauffähig importiert (ohne Stubs):");
+    for (const s of voll) console.log(`  ✓ ${s.seite} (${s.elemente} Elemente)`);
   }
-  console.log("Offener Fachbaustein-Bedarf (Portierungs-Prioritäten, LBS-Id × Verwendungen):");
-  for (const o of logikReport.offen.slice(0, 12)) {
-    const name = b.bausteinBedarf.find((x) => x.id === o.functionId)?.name ?? "?";
-    console.log(`  ${String(o.anzahl).padStart(4)}× ${o.functionId} ${name}`);
+  if (alleStubs.size > 0) {
+    console.log(
+      `Stub-Bausteine erzeugt (Struktur importiert, Verhalten = Portierungs-TODO):`,
+    );
+    for (const s of [...alleStubs.values()].sort((a, b) => a.functionId - b.functionId)) {
+      console.log(
+        `  ○ lbs${s.functionId}  ${s.name}  (${s.eingaenge} Ein-/${s.ausgaenge} Ausgänge)`,
+      );
+    }
   }
   // Ausgangsbox-Befehle nach Fachwerk-Zuständigkeit (KO-Schreiben abbildbar,
   // Archiv→SPEC-004, Visu→SPEC-003, Aktion/System → eigene Treiber).

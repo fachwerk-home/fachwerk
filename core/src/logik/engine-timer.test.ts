@@ -243,6 +243,38 @@ describe("IMPULS (Flanke → true, nach Dauer → false)", () => {
   });
 });
 
+describe("E-6: VERZOEGERUNG bricht Rückkopplungen legal (entkoppelt)", () => {
+  it("Zyklus dp→NOT→VERZ(0)→dp ist statisch erlaubt und oszilliert kontrolliert je Tick", () => {
+    const g = gewerk(
+      { io: { x: boolDp("X") } },
+      {
+        s: {
+          knoten: {
+            n: { baustein: "NOT" },
+            verz: { baustein: "VERZOEGERUNG", parameter: { ms: 0 } },
+          },
+          kanten: [
+            { von: "dp:io.x", nach: "n.in" },
+            { von: "n.out", nach: "verz.in" },
+            { von: "verz.out", nach: "dp:io.x" }, // Rückkopplung — via VERZ legal
+          ],
+        },
+      },
+    );
+    // Statisch: KEIN GraphFehler (vorher: Zyklus abgelehnt).
+    const { registry, traces, vor } = aufbau(g);
+
+    registry.schreibe("io.x", false, "treiber");
+    expect(registry.get("io.x")).toBe(false); // Kaskade 1: nur geplant
+    vor(0); // Timer fällig ⇒ VERZ schreibt true ⇒ Fortsetzung rechnet NOT neu
+    expect(registry.get("io.x")).toBe(true);
+    vor(0); // nächste Runde: wieder getoggelt — ein Schritt PRO TICK, kein Spin
+    expect(registry.get("io.x")).toBe(false);
+    // Fortsetzungs-Kaskaden sind im Trace als solche ausgewiesen:
+    expect(traces.some((t) => t.ausloeser.art === "fortsetzung")).toBe(true);
+  });
+});
+
 describe("Pumpwerk-Schnittstelle", () => {
   it("naechsteFaelligkeit und onTimerAenderung", () => {
     const { registry, engine, vor, timerSignale } = aufbau(verzoegerungsGewerk(500));

@@ -10,11 +10,14 @@ export type { ImportErgebnis, ImportBericht } from "./konvertiere.ts";
 export {
   extrahiereStruktur,
   bewerte,
+  defInfos,
   konvertiereSeite,
   befehlsStatistik,
   ABBILDUNG,
   AUSGANGSBOX,
   SENDBYCHANGE,
+  ENTFAELLT,
+  DATENPUNKT_QUELLEN,
 } from "./logik.ts";
 export { BEFEHLE, befehlDef, BEKANNTE_LUECKEN } from "./befehle-katalog.ts";
 export type { BefehlDef, BefehlKategorie } from "./befehle-katalog.ts";
@@ -26,4 +29,5 @@ export type {
   LogikReport,
   SeitenReport,
   SeitenKonvertierung,
+  StubInfo,
 } from "./logik.ts";

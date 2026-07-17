@@ -37,6 +37,13 @@ export interface Baustein {
   /** null = keine Ausgabe (z. B. Eingänge unbelegt oder nur Timer geplant). */
   rechne(eingaenge: Eingaenge, ctx: BausteinKontext): Ausgaenge | null;
   /**
+   * Zeitentkoppelt (ADR-0005 E-6): die Ausgänge entstehen NIE in der
+   * auslösenden Kaskade, sondern ausschließlich über Timer. Solche Kanten
+   * sind keine statischen Ordnungs-Constraints — genau damit bricht ein
+   * Verzögerungs-Baustein Rückkopplungen legal.
+   */
+  entkoppelt?: boolean;
+  /**
    * Konfig-abgeleitete Ports (ADR-0012 K-1). Fehlt sie, gelten feste Ports
    * (offene Verkabelung). Rein aus der Instanz-Konfiguration berechenbar.
    */
@@ -65,6 +72,14 @@ function extractFelder(parameter: Readonly<Record<string, unknown>>): ExtractFel
     .filter((f) => f.name !== "" && f.pfad !== "");
 }
 
+/** Kopie: reicht `in` unverändert durch — für Datenpunkt→Datenpunkt-Routen. */
+const KOPIE: Baustein = {
+  typ: "KOPIE",
+  rechne(e) {
+    return e["in"] === undefined ? null : { out: e["in"] };
+  },
+};
+
 const NOT: Baustein = {
   typ: "NOT",
   rechne(e) {
@@ -84,6 +99,7 @@ const AND: Baustein = {
 /** Verzögerung: reicht den Eingangswert nach `ms` weiter; Retrigger ersetzt. */
 const VERZOEGERUNG: Baustein = {
   typ: "VERZOEGERUNG",
+  entkoppelt: true, // Ausgang kommt IMMER per Timer — legaler Zyklusbrecher (E-6)
   rechne(e, ctx) {
     if (ctx.ausloeser.art === "timer") {
       const wert = ctx.zustand["wert"];
@@ -470,6 +486,111 @@ const FORMEL: Baustein = {
   },
 };
 
+/** 8 Bool-Eingänge bit0..bit7 → Byte (unbelegt = 0). */
+const BITS_ZU_BYTE: Baustein = {
+  typ: "BITS_ZU_BYTE",
+  rechne(e) {
+    let byte = 0;
+    let irgendein = false;
+    for (let i = 0; i < 8; i++) {
+      const v = e[`bit${i}`];
+      if (typeof v === "boolean") {
+        irgendein = true;
+        if (v) byte |= 1 << i;
+      }
+    }
+    return irgendein ? { out: byte } : null;
+  },
+};
+
+/**
+ * Vergleichsliste (konfig-variabel, ADR-0012): vergleicht `in` mit den
+ * Parametern w1..wN — Ausgänge eq1..eqN + `ne` (keiner passt). Ersetzt die
+ * „=Konstante N-fach"-Familie.
+ */
+const VERGLEICH_LISTE: Baustein = {
+  typ: "VERGLEICH_LISTE",
+  rechne(e, ctx) {
+    const wert = e["in"];
+    if (wert === undefined) return null;
+    const n = portAnzahl(ctx.parameter);
+    const ausgabe: Ausgaenge = {};
+    let getroffen = false;
+    for (let i = 1; i <= n; i++) {
+      const k = ctx.parameter[`w${i}`];
+      const gleich = k !== undefined && String(wert) === String(k);
+      ausgabe[`eq${i}`] = gleich;
+      getroffen ||= gleich;
+    }
+    ausgabe["ne"] = !getroffen;
+    return ausgabe;
+  },
+  ports(parameter) {
+    const n = portAnzahl(parameter);
+    const ausgaenge: string[] = [];
+    for (let i = 1; i <= n; i++) ausgaenge.push(`eq${i}`);
+    ausgaenge.push("ne");
+    return { eingaenge: ["in"], ausgaenge };
+  },
+};
+
+/**
+ * Wenn-Dann-Liste (konfig-variabel): erster passender Vergleich gewinnt —
+ * `in` == vergl_i (Eingang oder Parameter) ⇒ Ausgabe = wert_i. Stringvergleich
+ * wie im Vorbild („Wenn-Dann-Vergleich N-fach").
+ */
+const WENN_LISTE: Baustein = {
+  typ: "WENN_LISTE",
+  rechne(e, ctx) {
+    const wert = e["in"];
+    if (wert === undefined) return null;
+    const n = portAnzahl(ctx.parameter);
+    for (let i = 1; i <= n; i++) {
+      const vergl = e[`vergl${i}`] ?? (ctx.parameter[`vergl${i}`] as Wert | undefined);
+      if (vergl === undefined) continue;
+      if (String(wert) === String(vergl)) {
+        const aus = e[`wert${i}`] ?? (ctx.parameter[`wert${i}`] as Wert | undefined);
+        return aus === undefined ? null : { out: aus };
+      }
+    }
+    return null;
+  },
+  ports(parameter) {
+    const n = portAnzahl(parameter);
+    const eingaenge = ["in"];
+    for (let i = 1; i <= n; i++) eingaenge.push(`vergl${i}`, `wert${i}`);
+    return { eingaenge, ausgaenge: ["out"] };
+  },
+};
+
+/**
+ * Matrix (konfig-variabel): routet den Wert von Eingang Nr. `wahl_eingang`
+ * auf Ausgang Nr. `wahl_ausgang` (e1..eN → a1..aN).
+ */
+const MATRIX: Baustein = {
+  typ: "MATRIX",
+  rechne(e, ctx) {
+    const n = portAnzahl(ctx.parameter);
+    const ein = Number(e["wahl_eingang"] ?? ctx.parameter["wahl_eingang"]);
+    const aus = Number(e["wahl_ausgang"] ?? ctx.parameter["wahl_ausgang"]);
+    if (!Number.isInteger(ein) || ein < 1 || ein > n) return null;
+    if (!Number.isInteger(aus) || aus < 1 || aus > n) return null;
+    const wert = e[`e${ein}`];
+    return wert === undefined ? null : { [`a${aus}`]: wert };
+  },
+  ports(parameter) {
+    const n = portAnzahl(parameter);
+    const eingaenge: string[] = [];
+    const ausgaenge: string[] = [];
+    for (let i = 1; i <= n; i++) {
+      eingaenge.push(`e${i}`);
+      ausgaenge.push(`a${i}`);
+    }
+    eingaenge.push("wahl_eingang", "wahl_ausgang");
+    return { eingaenge, ausgaenge };
+  },
+};
+
 // ---- Zeit-Gruppe -------------------------------------------------------------
 // Alle Zeit-Bausteine sind PUR: die Uhrzeit kommt als normaler Eingang (vom
 // Uhr-Dienst über einen System-Datenpunkt) — deterministisch und testbar.
@@ -553,9 +674,10 @@ const ZEITFORMAT: Baustein = {
 
 const STDLIB = new Map<string, Baustein>(
   [
-    NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
+    KOPIE, NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
     TREPPENLICHT, SPERRLICHT, WERTAUSLOESER, IMPULS, MULT, KLEMME, WENN_DANN_SONST,
     EXTRACT, SPLIT, JOIN, ZEITVERGLEICH, ZEITVERGLEICH_AB, ZEITFORMAT, FORMEL,
+    BITS_ZU_BYTE, VERGLEICH_LISTE, WENN_LISTE, MATRIX,
   ].map((b) => [b.typ, b]),
 );
 

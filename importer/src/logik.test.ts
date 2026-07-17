@@ -66,13 +66,13 @@ describe("extrahiereStruktur", () => {
 });
 
 describe("bewerte", () => {
-  it("erkennt vollständig abbildbare vs. offene Seiten", () => {
+  it("trennt direkt Abbildbares von Stub-Kandidaten", () => {
     const report = bewerte(extrahiereStruktur(tabellen));
     const flur = report.seiten.find((s) => s.seite === "Flur")!;
-    expect(flur.vollstaendig).toBe(true);
+    expect(flur.stubFunctionIds).toEqual([]);
     const exotik = report.seiten.find((s) => s.seite === "Exotik")!;
-    expect(exotik.vollstaendig).toBe(false);
-    expect(report.offen).toEqual([{ functionId: 99999999, anzahl: 1 }]);
+    expect(exotik.stubFunctionIds).toEqual([{ functionId: 99999999, anzahl: 1 }]);
+    expect(report.stubs).toEqual([{ functionId: 99999999, anzahl: 1 }]);
   });
 });
 
@@ -169,10 +169,60 @@ INSERT INTO \`editLogicCmdList\` VALUES (1,51,1,301,0,0,0,NULL,NULL),(2,52,1,302
     expect(ergebnis!.logik.kanten).toContainEqual({ von: "e50.teil2", nach: "dp:allgemein.b" });
   });
 
-  it("meldet unvollständige Seite statt zu raten", () => {
+  it("MQTT-Subscribe-LBS wird mqtt-DATENPUNKT (Topic aus Instanz-Config)", () => {
+    const fixture = `
+CREATE TABLE \`editKo\` (\`id\` bigint(20),\`name\` varchar(100),\`folderid\` bigint(20),
+  \`ga\` varchar(11),\`gatyp\` tinyint(3),\`valuetyp\` int(10),\`defaultvalue\` varchar(10000),
+  \`remanent\` tinyint(3));
+INSERT INTO \`editKo\` VALUES (400,'Ziel',0,'',2,16,'',0);
+CREATE TABLE \`editLogicPage\` (\`id\` bigint(20),\`name\` varchar(200));
+INSERT INTO \`editLogicPage\` VALUES (1,'Sprachsteuerung');
+CREATE TABLE \`editLogicElement\` (\`id\` bigint(20),\`functionid\` bigint(20),\`pageid\` bigint(20),\`name\` varchar(100));
+INSERT INTO \`editLogicElement\` VALUES (60,19001054,1,''),(61,12000011,1,'');
+CREATE TABLE \`editLogicLink\` (\`id\` bigint(20),\`elementid\` bigint(20),\`eingang\` smallint(5),
+  \`linktyp\` tinyint(3),\`linkid\` bigint(20),\`ausgang\` smallint(5),\`value\` varchar(10000));
+INSERT INTO \`editLogicLink\` VALUES
+(1,60,9,2,NULL,NULL,'hermes/intent/DimLights'),
+(2,61,1,1,60,2,NULL);
+CREATE TABLE \`editLogicCmdList\` (\`id\` bigint(20),\`targetid\` bigint(20),\`cmd\` tinyint(3),
+  \`cmdid1\` bigint(20),\`cmdid2\` bigint(20),\`cmdoption1\` int(11),\`cmdoption2\` int(11),
+  \`cmdvalue1\` varchar(10000),\`cmdvalue2\` varchar(10000));
+INSERT INTO \`editLogicCmdList\` VALUES (1,61,1,400,0,0,0,NULL,NULL);
+`;
+    const tab = parseDump(fixture);
+    const konv = konvertiere(tab);
+    const seite = extrahiereStruktur(tab).find((s) => s.name === "Sprachsteuerung")!;
+    const { ergebnis, fehler } = konvertiereSeite(seite, konv.koZuSchluessel);
+    expect(fehler).toEqual([]);
+    // Der LBS ist KEIN Baustein-Knoten — er wurde zum Datenpunkt:
+    expect(ergebnis!.neueDatenpunkte.get("mqtt")).toMatchObject({
+      hermes_intent_dimlights: {
+        klasse: "bus",
+        treiber: "mqtt",
+        adresse: "hermes/intent/DimLights",
+        typ: "text",
+      },
+    });
+    // dp→dp ist verboten: der Importer setzt automatisch eine KOPIE ein.
+    expect(ergebnis!.logik.knoten["kopie_e61"]!.baustein).toBe("KOPIE");
+    expect(ergebnis!.logik.kanten).toContainEqual({
+      von: "dp:mqtt.hermes_intent_dimlights",
+      nach: "kopie_e61.in",
+    });
+    expect(ergebnis!.logik.kanten).toContainEqual({
+      von: "kopie_e61.out",
+      nach: "dp:allgemein.ziel",
+    });
+  });
+
+  it("Fremd-LBS wird STUB: Struktur importiert, Verhalten als TODO markiert", () => {
     const exotik = extrahiereStruktur(tabellen).find((s) => s.name === "Exotik")!;
     const { ergebnis, fehler } = konvertiereSeite(exotik, koZuSchluessel);
-    expect(ergebnis).toBeNull();
-    expect(fehler.some((f) => f.meldung.includes("99999999"))).toBe(true);
+    expect(fehler).toEqual([]);
+    expect(ergebnis!.logik.knoten["e30"]!.baustein).toBe("lbs99999999");
+    expect(ergebnis!.stubs).toEqual([
+      { functionId: 99999999, name: "LBS 99999999", eingaenge: 1, ausgaenge: 1 },
+    ]);
+    expect(ergebnis!.logik.notizen).toContain("Portierungs-TODO");
   });
 });

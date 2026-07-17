@@ -141,9 +141,13 @@ export function baueGraph(
     .map(([schluessel, schreiber]) => ({ schluessel, schreiber }));
 
   // Knoten-Adjazenz: A→B direkt (Port→Port) oder via Datenpunkt (E-2b global).
+  // ZEITENTKOPPELTE Bausteine (E-6) erzeugen KEINE Ordnungs-Constraints: ihre
+  // Ausgänge entstehen nie in derselben Kaskade — so bricht eine VERZOEGERUNG
+  // eine Rückkopplung legal.
   const nachfolger = new Map<KnotenId, Set<KnotenId>>();
   for (const id of knoten.keys()) nachfolger.set(id, new Set());
   for (const k of knoten.values()) {
+    if (k.baustein.entkoppelt) continue;
     for (const a of k.ausgaenge) {
       if (a.ziel.art === "port") {
         nachfolger.get(k.id)!.add(a.ziel.knoten);

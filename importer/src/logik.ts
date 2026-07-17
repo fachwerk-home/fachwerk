@@ -8,7 +8,7 @@
  * Clean-Room: liest ausschließlich die Konfigurations-/Verdrahtungsdaten des
  * Anlagenbetreibers, niemals Programmcode.
  */
-import type { LogikSeite } from "@fachwerk/schema";
+import type { Datenpunkt, LogikSeite } from "@fachwerk/schema";
 import type { Tabelle, Zeile } from "./sql-dump.ts";
 import { slug } from "./konvertiere.ts";
 import { befehlDef, type BefehlKategorie } from "./befehle-katalog.ts";
@@ -216,6 +216,62 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     festeParameter: { format: "json" },
     felderAusEingang: 2,
   },
+  // Auswahlschalter: Trigger wechselt Status — das ist TOGGLE (Flanke out2 entfällt).
+  13000028: { typ: "TOGGLE", eingaenge: { 1: "in" }, ausgaenge: { 1: "out" } },
+  // Wertauslöser plus: Trigger + Wert → E2 (verhaltensgleich zu WERTAUSLOESER).
+  19000458: {
+    typ: "WERTAUSLOESER",
+    eingaenge: { 1: "trigger", 2: "wert" },
+    ausgaenge: { 1: "out" },
+  },
+  // 8 Bit → Byte.
+  15000070: {
+    typ: "BITS_ZU_BYTE",
+    eingaenge: { 1: "bit0", 2: "bit1", 3: "bit2", 4: "bit3", 5: "bit4", 6: "bit5", 7: "bit6", 8: "bit7" },
+    ausgaenge: { 1: "out" },
+  },
+  // Vergleicher =[Konstante] 5-fach → VERGLEICH_LISTE (konfig-variabel).
+  15000039: {
+    typ: "VERGLEICH_LISTE",
+    eingaenge: { 1: "in" },
+    ausgaenge: { 1: "ne", 2: "eq1", 3: "eq2", 4: "eq3", 5: "eq4", 6: "eq5" },
+    parameterAusEingang: { 2: "w1", 3: "w2", 4: "w3", 5: "w4", 6: "w5" },
+    festeParameter: { anzahl: 5 },
+  },
+  // Wenn-Dann-Vergleich 10-fach → WENN_LISTE (konfig-variabel).
+  19001480: {
+    typ: "WENN_LISTE",
+    eingaenge: {
+      1: "in",
+      2: "vergl1", 3: "wert1", 4: "vergl2", 5: "wert2", 6: "vergl3", 7: "wert3",
+      8: "vergl4", 9: "wert4", 10: "vergl5", 11: "wert5", 12: "vergl6", 13: "wert6",
+      14: "vergl7", 15: "wert7", 16: "vergl8", 17: "wert8", 18: "vergl9", 19: "wert9",
+      20: "vergl10", 21: "wert10",
+    },
+    ausgaenge: { 1: "out" },
+    parameterAusEingang: {
+      2: "vergl1", 3: "wert1", 4: "vergl2", 5: "wert2", 6: "vergl3", 7: "wert3",
+      8: "vergl4", 9: "wert4", 10: "vergl5", 11: "wert5", 12: "vergl6", 13: "wert6",
+      14: "vergl7", 15: "wert7", 16: "vergl8", 17: "wert8", 18: "vergl9", 19: "wert9",
+      20: "vergl10", 21: "wert10",
+    },
+    festeParameter: { anzahl: 10 },
+  },
+  // Ein-/Ausgangsmatrix 10-fach → MATRIX (konfig-variabel).
+  14000100: {
+    typ: "MATRIX",
+    eingaenge: {
+      1: "e1", 2: "e2", 3: "e3", 4: "e4", 5: "e5",
+      6: "e6", 7: "e7", 8: "e8", 9: "e9", 10: "e10",
+      11: "wahl_eingang", 12: "wahl_ausgang",
+    },
+    ausgaenge: {
+      1: "a1", 2: "a2", 3: "a3", 4: "a4", 5: "a5",
+      6: "a6", 7: "a7", 8: "a8", 9: "a9", 10: "a10",
+    },
+    parameterAusEingang: { 11: "wahl_eingang", 12: "wahl_ausgang" },
+    festeParameter: { anzahl: 10 },
+  },
   // Subtraktion A−B: schlicht eine feste Formel (ADR-0012-Geist: kein Extra-Baustein).
   15000051: {
     typ: "FORMEL",
@@ -295,62 +351,106 @@ export const SENDBYCHANGE = new Set([13000030, 13000032]);
  */
 export const ENTFAELLT = new Set([12000100]);
 
+/**
+ * LBS, die in Fachwerk zu DATENPUNKTEN werden statt zu Bausteinen: der
+ * MQTT-Subscribe-Client wird zum mqtt-Datenpunkt (Topic aus der Instanz-
+ * Konfiguration); den Transport übernimmt der Core-Treiber (ADR-0007).
+ * Broker-Verbindungsdaten kommen aus der Umgebung, nicht aus der Logik.
+ */
+export const DATENPUNKT_QUELLEN: Record<
+  number,
+  { topicAusEingang: number; wertAusgang: number; typ: "bool" | "zahl" | "text" }
+> = {
+  19001054: { topicAusEingang: 9, wertAusgang: 2, typ: "text" }, // MQTT Subscribe → Payload
+};
+
+/** Info über einen generierten Stub (Fremd-LBS, Verhalten = Portierungs-TODO). */
+export interface StubInfo {
+  functionId: number;
+  name: string;
+  eingaenge: number;
+  ausgaenge: number;
+}
+
 export interface SeitenReport {
   seite: string;
   elemente: number;
-  abbildbar: number;
   ausgangsboxen: number;
-  offeneFunctionIds: Array<{ functionId: number; anzahl: number }>;
-  vollstaendig: boolean;
+  /** Fremd-LBS auf dieser Seite, die als Stub importiert werden. */
+  stubFunctionIds: Array<{ functionId: number; anzahl: number }>;
 }
 
 export interface LogikReport {
   seiten: SeitenReport[];
-  /** Global: unabgebildete LBS über alle Seiten (Portierungs-Prioritäten). */
-  offen: Array<{ functionId: number; anzahl: number }>;
+  /** Global: Fremd-LBS → Stub (Portierungs-TODO-Liste). */
+  stubs: Array<{ functionId: number; anzahl: number }>;
 }
 
-/** Bewertet Konvertierbarkeit je Seite, ohne zu konvertieren. */
+/** Ist die FunctionId auf einem der bekannten Wege abbildbar (kein Stub)? */
+function bekannt(functionId: number): boolean {
+  return (
+    AUSGANGSBOX.has(functionId) ||
+    SENDBYCHANGE.has(functionId) ||
+    ENTFAELLT.has(functionId) ||
+    DATENPUNKT_QUELLEN[functionId] !== undefined ||
+    ABBILDUNG[functionId] !== undefined
+  );
+}
+
+/** Bewertet je Seite, was direkt abbildbar ist und was Stub wird. */
 export function bewerte(seiten: RohSeite[]): LogikReport {
-  const globalOffen = new Map<number, number>();
+  const globalStubs = new Map<number, number>();
   const seitenReports: SeitenReport[] = [];
 
   for (const seite of seiten) {
-    const offen = new Map<number, number>();
-    let abbildbar = 0;
+    const stubs = new Map<number, number>();
     let boxen = 0;
     for (const el of seite.elemente) {
-      if (AUSGANGSBOX.has(el.functionId)) {
-        boxen++;
-      } else if (
-        SENDBYCHANGE.has(el.functionId) ||
-        ENTFAELLT.has(el.functionId) ||
-        ABBILDUNG[el.functionId]
-      ) {
-        abbildbar++;
-      } else {
-        offen.set(el.functionId, (offen.get(el.functionId) ?? 0) + 1);
-        globalOffen.set(el.functionId, (globalOffen.get(el.functionId) ?? 0) + 1);
+      if (AUSGANGSBOX.has(el.functionId)) boxen++;
+      else if (!bekannt(el.functionId)) {
+        stubs.set(el.functionId, (stubs.get(el.functionId) ?? 0) + 1);
+        globalStubs.set(el.functionId, (globalStubs.get(el.functionId) ?? 0) + 1);
       }
     }
     seitenReports.push({
       seite: seite.name,
       elemente: seite.elemente.length,
-      abbildbar: abbildbar + boxen,
       ausgangsboxen: boxen,
-      offeneFunctionIds: [...offen.entries()]
+      stubFunctionIds: [...stubs.entries()]
         .map(([functionId, anzahl]) => ({ functionId, anzahl }))
         .sort((a, b) => b.anzahl - a.anzahl),
-      vollstaendig: offen.size === 0,
     });
   }
 
   return {
-    seiten: seitenReports.sort((a, b) => a.offeneFunctionIds.length - b.offeneFunctionIds.length),
-    offen: [...globalOffen.entries()]
+    seiten: seitenReports.sort((a, b) => a.stubFunctionIds.length - b.stubFunctionIds.length),
+    stubs: [...globalStubs.entries()]
       .map(([functionId, anzahl]) => ({ functionId, anzahl }))
       .sort((a, b) => b.anzahl - a.anzahl),
   };
+}
+
+/** Portzahlen + Name je LBS-Definition (für Stub-Manifeste) — nur Metadaten. */
+export function defInfos(
+  tabellen: Map<string, Tabelle>,
+): Map<number, { name: string; eingaenge: number; ausgaenge: number }> {
+  const infos = new Map<number, { name: string; eingaenge: number; ausgaenge: number }>();
+  for (const z_ of tabellen.get("editLogicElementDef")?.zeilen ?? []) {
+    infos.set(zahl(z_, "id"), {
+      name: text(z_, "name") || text(z_, "title") || `LBS ${zahl(z_, "id")}`,
+      eingaenge: 0,
+      ausgaenge: 0,
+    });
+  }
+  for (const z_ of tabellen.get("editLogicElementDefIn")?.zeilen ?? []) {
+    const info = infos.get(zahl(z_, "targetid"));
+    if (info) info.eingaenge = Math.max(info.eingaenge, zahl(z_, "id"));
+  }
+  for (const z_ of tabellen.get("editLogicElementDefOut")?.zeilen ?? []) {
+    const info = infos.get(zahl(z_, "targetid"));
+    if (info) info.ausgaenge = Math.max(info.ausgaenge, zahl(z_, "id"));
+  }
+  return infos;
 }
 
 /** Zählt alle Ausgangsbox-Befehle über alle Seiten nach Fachwerk-Kategorie. */
@@ -378,6 +478,92 @@ export function befehlsStatistik(seiten: RohSeite[]): {
   };
 }
 
+/**
+ * Zyklen seitenlokal entschärfen (ADR-0005 E-6): Das Referenzsystem erlaubt
+ * Rückkopplungen (sie laufen dort über den nächsten Ereignis-Zyklus). Fachwerk
+ * verlangt einen expliziten Bruch — der Importer setzt eine VERZOEGERUNG mit
+ * ms:0 in eine Zykluskante: gleiche Semantik („nächste Kaskade" via
+ * Timer-Queue), statisch azyklisch. Gibt die Anzahl der Brüche zurück.
+ */
+export function entschaerfeZyklen(logik: LogikSeite): number {
+  let brueche = 0;
+
+  /** Findet eine Kante, die Teil eines Zyklus ist (DFS mit Rückkanten-Erkennung). */
+  function findeZyklusKante(): LogikKanteRef | null {
+    // Knoten-Adjazenz: direkt (Port→Port) und dp-vermittelt innerhalb der Seite.
+    type Kante = { von: string; zu: string; ref: LogikKanteRef };
+    const kantenListe: Kante[] = [];
+    const dpSchreiber = new Map<string, Array<{ knoten: string; ref: LogikKanteRef }>>();
+    const dpLeser = new Map<string, string[]>();
+    for (const k of logik.kanten) {
+      const vonDp = k.von.startsWith("dp:");
+      const nachDp = k.nach.startsWith("dp:");
+      const vonKnoten = vonDp ? null : k.von.split(".")[0]!;
+      const nachKnoten = nachDp ? null : k.nach.split(".")[0]!;
+      if (vonKnoten && nachKnoten) kantenListe.push({ von: vonKnoten, zu: nachKnoten, ref: k });
+      if (vonKnoten && nachDp) {
+        const liste = dpSchreiber.get(k.nach) ?? [];
+        liste.push({ knoten: vonKnoten, ref: k });
+        dpSchreiber.set(k.nach, liste);
+      }
+      if (vonDp && nachKnoten) {
+        const liste = dpLeser.get(k.von) ?? [];
+        liste.push(nachKnoten);
+        dpLeser.set(k.von, liste);
+      }
+    }
+    // dp-vermittelt: Schreiber → Leser; Bruchstelle ist die SCHREIB-Kante.
+    for (const [dp, schreiber] of dpSchreiber) {
+      for (const s of schreiber) {
+        for (const leser of dpLeser.get(dp) ?? []) {
+          kantenListe.push({ von: s.knoten, zu: leser, ref: s.ref });
+        }
+      }
+    }
+    const nachfolger = new Map<string, Kante[]>();
+    for (const k of kantenListe) {
+      const liste = nachfolger.get(k.von) ?? [];
+      liste.push(k);
+      nachfolger.set(k.von, liste);
+    }
+    const status = new Map<string, "offen" | "fertig">();
+    let gefunden: LogikKanteRef | null = null;
+    function dfs(knoten: string): void {
+      if (gefunden) return;
+      status.set(knoten, "offen");
+      for (const k of nachfolger.get(knoten) ?? []) {
+        if (gefunden) return;
+        const s = status.get(k.zu);
+        if (s === "offen") {
+          gefunden = k.ref; // Rückkante = Teil eines Zyklus
+          return;
+        }
+        if (s === undefined) dfs(k.zu);
+      }
+      status.set(knoten, "fertig");
+    }
+    for (const knoten of Object.keys(logik.knoten)) {
+      if (!status.has(knoten)) dfs(knoten);
+      if (gefunden) break;
+    }
+    return gefunden;
+  }
+
+  for (let i = 0; i < 25; i++) {
+    const kante = findeZyklusKante();
+    if (!kante) break;
+    brueche++;
+    const id = `zyklusbruch_${brueche}`;
+    logik.knoten[id] = { baustein: "VERZOEGERUNG", parameter: { ms: 0 } };
+    const nach = kante.nach;
+    kante.nach = `${id}.in`;
+    logik.kanten.push({ von: `${id}.out`, nach });
+  }
+  return brueche;
+}
+
+type LogikKanteRef = LogikSeite["kanten"][number];
+
 // ---- Konvertierung einer vollständig abbildbaren Seite ------------------------
 
 export interface KonvertierungsFehler {
@@ -388,25 +574,89 @@ export interface KonvertierungsFehler {
 export interface SeitenKonvertierung {
   seiteSlug: string;
   logik: LogikSeite;
+  /** Aus LBS-Instanzen erzeugte Datenpunkte (z. B. MQTT-Topics). */
+  neueDatenpunkte: Map<string, Record<string, Datenpunkt>>;
+  /** Auf dieser Seite verwendete Stubs (Fremd-LBS, Portierungs-TODO). */
+  stubs: StubInfo[];
 }
 
 /** Fachwerk-Knoten-Id eines Elements. */
 const knotenId = (elementId: number): string => `e${elementId}`;
 
 /**
- * Konvertiert EINE Seite, sofern jedes Element abbildbar ist. SendByChange
- * wird zur Kante kollabiert (Quelle wandert an den Verbraucher), Ausgangsbox
- * wird zum Schreiben auf einen Datenpunkt. Gibt null + Grund zurück, wenn die
- * Seite (noch) nicht vollständig abbildbar ist.
+ * Konvertiert EINE Seite. SendByChange wird zur Kante kollabiert, Ausgangsbox
+ * zum Datenpunkt-Schreiben, MQTT-Subscribe-LBS zum mqtt-Datenpunkt; Fremd-LBS
+ * werden als STUB importiert (Struktur + Ports, Verhalten = Portierungs-TODO —
+ * Clean-Room: nur Metadaten, nie Code). Gibt null + Grund nur bei echten
+ * Fehlern zurück (fehlendes Topic, kaputte Referenz).
  */
 export function konvertiereSeite(
   seite: RohSeite,
   koZuSchluessel: Map<number, string>,
-): { ergebnis: SeitenKonvertierung | null; fehler: KonvertierungsFehler[] } {
+  defs?: Map<number, { name: string; eingaenge: number; ausgaenge: number }>,
+): {
+  ergebnis: SeitenKonvertierung | null;
+  fehler: KonvertierungsFehler[];
+  /** Nicht blockierend: übersprungene Befehle/Ausgänge (andere Subsysteme). */
+  hinweise: KonvertierungsFehler[];
+} {
   const fehler: KonvertierungsFehler[] = [];
+  const hinweise: KonvertierungsFehler[] = [];
   const meld = (m: string): void => void fehler.push({ seite: seite.name, meldung: m });
+  const hinweis = (m: string): void => void hinweise.push({ seite: seite.name, meldung: m });
 
   const byId = new Map(seite.elemente.map((e) => [e.id, e]));
+  const neueDatenpunkte = new Map<string, Record<string, Datenpunkt>>();
+  const stubs = new Map<number, StubInfo>();
+
+  // ---- Datenpunkt-Quellen (MQTT-Subscribe → mqtt-Datenpunkt) ----------------
+  const dpQuelle = new Map<number, { schluessel: string; wertAusgang: number }>();
+  for (const el of seite.elemente) {
+    const q = DATENPUNKT_QUELLEN[el.functionId];
+    if (!q) continue;
+    const topicKante = seite.kanten.find(
+      (k) => k.elementId === el.id && k.eingang === q.topicAusEingang,
+    );
+    if (!topicKante || topicKante.quelle.art !== "wert" || topicKante.quelle.wert === "") {
+      // Topic dynamisch/fehlend: als Stub importieren statt Seite zu blockieren.
+      hinweis(`Element ${el.id}: Topic nicht statisch — wird Stub statt Datenpunkt`);
+      continue;
+    }
+    const topic = topicKante.quelle.wert;
+    const key = slug(topic);
+    const datei = neueDatenpunkte.get("mqtt") ?? {};
+    datei[key] = { name: topic, klasse: "bus", typ: q.typ, treiber: "mqtt", adresse: topic };
+    neueDatenpunkte.set("mqtt", datei);
+    dpQuelle.set(el.id, { schluessel: `mqtt.${key}`, wertAusgang: q.wertAusgang });
+  }
+
+  // ---- Stubs (Fremd-LBS) -----------------------------------------------------
+  /** Generische Stub-Ports: max aus Definition und tatsächlicher Nutzung. */
+  function stubFuer(el: RohElement): StubInfo {
+    let info = stubs.get(el.functionId);
+    if (info) return info;
+    const def = defs?.get(el.functionId);
+    let maxIn = def?.eingaenge ?? 0;
+    let maxOut = def?.ausgaenge ?? 0;
+    for (const k of seite.kanten) {
+      if (k.elementId === el.id) maxIn = Math.max(maxIn, k.eingang);
+      if (k.quelle.art === "port" && k.quelle.elementId === el.id) {
+        maxOut = Math.max(maxOut, k.quelle.ausgang);
+      }
+    }
+    info = {
+      functionId: el.functionId,
+      name: def?.name ?? `LBS ${el.functionId}`,
+      eingaenge: Math.max(1, maxIn),
+      ausgaenge: Math.max(1, maxOut),
+    };
+    stubs.set(el.functionId, info);
+    return info;
+  }
+  /** Stub: unbekannte LBS ODER Datenpunkt-Quelle ohne statisches Topic. */
+  const istStub = (el: RohElement): boolean =>
+    !bekannt(el.functionId) ||
+    (DATENPUNKT_QUELLEN[el.functionId] !== undefined && !dpQuelle.has(el.id));
 
   // SendByChange-Ausgänge auf ihre Quelle zurückführen (Kollaps).
   const sendByChange = new Set(
@@ -440,10 +690,25 @@ export function konvertiereSeite(
     if (q.art === "port") {
       const ziel = byId.get(q.elementId);
       if (!ziel) return null;
+      // Datenpunkt-Quelle (MQTT): der Wert-Ausgang IST der Datenpunkt.
+      const quelle = dpQuelle.get(q.elementId);
+      if (quelle) {
+        if (q.ausgang === quelle.wertAusgang) return `dp:${quelle.schluessel}`;
+        hinweis(
+          `Element ${q.elementId}: Nebenausgang ${q.ausgang} der Datenpunkt-Quelle entfällt`,
+        );
+        return null;
+      }
+      // Stub: generische Ports a1..aN.
+      if (istStub(ziel)) {
+        stubFuer(ziel);
+        return `${knotenId(q.elementId)}.a${q.ausgang}`;
+      }
       const abb = ABBILDUNG[ziel.functionId];
       const port = abb?.ausgaenge[q.ausgang];
       if (!port) {
-        meld(`Element ${q.elementId} Ausgang ${q.ausgang} nicht abbildbar`);
+        // Neben-Ausgang ohne Fachwerk-Pendant: Kante entfällt mit Notiz.
+        hinweis(`Element ${q.elementId} (${abb?.typ ?? ziel.functionId}): Ausgang ${q.ausgang} entfällt`);
         return null;
       }
       return `${knotenId(q.elementId)}.${port}`;
@@ -458,9 +723,16 @@ export function konvertiereSeite(
     if (
       SENDBYCHANGE.has(el.functionId) ||
       AUSGANGSBOX.has(el.functionId) ||
-      ENTFAELLT.has(el.functionId) // KO-Init: durch dp.initial abgedeckt
+      ENTFAELLT.has(el.functionId) || // KO-Init: durch dp.initial abgedeckt
+      dpQuelle.has(el.id) // Datenpunkt-Quelle: wird Datenpunkt, kein Knoten
     ) {
       continue; // separat bzw. entfällt
+    }
+    // Fremd-LBS → Stub-Knoten (generische Ports; Verhalten = Portierungs-TODO).
+    if (istStub(el)) {
+      stubFuer(el);
+      knoten[knotenId(el.id)] = { baustein: `lbs${el.functionId}` };
+      continue;
     }
     const abb = ABBILDUNG[el.functionId];
     if (!abb) {
@@ -501,12 +773,17 @@ export function konvertiereSeite(
       if (genutzt > 0) parameter["anzahl"] = genutzt;
     }
     // Konfig-variabel: statische Eingänge ab felderAusEingang → felder-Liste.
+    // Selektor-Trenner des Referenzsystems ist „|" (intent|intentName) —
+    // Fachwerk-EXTRACT nutzt Punktpfade (intent.intentName).
     if (abb.felderAusEingang !== undefined) {
       const felder: Array<{ name: string; pfad: string }> = [];
       for (const k of seite.kanten) {
         if (k.elementId !== el.id || k.eingang < abb.felderAusEingang) continue;
         if (k.quelle.art === "wert" && k.quelle.wert !== "") {
-          felder.push({ name: `wert${k.eingang - abb.felderAusEingang + 1}`, pfad: k.quelle.wert });
+          felder.push({
+            name: `wert${k.eingang - abb.felderAusEingang + 1}`,
+            pfad: k.quelle.wert.replaceAll("|", "."),
+          });
         }
       }
       if (felder.length > 0) parameter["felder"] = felder;
@@ -519,14 +796,15 @@ export function konvertiereSeite(
 
   // Kanten der abgebildeten Knoten (Eingänge, außer Parameter-Eingänge).
   for (const el of seite.elemente) {
+    const stub = istStub(el);
     const abb = ABBILDUNG[el.functionId];
-    if (!abb) continue;
+    if (!abb && !stub) continue;
     for (const k of seite.kanten) {
       if (k.elementId !== el.id) continue;
       // Statischer Wert an einem Parameter-Eingang wurde bereits Parameter;
       // ein dynamisch gespeister Eingang wird trotzdem verkabelt.
-      if (abb.parameterAusEingang?.[k.eingang] && k.quelle.art === "wert") continue;
-      const port = abb.eingaenge[k.eingang];
+      if (abb?.parameterAusEingang?.[k.eingang] && k.quelle.art === "wert") continue;
+      const port = stub ? `e${k.eingang}` : abb!.eingaenge[k.eingang];
       if (!port) continue;
       const q = aufloesen(k.quelle);
       if (!q || q.art === "wert") continue;
@@ -548,7 +826,8 @@ export function konvertiereSeite(
     const wertVon = wertKante ? endpunkt(aufloesen(wertKante.quelle) ?? wertKante.quelle) : null;
 
     if (box.befehle.length === 0) {
-      meld(`Ausgangsbox ${box.id}: keine Befehle`);
+      // Box ohne Befehle tut nichts (unfertig konfiguriert) — kein Blocker.
+      hinweis(`Ausgangsbox ${box.id}: keine Befehle — entfällt`);
       continue;
     }
     for (const bf of box.befehle) {
@@ -563,24 +842,53 @@ export function konvertiereSeite(
           meld(`Ausgangsbox ${box.id}: keine Wertquelle für „zuweisen"`);
           continue;
         }
-        kanten.push({ von: wertVon, nach: `dp:${schluessel}` });
+        if (wertVon.startsWith("dp:")) {
+          // dp→dp ist verboten (ADR-0004: Baustein dazwischensetzen) —
+          // der Importer setzt automatisch eine KOPIE ein.
+          const kopieId = `kopie_${knotenId(box.id)}`;
+          if (!knoten[kopieId]) {
+            knoten[kopieId] = { baustein: "KOPIE" };
+            kanten.push({ von: wertVon, nach: `${kopieId}.in` });
+          }
+          kanten.push({ von: `${kopieId}.out`, nach: `dp:${schluessel}` });
+        } else {
+          kanten.push({ von: wertVon, nach: `dp:${schluessel}` });
+        }
       } else {
+        // Andere Befehle gehören anderen Subsystemen (Archiv/Visu/Aktion) —
+        // sie blockieren die Seite NICHT, sondern werden als Hinweis notiert.
         const def = befehlDef(bf.cmd);
         const bez = def ? `${def.name} (${def.kategorie})` : `Befehlstyp ${bf.cmd}`;
-        meld(`Ausgangsbox ${box.id}: ${bez} noch nicht abgebildet — übersprungen`);
+        hinweis(`Ausgangsbox ${box.id}: ${bez} — übersprungen`);
       }
     }
   }
 
-  if (fehler.length > 0) return { ergebnis: null, fehler };
+  if (fehler.length > 0) return { ergebnis: null, fehler, hinweise };
   if (Object.keys(knoten).length === 0 && kanten.length === 0) {
-    return { ergebnis: null, fehler: [{ seite: seite.name, meldung: "leer" }] };
+    // Nichts Logisches übrig (z. B. reine Archiv-Seite) — kein Fehler.
+    return { ergebnis: null, fehler: [], hinweise };
   }
+  const stubListe = [...stubs.values()];
+  const logikSeite: LogikSeite = { knoten, kanten };
+  const brueche = entschaerfeZyklen(logikSeite);
+  if (brueche > 0) {
+    hinweis(`${brueche} Rückkopplung(en) mit VERZOEGERUNG ms:0 entschärft (E-6)`);
+  }
+  const notizen =
+    `Import aus „${seite.name}" (Stufe 2, Entwurf)` +
+    (stubListe.length > 0
+      ? ` — enthält ${stubListe.length} Stub(s): ${stubListe.map((s) => s.name).join(", ")} (Portierungs-TODO)`
+      : "") +
+    (brueche > 0 ? ` — ${brueche} Zyklusbruch/-brüche (VERZOEGERUNG ms:0)` : "");
   return {
     ergebnis: {
       seiteSlug: slug(seite.name),
-      logik: { notizen: `Import aus „${seite.name}" (Stufe 2, Entwurf)`, knoten, kanten },
+      logik: { notizen, knoten: logikSeite.knoten, kanten: logikSeite.kanten },
+      neueDatenpunkte,
+      stubs: stubListe,
     },
     fehler: [],
+    hinweise,
   };
 }
