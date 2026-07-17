@@ -32,6 +32,9 @@ importers:
       '@fachwerk/driver-knx':
         specifier: workspace:*
         version: link:../drivers/knx
+      '@fachwerk/driver-mqtt':
+        specifier: workspace:*
+        version: link:../drivers/mqtt
       '@fachwerk/importer':
         specifier: workspace:*
         version: link:../importer
@@ -49,6 +52,12 @@ importers:
         version: 2.9.0
 
   drivers/knx:
+    dependencies:
+      '@fachwerk/core':
+        specifier: workspace:*
+        version: link:../../core
+
+  drivers/mqtt:
     dependencies:
       '@fachwerk/core':
         specifier: workspace:*

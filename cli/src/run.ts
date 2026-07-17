@@ -21,6 +21,7 @@ import {
   type Wert,
 } from "@fachwerk/core";
 import { KnxTreiber } from "@fachwerk/driver-knx";
+import { MqttTreiber, textZuWert, wertZuText } from "@fachwerk/driver-mqtt";
 
 /**
  * Rohe Nutzlast lesbar machen, wenn kein DPT bekannt ist: Hex + Byte-Zahl,
@@ -201,6 +202,54 @@ export async function run(dir: string): Promise<number> {
     }
   });
 
+  // ---- MQTT (ADR-0007: Core-Treiber) ----------------------------------------
+  // Datenpunkte: klasse bus, treiber mqtt, adresse = Topic.
+  const topicZuDp = new Map<string, { schluessel: string; typ: "bool" | "zahl" | "text" }>();
+  const dpZuTopic = new Map<string, string>();
+  for (const [gruppe, datei] of gewerk.datenpunkte) {
+    for (const [key, def] of Object.entries(datei)) {
+      if (def.klasse === "bus" && def.treiber === "mqtt" && def.adresse) {
+        topicZuDp.set(def.adresse, { schluessel: `${gruppe}.${key}`, typ: def.typ });
+        dpZuTopic.set(`${gruppe}.${key}`, def.adresse);
+      }
+    }
+  }
+  let mqtt: MqttTreiber | null = null;
+  if (topicZuDp.size > 0) {
+    const mqttBeobachten = process.env["FACHWERK_MQTT_MODUS"] === "beobachten";
+    mqtt = new MqttTreiber({
+      host: process.env["FACHWERK_MQTT_HOST"] ?? "127.0.0.1",
+      port: Number(process.env["FACHWERK_MQTT_PORT"] ?? 1883),
+      ...(process.env["FACHWERK_MQTT_BENUTZER"]
+        ? { benutzer: process.env["FACHWERK_MQTT_BENUTZER"] }
+        : {}),
+      ...(process.env["FACHWERK_MQTT_PASSWORT"]
+        ? { passwort: process.env["FACHWERK_MQTT_PASSWORT"] }
+        : {}),
+      beobachten: mqttBeobachten,
+      onWuerdeSenden: (topic, text) =>
+        console.error(`[BEOBACHTUNG] würde publizieren  ${topic} = ${text}`),
+      onStatus: (ok, m) => console.error(`MQTT: ${m}${ok ? "" : " — Reconnect läuft"}`),
+      onNachricht: (n) => {
+        const dp = topicZuDp.get(n.topic);
+        if (!dp) return;
+        const wert = textZuWert(dp.typ, n.text);
+        if (wert === null) {
+          console.error(`WARNUNG: MQTT ${n.topic}: „${n.text}" ist kein ${dp.typ} — verworfen`);
+          return;
+        }
+        if (mqttBeobachten) console.error(`RX  mqtt ${n.topic} = ${n.text}  → ${dp.schluessel}`);
+        const erg = registry.schreibe(dp.schluessel, wert, "treiber");
+        if (!erg.angenommen) console.error(`WARNUNG: MQTT→${dp.schluessel}: ${erg.grund}`);
+      },
+    });
+    registry.abonniere((e) => {
+      if (e.quelle === "treiber") return; // kam vom Broker — kein Echo
+      const topic = dpZuTopic.get(e.schluessel);
+      if (topic !== undefined) mqtt!.publiziere(topic, wertZuText(e.wert));
+    });
+  }
+
   // Verbinden mit Backoff — UNENDLICH, nie aufgeben: ein Dienst, der wegen
   // eines vorübergehend unerreichbaren Gateways stirbt, erzeugt nur einen
   // Crash-Loop (und reißt seine Logs mit). Lieber laufen bleiben und den Grund
@@ -235,6 +284,30 @@ export async function run(dir: string): Promise<number> {
     `KNX verbunden: Tunnel-Kanal ${treiber.kanal}, Individualadresse ${treiber.adresse ?? "?"}`,
   );
 
+  // MQTT verbinden (gleiches Prinzip: unendlicher Backoff, Grund benennen).
+  if (mqtt) {
+    let mVersuch = 0;
+    for (;;) {
+      try {
+        await mqtt.verbinde();
+        break;
+      } catch (e) {
+        mVersuch++;
+        const wartenMs = Math.min(30_000, 1000 * 2 ** Math.min(mVersuch - 1, 5));
+        console.error(
+          `MQTT: Verbindung fehlgeschlagen (Versuch ${mVersuch}): ` +
+            `${e instanceof Error ? e.message : e} — neuer Versuch in ${wartenMs / 1000}s …`,
+        );
+        await new Promise((r) => setTimeout(r, wartenMs));
+      }
+    }
+    for (const topic of topicZuDp.keys()) mqtt.abonniere(topic);
+    console.error(
+      `MQTT verbunden: ${topicZuDp.size} Topic(s)` +
+        (mqtt.beobachtet ? " — BEOBACHTUNG (publiziert nie)" : ""),
+    );
+  }
+
   // Systemstart-Signal NACH Treiber-Verbindung: system-Datenpunkte mit
   // Schlüssel `start` bekommen einmal true (Gegenstück zum Systemstart-KO) —
   // Startup-Kaskaden können so auch Bus-Datenpunkte erreichen.
@@ -257,6 +330,7 @@ export async function run(dir: string): Promise<number> {
   await new Promise<void>((resolve) => {
     const stop = (): void => {
       console.error("fachwerk: Shutdown …");
+      mqtt?.trenne();
       void treiber.trenne().then(() => {
         engine.stop();
         uhr_dienst.stop();

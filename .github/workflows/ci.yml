@@ -66,3 +66,5 @@ jobs:
         run: bash tools/e2e-licht-status.sh
       - name: Beobachtungsmodus (empfängt, sendet garantiert nie)
         run: bash tools/e2e-beobachtung.sh
+      - name: MQTT-Rundlauf (echter Mosquitto → Logik → Mosquitto)
+        run: bash tools/e2e-mqtt.sh

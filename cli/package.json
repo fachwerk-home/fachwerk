@@ -13,6 +13,7 @@
   "dependencies": {
     "@fachwerk/core": "workspace:*",
     "@fachwerk/driver-knx": "workspace:*",
+    "@fachwerk/driver-mqtt": "workspace:*",
     "@fachwerk/importer": "workspace:*",
     "@fachwerk/schema": "workspace:*"
   }

@@ -1,0 +1,10 @@
+# Overlay fuer den MQTT-E2E: echter Mosquitto-Broker + Fachwerk mit MQTT-Env.
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    command: ["mosquitto", "-c", "/mosquitto-no-auth.conf"]
+
+  fachwerk:
+    environment:
+      FACHWERK_MQTT_HOST: mqtt-broker
+      FACHWERK_MQTT_PORT: "1883"

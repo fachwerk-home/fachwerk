@@ -1,0 +1,9 @@
+notizen: MQTT-Demo - Taster invertiert auf Licht (beide ueber den Broker).
+knoten:
+  not1:
+    baustein: NOT
+kanten:
+  - von: dp:haus.taster
+    nach: not1.in
+  - von: not1.out
+    nach: dp:haus.licht

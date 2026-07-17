@@ -1,0 +1,18 @@
+taster:
+  name: Taster (MQTT)
+  klasse: bus
+  typ: bool
+  treiber: mqtt
+  adresse: fachwerk/taster
+licht:
+  name: Licht (MQTT)
+  klasse: bus
+  typ: bool
+  treiber: mqtt
+  adresse: fachwerk/licht
+temperatur:
+  name: Temperatur (MQTT)
+  klasse: bus
+  typ: zahl
+  treiber: mqtt
+  adresse: fachwerk/temperatur
