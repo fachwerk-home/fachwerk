@@ -49,3 +49,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Ohne Attestations: BuildKit erzeugt sonst einen OCI-Index mit einem
+          # unknown/unknown-Eintrag, den aeltere Docker-/Portainer-Versionen
+          # nicht lesen koennen ("Unable to retrieve image details").
+          provenance: false
+          sbom: false
