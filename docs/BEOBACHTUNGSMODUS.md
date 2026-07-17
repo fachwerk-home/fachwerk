@@ -47,30 +47,36 @@ FACHWERK_KNX_MODUS=beobachten \
 Beobachtungsmodus, mit Host-Netz. Standard-Gewerk ist `examples/abnahme-licht-status`
 (deine echten Licht-Status-GAs → Sammelmeldung).
 
-Es gibt **kein Image zum Hochladen** — zwei Wege. Beide laufen **ohne Volume**:
-die Beispiel-Gewerke sind im Image (Projekt-Artefakte); nur *eigene* Gewerke
-kommen per Volume.
+Es gibt **kein Image zum Hochladen**: `.github/workflows/image.yml` veröffentlicht
+bei jedem Push nach `ghcr.io/fachwerk-home/fachwerk:latest` (öffentlich ziehbar,
+kein Login). `docker-compose.beobachten.yml` **zieht** dieses Image — es baut
+bewusst **nicht** (siehe Fallstricke). Läuft **ohne Volume**: die Beispiel-Gewerke
+sind im Image (Projekt-Artefakte); nur *eigene* Gewerke kommen per Volume.
 
-**Weg A — Portainer baut selbst:**
-- Portainer → Stacks → Add stack → **Repository**
+**Portainer → Stacks → Add stack →** entweder **Repository**:
 - Repository URL: `https://github.com/fachwerk-home/fachwerk`
 - **Repository reference: `refs/heads/main`** ← wichtig! Portainers Default
   (`master`) und ein blosses `main` schlagen mit „reference not found" fehl.
 - Compose path: `docker-compose.beobachten.yml`
-- Environment: `FACHWERK_KNX_HOST` = IP deines Routers (Pflicht)
 
-**Weg B — fertiges Image ziehen (kein Build auf dem Host):**
-`.github/workflows/image.yml` veröffentlicht bei jedem Push nach
-`ghcr.io/fachwerk-home/fachwerk:latest`; **öffentlich ziehbar** (kein Login).
-- Portainer → Stacks → Add stack → **Web editor**, Inhalt von
-  `docker-compose.ghcr.yml` einfügen
-- Environment: `FACHWERK_KNX_HOST` = Router-IP
+…oder **Web editor** (Inhalt von `docker-compose.beobachten.yml` einfügen).
+In beiden Fällen: Environment `FACHWERK_KNX_HOST` = IP deines Routers (Pflicht).
 
 **Eigenes Gewerk statt Beispiel:** im Compose die Mount-Zeile einkommentieren
-(Host-Pfad!) und `FACHWERK_GEWERK=/gewerk` setzen. Achtung bei Git-Stacks:
-relative Pfade ins geklonte Repo funktionieren **nicht** — Portainer klont in
-seinen eigenen Container, der Docker-Daemon löst Bind-Mounts aber auf dem Host
-auf und legt bei fehlender Quelle stillschweigend ein *leeres* Verzeichnis an.
+(Host-Pfad!) und `FACHWERK_GEWERK=/gewerk` setzen.
+
+### Fallstricke (teuer gelernt)
+
+- **`build:` im Portainer-Stack ist eine Falle.** Portainer holt das Git-Repo neu,
+  baut das Image aber **nicht** neu (`docker compose up` baut nicht, wenn ein Image
+  des Namens existiert). Ergebnis: neues Compose, alter Code — Symptome wie
+  „gewerk.yaml fehlt" oder fehlender Startbanner. Deshalb `image:` +
+  `pull_policy: always`; dann macht „Pull and redeploy" genau das Richtige.
+- **Relative Bind-Mounts ins geklonte Repo funktionieren nicht.** Portainer klont in
+  seinen eigenen Container; der Docker-Daemon löst Bind-Mounts auf dem **Host** auf
+  und legt bei fehlender Quelle stillschweigend ein *leeres* Verzeichnis an.
+- **Restart alle 60 s = Dockers maximaler Backoff** → der Container crasht sofort und
+  wiederholt. Ist der Startbanner nicht im Log, läuft alter Code.
 
 Danach in beiden Fällen die **Logs** des `fachwerk`-Containers ansehen:
   ```

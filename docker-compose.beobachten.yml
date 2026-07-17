@@ -1,15 +1,23 @@
 # Fachwerk am ECHTEN Bus — Beobachtungsmodus (empfaengt, sendet NIE).
-# Fuer Portainer: Stacks -> Add stack -> Repository
+#
+# ZIEHT das fertige Image aus ghcr.io (baut NICHT). Das ist Absicht: ein
+# 'build:'-Stack laesst Portainer das Image cachen — Compose wird aktualisiert,
+# der Code bleibt alt ("gewerk.yaml fehlt", kein Startbanner). Mit image: +
+# pull_policy: always macht "Pull and redeploy" genau das Richtige.
+#
+# Portainer, Weg 1 — Stacks -> Add stack -> Repository:
 #   Repository URL:       https://github.com/fachwerk-home/fachwerk
-#   Repository reference: refs/heads/main        <- wichtig (nicht master, nicht nur "main")
+#   Repository reference: refs/heads/main     <- wichtig (nicht master/nur "main")
 #   Compose path:         docker-compose.beobachten.yml
 #   Environment:          FACHWERK_KNX_HOST = <IP deines KNX-IP-Routers>
 #
-# Laeuft OHNE Volume: das Image bringt die Beispiel-Gewerke mit. Ein eigenes
-# Gewerk mountest du unten (siehe Kommentar) und setzt FACHWERK_GEWERK.
+# Portainer, Weg 2 — Stacks -> Add stack -> Web editor: diesen Inhalt einfuegen.
+#
+# Laeuft OHNE Volume: die Beispiel-Gewerke sind im Image.
 services:
   fachwerk:
-    build: .
+    image: ghcr.io/fachwerk-home/fachwerk:latest
+    pull_policy: always
     # Host-Netz: erreicht das KNX-Interface direkt und empfaengt dessen Antworten.
     network_mode: host
     # Standard: Beispiel-Gewerk AUS DEM IMAGE (kein Bind-Mount noetig — der wuerde
