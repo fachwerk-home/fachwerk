@@ -4,7 +4,8 @@
 FROM node:24-alpine
 
 WORKDIR /app
-RUN corepack enable
+# tzdata: sonst wirkt TZ=Europe/Berlin nicht (Zeit-Bausteine/Uhr-Dienst).
+RUN corepack enable && apk add --no-cache tzdata
 
 # Erst Manifeste (Docker-Layer-Cache), dann Quellen.
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./

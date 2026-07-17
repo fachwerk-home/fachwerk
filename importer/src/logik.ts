@@ -216,6 +216,25 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     festeParameter: { format: "json" },
     felderAusEingang: 2,
   },
+  // Zeitbereich: liegt Uhrzeit (System-KO) zwischen von und bis (inkl. Wrap)?
+  19000068: {
+    typ: "ZEITVERGLEICH",
+    eingaenge: { 3: "von", 4: "bis", 5: "zeit" }, // Trigger/Debug entfallen
+    ausgaenge: { 1: "out" },
+  },
+  // Zwei Uhrzeiten vergleichen (Δ-Ausgänge 1/2 sind nicht abbildbar → Report).
+  19000152: {
+    typ: "ZEITVERGLEICH_AB",
+    eingaenge: { 1: "a", 2: "b" },
+    ausgaenge: { 3: "eq", 4: "gt", 5: "lt" },
+  },
+  // Zeitformatierung/Addition: strftime-Muster, Modifikator = Sekunden-Offset.
+  19000153: {
+    typ: "ZEITFORMAT",
+    eingaenge: { 1: "zeit", 6: "offset" }, // Locale/UTC/Trenner/LogLevel entfallen
+    ausgaenge: { 1: "out" },
+    parameterAusEingang: { 2: "format", 6: "offset" },
+  },
   // String zerteilen: text (Eingang 1) → teil1..teilN + rest. Anzahl = genutzte
   // Ausgänge; Separator (Eingang 2) wird Parameter (konfig-variabel, ADR-0012).
   18000003: {

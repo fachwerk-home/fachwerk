@@ -31,6 +31,8 @@ services:
       # Sicherheitsnetz: empfangen ja, senden NIE.
       FACHWERK_KNX_MODUS: beobachten
       FACHWERK_DATEN_DIR: /daten
+      # Zeitzone fuer Zeit-Bausteine/Uhr-Dienst (Container-Default waere UTC).
+      TZ: ${TZ:-Europe/Berlin}
     volumes:
       # Laufzeitzustand (SQLite) ueberlebt Neustarts (ADR-0006).
       - fachwerk-daten:/daten

@@ -443,11 +443,92 @@ const JOIN: Baustein = {
   },
 };
 
+// ---- Zeit-Gruppe -------------------------------------------------------------
+// Alle Zeit-Bausteine sind PUR: die Uhrzeit kommt als normaler Eingang (vom
+// Uhr-Dienst über einen System-Datenpunkt) — deterministisch und testbar.
+// Kein Baustein liest die Wanduhr.
+
+/** "HH:MM" oder "HH:MM:SS" → Sekunden seit Mitternacht; null bei Unsinn. */
+function parseUhrzeit(wert: Wert | undefined): number | null {
+  if (typeof wert !== "string") return null;
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(wert.trim());
+  if (!m) return null;
+  const [h, min, s] = [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)];
+  if (h > 23 || min > 59 || s > 59) return null;
+  return h * 3600 + min * 60 + s;
+}
+
+/**
+ * Zeitbereich: liegt `zeit` zwischen `von` und `bis`? Mit Mitternachts-
+ * Überlauf: von 20:00 bis 06:00 heißt „abends ODER früh morgens".
+ * Zeiten als "HH:MM[:SS]" — Eingang oder Parameter.
+ */
+const ZEITVERGLEICH: Baustein = {
+  typ: "ZEITVERGLEICH",
+  rechne(e, ctx) {
+    const zeit = parseUhrzeit(e["zeit"] ?? (ctx.parameter["zeit"] as Wert | undefined));
+    const von = parseUhrzeit(e["von"] ?? (ctx.parameter["von"] as Wert | undefined));
+    const bis = parseUhrzeit(e["bis"] ?? (ctx.parameter["bis"] as Wert | undefined));
+    if (zeit === null || von === null || bis === null) return null;
+    const drin = von <= bis ? zeit >= von && zeit <= bis : zeit >= von || zeit <= bis;
+    return { out: drin };
+  },
+};
+
+/** Zwei Uhrzeiten vergleichen: A>B / A<B / A=B (jeweils eigener Ausgang). */
+const ZEITVERGLEICH_AB: Baustein = {
+  typ: "ZEITVERGLEICH_AB",
+  rechne(e, ctx) {
+    const a = parseUhrzeit(e["a"] ?? (ctx.parameter["a"] as Wert | undefined));
+    const b = parseUhrzeit(e["b"] ?? (ctx.parameter["b"] as Wert | undefined));
+    if (a === null || b === null) return null;
+    return { gt: a > b, lt: a < b, eq: a === b };
+  },
+};
+
+/**
+ * Zeitformatierung/-verschiebung: nimmt Unix-Sekunden (zahl) ODER "HH:MM[:SS]"
+ * (text), addiert `offset` (Sekunden) und formatiert per strftime-Teilmenge:
+ * %H %M %S %d %m %Y %X (=%H:%M:%S). Zeitzone = Prozess-TZ (Container: TZ-Env).
+ */
+const ZEITFORMAT: Baustein = {
+  typ: "ZEITFORMAT",
+  rechne(e, ctx) {
+    const roh = e["zeit"];
+    const offset = Number(e["offset"] ?? ctx.parameter["offset"] ?? 0);
+    const format = String(e["format"] ?? ctx.parameter["format"] ?? "%X");
+    if (!Number.isFinite(offset)) return null;
+
+    let d: Date;
+    if (typeof roh === "number" && Number.isFinite(roh)) {
+      d = new Date((roh + offset) * 1000);
+    } else {
+      const sek = parseUhrzeit(roh);
+      if (sek === null) return null;
+      // Reine Uhrzeit: Sekundenarithmetik mit Tages-Wrap, kein Kalender nötig.
+      const s = ((sek + Math.trunc(offset)) % 86_400 + 86_400) % 86_400;
+      d = new Date(2000, 0, 1, Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60);
+    }
+    if (Number.isNaN(d.getTime())) return null;
+
+    const z2 = (n: number): string => String(n).padStart(2, "0");
+    const out = format
+      .replaceAll("%X", "%H:%M:%S")
+      .replaceAll("%H", z2(d.getHours()))
+      .replaceAll("%M", z2(d.getMinutes()))
+      .replaceAll("%S", z2(d.getSeconds()))
+      .replaceAll("%d", z2(d.getDate()))
+      .replaceAll("%m", z2(d.getMonth() + 1))
+      .replaceAll("%Y", String(d.getFullYear()));
+    return { out };
+  },
+};
+
 const STDLIB = new Map<string, Baustein>(
   [
     NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
     TREPPENLICHT, SPERRLICHT, WERTAUSLOESER, IMPULS, MULT, KLEMME, WENN_DANN_SONST,
-    EXTRACT, SPLIT, JOIN,
+    EXTRACT, SPLIT, JOIN, ZEITVERGLEICH, ZEITVERGLEICH_AB, ZEITFORMAT,
   ].map((b) => [b.typ, b]),
 );
 

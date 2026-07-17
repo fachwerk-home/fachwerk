@@ -201,6 +201,54 @@ describe("Import-Bausteine (aus EDOMI-Bedarfsliste)", () => {
   });
 });
 
+describe("Zeit-Gruppe (pur — Zeit ist Eingang, nie Wanduhr)", () => {
+  it("ZEITVERGLEICH: Bereich ohne und MIT Mitternachts-Überlauf", () => {
+    const tag = ctx({ von: "06:00", bis: "20:00" });
+    expect(b("ZEITVERGLEICH").rechne({ zeit: "12:30:00" }, tag)).toEqual({ out: true });
+    expect(b("ZEITVERGLEICH").rechne({ zeit: "21:00:00" }, tag)).toEqual({ out: false });
+
+    // Der echte EDOMI-Fall: von 20:00:00 bis 06:00:00 (abends ODER früh)
+    const nacht = ctx({ von: "20:00:00", bis: "06:00:00" });
+    expect(b("ZEITVERGLEICH").rechne({ zeit: "23:15" }, nacht)).toEqual({ out: true });
+    expect(b("ZEITVERGLEICH").rechne({ zeit: "03:00" }, nacht)).toEqual({ out: true });
+    expect(b("ZEITVERGLEICH").rechne({ zeit: "12:00" }, nacht)).toEqual({ out: false });
+
+    // Unsinnige Zeit ⇒ keine Ausgabe (nie raten)
+    expect(b("ZEITVERGLEICH").rechne({ zeit: "25:99" }, tag)).toBeNull();
+  });
+
+  it("ZEITVERGLEICH_AB: A gegen B mit drei Ausgängen", () => {
+    expect(b("ZEITVERGLEICH_AB").rechne({ a: "07:30", b: "06:00:00" }, ctx())).toEqual({
+      gt: true, lt: false, eq: false,
+    });
+    expect(b("ZEITVERGLEICH_AB").rechne({ a: "06:00:00", b: "06:00" }, ctx())).toEqual({
+      gt: false, lt: false, eq: true,
+    });
+  });
+
+  it("ZEITFORMAT: Uhrzeit-String + Sekunden-Offset (EDOMI-Vektoren ±900)", () => {
+    // +900 s = +15 min (Dämmerungs-Verschiebung aus dem echten Gewerk)
+    expect(
+      b("ZEITFORMAT").rechne({ zeit: "20:00:00", offset: 900 }, ctx({ format: "%X" })),
+    ).toEqual({ out: "20:15:00" });
+    expect(
+      b("ZEITFORMAT").rechne({ zeit: "06:00:00", offset: -900 }, ctx({ format: "%H:%M:%S" })),
+    ).toEqual({ out: "05:45:00" });
+    // Tages-Wrap: 23:50 + 20 min → 00:10
+    expect(
+      b("ZEITFORMAT").rechne({ zeit: "23:50:00", offset: 1200 }, ctx({ format: "%X" })),
+    ).toEqual({ out: "00:10:00" });
+  });
+
+  it("ZEITFORMAT: Unix-Sekunden mit Datums-Mustern", () => {
+    // 2026-07-17 14:30:00 lokale Zeit als Basis bauen (TZ-unabhängiger Test):
+    const unix = Math.floor(new Date(2026, 6, 17, 14, 30, 0).getTime() / 1000);
+    expect(
+      b("ZEITFORMAT").rechne({ zeit: unix }, ctx({ format: "%d.%m.%Y %H:%M" })),
+    ).toEqual({ out: "17.07.2026 14:30" });
+  });
+});
+
 describe("Fachbaustein SPERRLICHT (Community-★★★)", () => {
   it("Default: beim Sperren aus, beim Entsperren Wunsch wiederherstellen", () => {
     const c = ctx();

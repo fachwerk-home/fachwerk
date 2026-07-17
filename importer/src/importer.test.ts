@@ -24,6 +24,7 @@ CREATE TABLE \`editKo\` (
   \`remanent\` tinyint(3) DEFAULT NULL
 ) ENGINE=MyISAM;
 INSERT INTO \`editKo\` VALUES
+(5,'Systemzeit',10,'5',2,0,'',0),
 (100,'Licht Sofa',10,'1/0/1',1,1,'',0),
 (101,'Temperatur Süd, gefühlt',11,'2/3/4',1,9,'21.5',1),
 (102,'Merker ''intern''\\nZeile2',10,'55',2,5,'',0),
@@ -54,10 +55,10 @@ describe("parseDump", () => {
   it("liest Spalten und Zeilen inkl. Escapes, NULL und Umlauten", () => {
     const t = parseDump(FIXTURE);
     expect(t.get("editKo")!.spalten).toContain("valuetyp");
-    expect(t.get("editKo")!.zeilen).toHaveLength(4);
-    expect(t.get("editKo")!.zeilen[1]!["name"]).toBe("Temperatur Süd, gefühlt");
-    expect(t.get("editKo")!.zeilen[2]!["name"]).toBe("Merker 'intern'\nZeile2");
-    expect(t.get("editKo")!.zeilen[3]!["defaultvalue"]).toBeNull();
+    expect(t.get("editKo")!.zeilen).toHaveLength(5);
+    expect(t.get("editKo")!.zeilen[2]!["name"]).toBe("Temperatur Süd, gefühlt");
+    expect(t.get("editKo")!.zeilen[3]!["name"]).toBe("Merker 'intern'\nZeile2");
+    expect(t.get("editKo")!.zeilen[4]!["defaultvalue"]).toBeNull();
     expect(t.get("editRoot")!.zeilen[1]!["name"]).toBe("Außen & Garten");
   });
 });
@@ -100,6 +101,14 @@ describe("konvertiere (Stufe 1)", () => {
 
   it("KO-Id → Schlüssel-Karte (für Stufe 2)", () => {
     expect(ergebnis.koZuSchluessel.get(100)).toBe("wohnzimmer.licht_sofa");
+  });
+
+  it("System-KO 5 (Systemzeit) → system.zeit für den Uhr-Dienst", () => {
+    expect(ergebnis.koZuSchluessel.get(5)).toBe("system.zeit");
+    expect(ergebnis.datenpunkte.get("system")!["zeit"]).toMatchObject({
+      klasse: "system",
+      typ: "text",
+    });
   });
 
   it("Baustein-Bedarfsliste nach Verwendungen sortiert", () => {

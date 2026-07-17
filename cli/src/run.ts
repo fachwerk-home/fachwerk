@@ -12,9 +12,11 @@ import {
   DatenpunktRegistry,
   LogikEngine,
   Speicher,
+  UhrDienst,
   analysiereLogik,
   loadGewerk,
   sandboxAlsBaustein,
+  uhrDatenpunkte,
   type Baustein,
   type Wert,
 } from "@fachwerk/core";
@@ -142,6 +144,14 @@ export async function run(dir: string): Promise<number> {
     }
   });
 
+  // Uhr-Dienst: speist deklarierte System-Datenpunkte (zeit/datum/unix/wochentag).
+  const uhrZiele = uhrDatenpunkte(gewerk);
+  const uhr_dienst = new UhrDienst(registry, uhrZiele);
+  if (uhrZiele.size > 0) {
+    uhr_dienst.start();
+    console.error(`Uhr-Dienst: speist ${[...uhrZiele.keys()].join(", ")}`);
+  }
+
   // KNX-Zuordnung: GA ↔ Datenpunkt + DPT-Karte (P4-4).
   const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
   const dpZuGa = new Map<string, string>();
@@ -237,6 +247,7 @@ export async function run(dir: string): Promise<number> {
       console.error("fachwerk: Shutdown …");
       void treiber.trenne().then(() => {
         engine.stop();
+        uhr_dienst.stop();
         if (timerHandle) clearTimeout(timerHandle);
         speicher.sichereEngine(engine.momentaufnahme()); // letzter Stand (T-5)
         speicher.schliesse();
