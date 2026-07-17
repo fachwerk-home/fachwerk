@@ -18,6 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Buildx-Container-Treiber: noetig fuer den GHA-Cache-Export.
+      - name: Buildx einrichten
+        uses: docker/setup-buildx-action@v3
+
       - name: Bei ghcr.io anmelden
         uses: docker/login-action@v3
         with:
