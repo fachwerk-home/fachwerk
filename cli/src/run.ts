@@ -26,6 +26,8 @@ export async function run(dir: string): Promise<number> {
   const knxHost = process.env["FACHWERK_KNX_HOST"] ?? "127.0.0.1";
   const knxPort = Number(process.env["FACHWERK_KNX_PORT"] ?? 3671);
   const beobachten = process.env["FACHWERK_KNX_MODUS"] === "beobachten";
+  // Im Beobachtungsmodus auch ungemappte Telegramme zeigen (Default an).
+  const rxAlle = process.env["FACHWERK_KNX_RX_ALLE"] !== "0";
   console.error(
     `fachwerk startet — Gewerk: ${dir} · KNX: ${knxHost}:${knxPort} · ` +
       `Modus: ${beobachten ? "beobachten (sendet nie)" : "normal (sendet)"}`,
@@ -151,8 +153,12 @@ export async function run(dir: string): Promise<number> {
     onWuerdeSenden: (ga, wert) => console.error(`[BEOBACHTUNG] würde senden  ${ga} = ${wert}`),
     onTelegramm: (t) => {
       const dp = gaZuDp.get(t.ga);
-      if (beobachten && dp) {
-        console.error(`RX  ${t.ga} = ${t.wert}  → ${dp.schluessel}`);
+      if (beobachten) {
+        // Im Beobachtungsmodus ALLES zeigen — auch ungemappte GAs. Genau dafür
+        // ist er da: sehen, was der Bus wirklich tut (und welche GAs es gibt).
+        // FACHWERK_KNX_RX_ALLE=0 blendet Ungemapptes aus (stiller, busy Bus).
+        if (dp) console.error(`RX  ${t.ga} = ${t.wert}  → ${dp.schluessel}`);
+        else if (rxAlle) console.error(`RX  ${t.ga} = ${t.wert}  (nicht gemappt)`);
       }
       if (!dp || t.art !== "write") return;
       const erg = registry.schreibe(dp.schluessel, t.wert as Wert, "treiber");
@@ -206,7 +212,8 @@ export async function run(dir: string): Promise<number> {
   if (beobachten) {
     console.error(
       "== BEOBACHTUNGSMODUS == empfange Bustelegramme, sende NIE. " +
-        "RX = vom Bus empfangen; [BEOBACHTUNG] wuerde senden = was die Logik taete.",
+        "RX = vom Bus empfangen; [BEOBACHTUNG] wuerde senden = was die Logik taete." +
+        (rxAlle ? " Zeige ALLE GAs (FACHWERK_KNX_RX_ALLE=0 = nur gemappte)." : ""),
     );
   }
 
