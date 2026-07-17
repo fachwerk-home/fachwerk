@@ -20,6 +20,20 @@ import {
 } from "@fachwerk/core";
 import { KnxTreiber } from "@fachwerk/driver-knx";
 
+/**
+ * Rohe Nutzlast lesbar machen, wenn kein DPT bekannt ist: Hex + Byte-Zahl,
+ * bei kurzen Nutzlasten zusätzlich die Ganzzahl. Bewusst KEINE geratene
+ * Interpretation — ohne DPT weiß niemand, was die Bytes bedeuten.
+ */
+function rohText(bytes: Uint8Array): string {
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join(" ");
+  if (bytes.length <= 4) {
+    const zahl = bytes.reduce((a, b) => a * 256 + b, 0);
+    return `0x${hex} (${zahl})`;
+  }
+  return `0x${hex} (${bytes.length} Byte)`;
+}
+
 export async function run(dir: string): Promise<number> {
   // Ganz zuerst: Startbanner. Damit erzeugt JEDER Start sofort eine Zeile —
   // auch wenn gleich danach etwas scheitert (Diagnose im Container).
@@ -158,7 +172,7 @@ export async function run(dir: string): Promise<number> {
         // ist er da: sehen, was der Bus wirklich tut (und welche GAs es gibt).
         // FACHWERK_KNX_RX_ALLE=0 blendet Ungemapptes aus (stiller, busy Bus).
         if (dp) console.error(`RX  ${t.ga} = ${t.wert}  → ${dp.schluessel}`);
-        else if (rxAlle) console.error(`RX  ${t.ga} = ${t.wert}  (nicht gemappt)`);
+        else if (rxAlle) console.error(`RX  ${t.ga} = ${rohText(t.rohBytes)}  (nicht gemappt)`);
       }
       if (!dp || t.art !== "write") return;
       const erg = registry.schreibe(dp.schluessel, t.wert as Wert, "treiber");

@@ -26,8 +26,14 @@ const APCI_RESPONSE = 0x040;
 
 export interface KnxTelegramm {
   ga: string;
-  /** Dekodiert gemäß DPT-Karte; ohne Eintrag: Rohwert (6-Bit oder Big-Endian). */
+  /**
+   * Dekodiert gemäß DPT-Karte. OHNE Karteneintrag nur ein Notbehelf: kurze
+   * Nutzlasten (≤ 4 Byte) als Ganzzahl, längere als 0 — dann sagen allein die
+   * `rohBytes` die Wahrheit. Ohne DPT ist jede Zahl geraten.
+   */
   wert: boolean | number;
+  /** Rohe APDU-Nutzlast — maßgeblich, wenn kein DPT bekannt ist. */
+  rohBytes: Uint8Array;
   art: "write" | "response";
 }
 
@@ -229,22 +235,27 @@ export class KnxTreiber {
 
     const ga = zahlZuGa(dst);
     const dpt = this.#opts.dpts?.get(ga);
+    // Nutzlast: 6-Bit im APCI-Byte, sonst die Folgebytes.
+    const rohBytes =
+      npduLen === 1
+        ? Uint8Array.of(apciHigh & 0x3f)
+        : Uint8Array.from(cemi.subarray(p + 9, p + 9 + npduLen - 1));
+
     let wert: boolean | number;
     if (dpt) {
       wert = decodeDpt(
         dpt,
-        npduLen === 1
-          ? { art: "klein", wert: apciHigh & 0x3f }
-          : { art: "bytes", bytes: Uint8Array.from(cemi.subarray(p + 9, p + 9 + npduLen - 1)) },
+        npduLen === 1 ? { art: "klein", wert: apciHigh & 0x3f } : { art: "bytes", bytes: rohBytes },
       );
+    } else if (rohBytes.length <= 4) {
+      // Ohne DPT: kurze Nutzlast als Ganzzahl (Notbehelf, bleibt exakt).
+      wert = rohBytes.reduce((a, b) => a * 256 + b, 0);
     } else {
-      // Ohne DPT-Karte: Rohwert (6-Bit oder Big-Endian-Ganzzahl).
-      wert =
-        npduLen === 1
-          ? apciHigh & 0x3f
-          : cemi.subarray(p + 9, p + 9 + npduLen - 1).reduce((a, b) => a * 256 + b, 0);
+      // Längeres ohne DPT NICHT in eine Zahl pressen: das lief über
+      // Number.MAX_SAFE_INTEGER und erzeugte Fantasiewerte (1.58e+33).
+      wert = 0;
     }
 
-    this.#opts.onTelegramm?.({ ga, wert, art });
+    this.#opts.onTelegramm?.({ ga, wert, rohBytes, art });
   }
 }

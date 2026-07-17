@@ -181,7 +181,8 @@ describe("KnxTreiber", () => {
     const { server } = await verbunden((t) => telegramme.push(t));
     server.injiziere(gaZuZahl("1/0/1"), 1, 0);
     await new Promise((r) => setTimeout(r, 50));
-    expect(telegramme).toEqual([{ ga: "1/0/1", wert: 1, art: "write" }]);
+    expect(telegramme).toMatchObject([{ ga: "1/0/1", wert: 1, art: "write" }]);
+    expect([...telegramme[0]!.rohBytes]).toEqual([1]); // 6-Bit-Nutzlast
     expect(server.clientAcks).toEqual([0]);
   });
 
@@ -208,7 +209,7 @@ describe("KnxTreiber", () => {
     // Empfang funktioniert normal:
     server.injiziere(gaZuZahl("1/0/1"), 1, 0);
     await new Promise((r) => setTimeout(r, 50));
-    expect(empfangen).toEqual([{ ga: "1/0/1", wert: 1, art: "write" }]);
+    expect(empfangen).toMatchObject([{ ga: "1/0/1", wert: 1, art: "write" }]);
 
     // Senden überträgt NICHTS, meldet nur den Dry-Run:
     treiber.sende("1/0/2", true);
@@ -242,6 +243,25 @@ describe("KnxTreiber", () => {
 
     server.injiziereBytes(gaZuZahl("2/0/1"), [0x0c, 0x33], 0);
     await new Promise((r) => setTimeout(r, 50));
-    expect(telegramme).toEqual([{ ga: "2/0/1", wert: 21.5, art: "write" }]);
+    expect(telegramme).toMatchObject([{ ga: "2/0/1", wert: 21.5, art: "write" }]);
+    expect([...telegramme[0]!.rohBytes]).toEqual([0x0c, 0x33]);
+  });
+
+  it("ohne DPT: rohBytes sind maßgeblich, lange Nutzlast wird NICHT geraten", async () => {
+    const telegramme: KnxTelegramm[] = [];
+    const { server } = await verbunden((t) => telegramme.push(t));
+
+    // 2 Byte ohne DPT-Karte → Ganzzahl als Notbehelf, rohBytes exakt.
+    server.injiziereBytes(gaZuZahl("0/4/0"), [0x56, 0x7c], 0);
+    // 14 Byte (z. B. DPT-16-Text) → frueher 1.58e+33; jetzt wert=0, rohBytes zaehlen.
+    const lang = [0x4b, 0x4e, 0x58, 0x20, 0x54, 0x65, 0x78, 0x74, 0, 0, 0, 0, 0, 0];
+    server.injiziereBytes(gaZuZahl("0/4/17"), lang, 1);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(telegramme[0]).toMatchObject({ ga: "0/4/0", wert: 0x567c });
+    expect([...telegramme[0]!.rohBytes]).toEqual([0x56, 0x7c]);
+
+    expect(telegramme[1]!.wert).toBe(0); // kein Fantasiewert mehr
+    expect([...telegramme[1]!.rohBytes]).toEqual(lang);
   });
 });
