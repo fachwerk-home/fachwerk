@@ -201,6 +201,46 @@ describe("Import-Bausteine (aus EDOMI-Bedarfsliste)", () => {
   });
 });
 
+describe("FORMEL (Arithmetik + Whitelist, nie eval)", () => {
+  it("die echten Formeln aus dem importierten Gewerk", () => {
+    // Prozent → Byte (Dimmwert-Skalierung)
+    expect(b("FORMEL").rechne({ x: 50 }, ctx({ formel: "$x/100*255" }))).toEqual({
+      out: 127.5,
+    });
+    expect(b("FORMEL").rechne({ x: 50 }, ctx({ formel: "round($x/100*255,0)" }))).toEqual({
+      out: 128,
+    });
+    expect(b("FORMEL").rechne({ x: 100 }, ctx({ formel: "round($x/100*255,0)" }))).toEqual({
+      out: 255,
+    });
+  });
+
+  it("Formel als Eingang, mehrere Variablen, Punkt-vor-Strich", () => {
+    expect(
+      b("FORMEL").rechne({ formel: "$a+$b*2", a: 1, b: 3 }, ctx()),
+    ).toEqual({ out: 7 });
+    expect(b("FORMEL").rechne({ x: 9 }, ctx({ formel: "max(sqrt($x), 2)" }))).toEqual({
+      out: 3,
+    });
+  });
+
+  it("nie raten: unbelegte Variable, kaputte Formel, Division durch 0", () => {
+    expect(b("FORMEL").rechne({}, ctx({ formel: "$x*2" }))).toBeNull();
+    expect(b("FORMEL").rechne({ x: 1 }, ctx({ formel: "$x**" }))).toBeNull();
+    expect(b("FORMEL").rechne({ x: 1 }, ctx({ formel: "kaputt(" }))).toBeNull();
+    expect(b("FORMEL").rechne({ x: 1 }, ctx({ formel: "$x/0" }))).toBeNull(); // Infinity
+  });
+});
+
+describe("SPERRE modus=freigabe (Entsperrt-Logik des Referenzsystems)", () => {
+  it("durchlassen bei sperre=true, halten bei false, nachreichen beim Öffnen", () => {
+    const c = ctx({ modus: "freigabe" });
+    expect(b("SPERRE").rechne({ in: 5, sperre: true }, c)).toEqual({ out: 5 });
+    expect(b("SPERRE").rechne({ in: 7, sperre: false }, c)).toBeNull(); // gehalten
+    expect(b("SPERRE").rechne({ in: 7, sperre: true }, c)).toEqual({ out: 7 }); // nachgereicht
+  });
+});
+
 describe("Zeit-Gruppe (pur — Zeit ist Eingang, nie Wanduhr)", () => {
   it("ZEITVERGLEICH: Bereich ohne und MIT Mitternachts-Überlauf", () => {
     const tag = ctx({ von: "06:00", bis: "20:00" });

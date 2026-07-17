@@ -6,6 +6,7 @@
  */
 import type { Wert } from "../datenpunkte/registry.ts";
 import { extrahiere, introspizieren, type ExtractFormat, type Feld } from "./extract.ts";
+import { formelAuswerten } from "./formel.ts";
 
 export type Eingaenge = Record<string, Wert | undefined>;
 export type Ausgaenge = Record<string, Wert>;
@@ -213,11 +214,14 @@ const HYSTERESE: Baustein = {
 /**
  * Sperre (Gate): `sperre`=true hält `in` zurück; beim Entsperren wird der
  * zuletzt gehaltene Wert nachgereicht (Parameter `nachreichen`, Default true).
+ * Parameter `modus: "freigabe"` invertiert den Steuereingang: durchlassen,
+ * wenn `sperre`=true („Entsperrt"-Logik des Referenzsystems).
  */
 const SPERRE: Baustein = {
   typ: "SPERRE",
   rechne(e, ctx) {
-    const gesperrt = e["sperre"] === true;
+    const freigabe = String(ctx.parameter["modus"] ?? "") === "freigabe";
+    const gesperrt = freigabe ? e["sperre"] !== true : e["sperre"] === true;
     const vorherGesperrt = ctx.zustand["gesperrt"] === true;
     ctx.zustand["gesperrt"] = gesperrt;
     if (e["in"] !== undefined) ctx.zustand["gehalten"] = e["in"];
@@ -443,6 +447,29 @@ const JOIN: Baustein = {
   },
 };
 
+/**
+ * Formelberechnung: wertet `formel` (Parameter oder Eingang) über den
+ * Variablen $x, $a..$e aus — Arithmetik + Funktions-Whitelist (formel.ts).
+ * Ungültige Formel oder unbelegte Variable ⇒ keine Ausgabe (nie raten).
+ */
+const FORMEL: Baustein = {
+  typ: "FORMEL",
+  rechne(e, ctx) {
+    const formel = String(e["formel"] ?? ctx.parameter["formel"] ?? "");
+    if (formel === "") return null;
+    const variablen: Record<string, number> = {};
+    for (const name of ["x", "a", "b", "c", "d", "e"]) {
+      const wert = e[name];
+      if (typeof wert === "number") variablen[name] = wert;
+      else if (typeof wert === "string" && wert !== "" && Number.isFinite(Number(wert))) {
+        variablen[name] = Number(wert);
+      }
+    }
+    const ergebnis = formelAuswerten(formel, variablen);
+    return ergebnis === null ? null : { out: ergebnis };
+  },
+};
+
 // ---- Zeit-Gruppe -------------------------------------------------------------
 // Alle Zeit-Bausteine sind PUR: die Uhrzeit kommt als normaler Eingang (vom
 // Uhr-Dienst über einen System-Datenpunkt) — deterministisch und testbar.
@@ -528,7 +555,7 @@ const STDLIB = new Map<string, Baustein>(
   [
     NOT, AND, OR, OR8, XOR, TOGGLE, VERGLEICH, HYSTERESE, SPERRE, VERZOEGERUNG,
     TREPPENLICHT, SPERRLICHT, WERTAUSLOESER, IMPULS, MULT, KLEMME, WENN_DANN_SONST,
-    EXTRACT, SPLIT, JOIN, ZEITVERGLEICH, ZEITVERGLEICH_AB, ZEITFORMAT,
+    EXTRACT, SPLIT, JOIN, ZEITVERGLEICH, ZEITVERGLEICH_AB, ZEITFORMAT, FORMEL,
   ].map((b) => [b.typ, b]),
 );
 

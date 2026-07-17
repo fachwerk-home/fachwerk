@@ -100,9 +100,10 @@ export function konvertiere(tabellen: Map<string, Tabelle>): ImportErgebnis {
 
   // Altsystem-System-KOs mit fester Id → Fachwerk-Uhr-Datenpunkte (klasse
   // system; der Uhr-Dienst speist sie). Ids sind im Referenzsystem fix.
-  const SYSTEM_KOS = new Map<number, { gruppe: string; key: string }>([
-    [4, { gruppe: "system", key: "datum" }],
-    [5, { gruppe: "system", key: "zeit" }],
+  const SYSTEM_KOS = new Map<number, { gruppe: string; key: string; typ: "text" | "bool" }>([
+    [2, { gruppe: "system", key: "start", typ: "bool" }], // Systemstart-Impuls
+    [4, { gruppe: "system", key: "datum", typ: "text" }],
+    [5, { gruppe: "system", key: "zeit", typ: "text" }],
   ]);
 
   const kos = tabellen.get("editKo")?.zeilen ?? [];
@@ -114,7 +115,7 @@ export function konvertiere(tabellen: Map<string, Tabelle>): ImportErgebnis {
     const system = SYSTEM_KOS.get(id);
     if (system && gatyp === 2) {
       const datei = datenpunkte.get(system.gruppe) ?? {};
-      datei[system.key] = { name, klasse: "system", typ: "text" };
+      datei[system.key] = { name, klasse: "system", typ: system.typ };
       datenpunkte.set(system.gruppe, datei);
       koZuSchluessel.set(id, `${system.gruppe}.${system.key}`);
       vergeben.add(`${system.gruppe}.${system.key}`);

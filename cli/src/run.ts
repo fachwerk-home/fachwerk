@@ -152,6 +152,7 @@ export async function run(dir: string): Promise<number> {
     console.error(`Uhr-Dienst: speist ${[...uhrZiele.keys()].join(", ")}`);
   }
 
+
   // KNX-Zuordnung: GA ↔ Datenpunkt + DPT-Karte (P4-4).
   const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
   const dpZuGa = new Map<string, string>();
@@ -233,6 +234,17 @@ export async function run(dir: string): Promise<number> {
   console.error(
     `KNX verbunden: Tunnel-Kanal ${treiber.kanal}, Individualadresse ${treiber.adresse ?? "?"}`,
   );
+
+  // Systemstart-Signal NACH Treiber-Verbindung: system-Datenpunkte mit
+  // Schlüssel `start` bekommen einmal true (Gegenstück zum Systemstart-KO) —
+  // Startup-Kaskaden können so auch Bus-Datenpunkte erreichen.
+  for (const [gruppe, datei] of gewerk.datenpunkte) {
+    for (const [key, def] of Object.entries(datei)) {
+      if (def.klasse === "system" && key === "start" && def.typ === "bool") {
+        registry.schreibe(`${gruppe}.${key}`, true, "system");
+      }
+    }
+  }
   if (beobachten) {
     console.error(
       "== BEOBACHTUNGSMODUS == empfange Bustelegramme, sende NIE. " +

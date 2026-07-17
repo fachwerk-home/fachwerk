@@ -216,6 +216,27 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
     festeParameter: { format: "json" },
     felderAusEingang: 2,
   },
+  // Subtraktion A−B: schlicht eine feste Formel (ADR-0012-Geist: kein Extra-Baustein).
+  15000051: {
+    typ: "FORMEL",
+    eingaenge: { 1: "a", 2: "b" },
+    ausgaenge: { 1: "out" },
+    festeParameter: { formel: "$a-$b" },
+  },
+  // Formelberechnung: Formel (statisch → Parameter) über $x,$a..$e.
+  15000000: {
+    typ: "FORMEL",
+    eingaenge: { 3: "x", 4: "a", 5: "b", 6: "c", 7: "d", 8: "e" },
+    ausgaenge: { 1: "out" }, // out2 (Fehler) nicht abgebildet
+    parameterAusEingang: { 1: "formel" },
+  },
+  // Sperre „Entsperrt"-Variante: E1 Entsperrt (durchlassen bei true), E2 Wert.
+  14000029: {
+    typ: "SPERRE",
+    eingaenge: { 1: "sperre", 2: "in" },
+    ausgaenge: { 1: "out" }, // out2 nicht abgebildet
+    festeParameter: { modus: "freigabe" },
+  },
   // Zeitbereich: liegt Uhrzeit (System-KO) zwischen von und bis (inkl. Wrap)?
   19000068: {
     typ: "ZEITVERGLEICH",
@@ -263,8 +284,16 @@ export const ABBILDUNG: Record<number, BausteinAbbildung> = {
 
 /** FunctionIds, die als „Ausgangsbox" gelten (schreiben auf KO). */
 export const AUSGANGSBOX = new Set([12000010, 12000011, 12000012]);
-/** SendByChange: reicht Eingang durch (on-change) — in Fachwerk eine Kante. */
-export const SENDBYCHANGE = 13000030;
+/**
+ * SendByChange (normal + remanent): reicht Eingang bei Änderung durch — in
+ * Fachwerk eingebaute on-change-Kanten-Semantik; Remanenz ist Datenpunkt-Sache.
+ */
+export const SENDBYCHANGE = new Set([13000030, 13000032]);
+/**
+ * Entfällt ersatzlos: KO-Initialisierung schreibt beim Start den Default-Wert
+ * — das leistet in Fachwerk `initial` am Datenpunkt (SPEC-001) nativ.
+ */
+export const ENTFAELLT = new Set([12000100]);
 
 export interface SeitenReport {
   seite: string;
@@ -293,7 +322,11 @@ export function bewerte(seiten: RohSeite[]): LogikReport {
     for (const el of seite.elemente) {
       if (AUSGANGSBOX.has(el.functionId)) {
         boxen++;
-      } else if (el.functionId === SENDBYCHANGE || ABBILDUNG[el.functionId]) {
+      } else if (
+        SENDBYCHANGE.has(el.functionId) ||
+        ENTFAELLT.has(el.functionId) ||
+        ABBILDUNG[el.functionId]
+      ) {
         abbildbar++;
       } else {
         offen.set(el.functionId, (offen.get(el.functionId) ?? 0) + 1);
@@ -377,7 +410,7 @@ export function konvertiereSeite(
 
   // SendByChange-Ausgänge auf ihre Quelle zurückführen (Kollaps).
   const sendByChange = new Set(
-    seite.elemente.filter((e) => e.functionId === SENDBYCHANGE).map((e) => e.id),
+    seite.elemente.filter((e) => SENDBYCHANGE.has(e.functionId)).map((e) => e.id),
   );
   const sbcQuelle = new Map<number, Quelle>();
   for (const k of seite.kanten) {
@@ -422,7 +455,13 @@ export function konvertiereSeite(
   const kanten: LogikSeite["kanten"] = [];
 
   for (const el of seite.elemente) {
-    if (el.functionId === SENDBYCHANGE || AUSGANGSBOX.has(el.functionId)) continue; // separat
+    if (
+      SENDBYCHANGE.has(el.functionId) ||
+      AUSGANGSBOX.has(el.functionId) ||
+      ENTFAELLT.has(el.functionId) // KO-Init: durch dp.initial abgedeckt
+    ) {
+      continue; // separat bzw. entfällt
+    }
     const abb = ABBILDUNG[el.functionId];
     if (!abb) {
       meld(`Element ${el.id}: LBS ${el.functionId} nicht abbildbar`);
