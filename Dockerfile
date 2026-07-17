@@ -25,6 +25,9 @@ COPY examples/ examples/
 
 # Zustands-Verzeichnis gehört dem Laufzeit-User (Named Volumes erben das).
 RUN mkdir -p /daten && chown node:node /daten
+# Sinnvoller Default IM Image: sonst landet der Zustand in ./daten unter /app,
+# das dem node-User nicht gehört (EACCES). Per Env überschreibbar.
+ENV FACHWERK_DATEN_DIR=/daten
 
 USER node
 ENTRYPOINT ["node", "cli/src/main.ts"]

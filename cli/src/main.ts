@@ -56,7 +56,13 @@ switch (cmd) {
       process.exit(2);
     }
     const { run } = await import("./run.ts");
-    process.exit(await run(dir));
+    try {
+      process.exit(await run(dir));
+    } catch (e) {
+      // Fataler Fehler sichtbar machen (im Container sonst schwer zu sehen).
+      console.error("FATAL:", e instanceof Error ? (e.stack ?? e.message) : String(e));
+      process.exit(1);
+    }
     break;
   }
 

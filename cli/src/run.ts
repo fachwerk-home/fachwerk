@@ -21,6 +21,16 @@ import {
 import { KnxTreiber } from "@fachwerk/driver-knx";
 
 export async function run(dir: string): Promise<number> {
+  // Ganz zuerst: Startbanner. Damit erzeugt JEDER Start sofort eine Zeile —
+  // auch wenn gleich danach etwas scheitert (Diagnose im Container).
+  const knxHost = process.env["FACHWERK_KNX_HOST"] ?? "127.0.0.1";
+  const knxPort = Number(process.env["FACHWERK_KNX_PORT"] ?? 3671);
+  const beobachten = process.env["FACHWERK_KNX_MODUS"] === "beobachten";
+  console.error(
+    `fachwerk startet — Gewerk: ${dir} · KNX: ${knxHost}:${knxPort} · ` +
+      `Modus: ${beobachten ? "beobachten (sendet nie)" : "normal (sendet)"}`,
+  );
+
   const { gewerk, fehler } = loadGewerk(dir);
   if (fehler.length > 0 || !gewerk) {
     for (const f of fehler) console.error(`FEHLER: ${f.datei} ${f.pfad}: ${f.meldung}`);
@@ -45,7 +55,16 @@ export async function run(dir: string): Promise<number> {
 
   // Persistenz (ADR-0006): Zustand lebt auf einem Volume, nie im Image.
   const datenDir = process.env["FACHWERK_DATEN_DIR"] ?? "./daten";
-  mkdirSync(datenDir, { recursive: true });
+  try {
+    mkdirSync(datenDir, { recursive: true });
+  } catch (e) {
+    console.error(
+      `FEHLER: Zustands-Verzeichnis „${datenDir}" nicht anlegbar: ` +
+        `${e instanceof Error ? e.message : String(e)}`,
+    );
+    console.error("Tipp: FACHWERK_DATEN_DIR auf ein beschreibbares Verzeichnis/Volume setzen.");
+    return 1;
+  }
   const speicher = new Speicher(join(datenDir, "zustand.sqlite"));
 
   const registry = new DatenpunktRegistry(gewerk);
@@ -122,10 +141,8 @@ export async function run(dir: string): Promise<number> {
     }
   }
 
-  const host = process.env["FACHWERK_KNX_HOST"] ?? "127.0.0.1";
-  const port = Number(process.env["FACHWERK_KNX_PORT"] ?? 3671);
-  // Beobachtungsmodus: empfangen ja, senden NIE (risikofrei am echten Bus).
-  const beobachten = process.env["FACHWERK_KNX_MODUS"] === "beobachten";
+  const host = knxHost;
+  const port = knxPort;
   const treiber = new KnxTreiber({
     host,
     port,
@@ -153,16 +170,30 @@ export async function run(dir: string): Promise<number> {
     }
   });
 
-  // Verbinden mit Wiederholung: im Container startet der Simulator parallel.
+  // Verbinden mit Backoff — UNENDLICH, nie aufgeben: ein Dienst, der wegen
+  // eines vorübergehend unerreichbaren Gateways stirbt, erzeugt nur einen
+  // Crash-Loop (und reißt seine Logs mit). Lieber laufen bleiben und den Grund
+  // jedes Mal nennen. (Beenden geht sauber über SIGTERM/Stop.)
   let versuch = 0;
   for (;;) {
     try {
       await treiber.verbinde();
       break;
     } catch (e) {
-      if (++versuch >= 15) throw e;
-      console.error(`KNX: Verbindung fehlgeschlagen (Versuch ${versuch}) — neuer Versuch …`);
-      await new Promise((r) => setTimeout(r, 1000));
+      versuch++;
+      const wartenMs = Math.min(30_000, 1000 * 2 ** Math.min(versuch - 1, 5));
+      const grund = e instanceof Error ? e.message : String(e);
+      console.error(
+        `KNX: Verbindung zu ${host}:${port} fehlgeschlagen (Versuch ${versuch}): ${grund}`,
+      );
+      if (versuch === 1) {
+        console.error(
+          "KNX: Häufige Ursachen — falsche IP, Gateway nicht erreichbar, " +
+            "alle Tunnel-Slots belegt, KNX Secure, oder Container ohne Host-Netz.",
+        );
+      }
+      console.error(`KNX: neuer Versuch in ${wartenMs / 1000}s …`);
+      await new Promise((r) => setTimeout(r, wartenMs));
     }
   }
   console.error(
