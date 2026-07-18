@@ -1,0 +1,49 @@
+typ: seite
+name: Wohnzimmer
+basis: tablet
+groessen:
+  tablet:
+    w: 1280
+    h: 800
+  handy:
+    w: 390
+    h: 844
+elemente:
+  licht_decke:
+    preset: schalter
+    bindungen:
+      set: wohnen.taster
+      status: wohnen.licht
+    design: standard
+    design_je_wert:
+      - wenn: true
+        design: aktiv
+    aktionen:
+      kurz:
+        art: umschalten
+    format:
+      dezimalstellen: 1
+    placements:
+      tablet:
+        x: 40
+        y: 40
+        w: 120
+        h: 120
+      handy:
+        x: 16
+        y: 40
+        w: 80
+        h: 80
+        format:
+          dezimalstellen: 0
+  zaehler:
+    preset: wertanzeige
+    bindungen:
+      display: wohnen.zaehler
+    design: standard
+    placements:
+      tablet:
+        x: 200
+        y: 40
+        w: 180
+        h: 80

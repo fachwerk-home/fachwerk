@@ -1,0 +1,9 @@
+standard:
+  hintergrund: "#222"
+  text: "#eee"
+  rand:
+    staerke: 1
+    farbe: "#444"
+aktiv:
+  hintergrund: "#fc0"
+  text: "#000"
