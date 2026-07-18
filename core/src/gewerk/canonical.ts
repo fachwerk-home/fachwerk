@@ -6,6 +6,7 @@
 import { stringify } from "yaml";
 import {
   KEY_ORDER,
+  type ArchivDatei,
   type GewerkManifest,
   type DatenpunktDatei,
   type LogikSeite,
@@ -38,6 +39,15 @@ export function datenpunkteZuYaml(datei: DatenpunktDatei): string {
   const out: Record<string, unknown> = {};
   for (const key of Object.keys(datei).sort()) {
     out[key] = ordne(datei[key] as unknown as Record<string, unknown>, KEY_ORDER.datenpunkt);
+  }
+  return stringify(out, YAML_OPTS);
+}
+
+export function archiveZuYaml(datei: ArchivDatei): string {
+  const out: Record<string, unknown> = {};
+  const reihenfolge = ["name", "quelle", "aufbewahrung_tage", "mindestabstand_s", "notizen"];
+  for (const key of Object.keys(datei).sort()) {
+    out[key] = ordne(datei[key] as unknown as Record<string, unknown>, reihenfolge);
   }
   return stringify(out, YAML_OPTS);
 }

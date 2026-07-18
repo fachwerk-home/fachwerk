@@ -166,7 +166,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 - **Akzeptanz:** Schema validiert; Beispiel-Visu (Handgeschrieben,
   examples/…) lädt; Round-trip kanonisch.
 
-### P5-7: Visu-Renderer + PWA-Client
+### P5-7: Visu-Renderer + PWA-Client ✅ (erledigt 18.07.2026, Spur 2)
 - **Ziel:** Seiten im Browser rendern — Panel-tauglich.
 - **Umfang:** Canvas/Pinned-Rendering (Breakpoint-Wahl nach Viewport,
   ADR-0010 L-2/L-4), Basiselement-Presets (Taster, Schalter, Status, Wert,

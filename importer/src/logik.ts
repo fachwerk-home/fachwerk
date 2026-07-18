@@ -578,8 +578,6 @@ export interface SeitenKonvertierung {
   neueDatenpunkte: Map<string, Record<string, Datenpunkt>>;
   /** Auf dieser Seite verwendete Stubs (Fremd-LBS, Portierungs-TODO). */
   stubs: StubInfo[];
-  /** Synthetisierte Archiv-Definitionen (cmd 13/42). */
-  archive: Map<string, ArchivDefinition>;
 }
 
 /** Fachwerk-Knoten-Id eines Elements. */
@@ -601,6 +599,12 @@ export function konvertiereSeite(
   fehler: KonvertierungsFehler[];
   /** Nicht blockierend: übersprungene Befehle/Ausgänge (andere Subsysteme). */
   hinweise: KonvertierungsFehler[];
+  /**
+   * Synthetisierte Archiv-Definitionen (cmd 13/42) — bewusst NEBEN `ergebnis`:
+   * reine Archiv-Seiten haben keine Logik (ergebnis = null), liefern aber
+   * trotzdem Archive.
+   */
+  archive: Map<string, ArchivDefinition>;
 } {
   const fehler: KonvertierungsFehler[] = [];
   const hinweise: KonvertierungsFehler[] = [];
@@ -909,10 +913,12 @@ export function konvertiereSeite(
     }
   }
 
-  if (fehler.length > 0) return { ergebnis: null, fehler, hinweise };
+  if (fehler.length > 0) return { ergebnis: null, fehler, hinweise, archive };
   if (Object.keys(knoten).length === 0 && kanten.length === 0) {
     // Nichts Logisches übrig (z. B. reine Archiv-Seite) — kein Fehler.
-    return { ergebnis: null, fehler: [], hinweise };
+    // Die synthetisierten Archive gehen trotzdem mit (genau diese Seiten
+    // sind der Hauptlieferant der Archiv-Definitionen).
+    return { ergebnis: null, fehler: [], hinweise, archive };
   }
   const stubListe = [...stubs.values()];
   const logikSeite: LogikSeite = { knoten, kanten };
@@ -932,9 +938,9 @@ export function konvertiereSeite(
       logik: { notizen, knoten: logikSeite.knoten, kanten: logikSeite.kanten },
       neueDatenpunkte,
       stubs: stubListe,
-      archive,
     },
     fehler: [],
     hinweise,
+    archive,
   };
 }

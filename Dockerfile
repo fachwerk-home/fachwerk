@@ -13,6 +13,12 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
 COPY ui/package.json ui/
 RUN pnpm install --frozen-lockfile --filter @fachwerk/ui
 COPY ui/ ui/
+# Der Visu-Client importiert die PUREN Kern-Module (Format-Kaskade, Ausdruecke,
+# Schema-Typen) per relativem Pfad statt sie zu duplizieren (AUFTRAG-P5-7) —
+# diese Quellbaeume muessen der Build-Stufe deshalb vorliegen.
+COPY schema/src/ schema/src/
+COPY schema/schemas/ schema/schemas/
+COPY core/src/visu/ core/src/visu/
 RUN pnpm --filter @fachwerk/ui build
 
 # ---- Stufe 2: Laufzeit ------------------------------------------------------

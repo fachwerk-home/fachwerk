@@ -14,6 +14,7 @@ export {
   manifestZuYaml,
   datenpunkteZuYaml,
   logikZuYaml,
+  archiveZuYaml,
 } from "./gewerk/canonical.ts";
 export { DatenpunktRegistry } from "./datenpunkte/registry.ts";
 export type {

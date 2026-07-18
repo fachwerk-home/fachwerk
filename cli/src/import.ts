@@ -6,7 +6,14 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { datenpunkteZuYaml, logikZuYaml, manifestZuYaml, loadGewerk } from "@fachwerk/core";
+import {
+  archiveZuYaml,
+  datenpunkteZuYaml,
+  logikZuYaml,
+  manifestZuYaml,
+  loadGewerk,
+} from "@fachwerk/core";
+import type { ArchivDefinition } from "@fachwerk/schema";
 import {
   BEKANNTE_LUECKEN,
   befehlsStatistik,
@@ -46,11 +53,24 @@ export function importiere(dumpPfad: string, ziel: string): number {
   let seitenGeschrieben = 0;
   const seitenFehler: string[] = [];
   const alleStubs = new Map<number, StubInfo>();
+  const alleArchive = new Map<string, ArchivDefinition>();
   if (seiten.some((s) => s.elemente.length > 0)) mkdirSync(join(ziel, "logik"), { recursive: true });
   let hinweisAnzahl = 0;
   for (const seite of seiten) {
-    const { ergebnis, fehler, hinweise } = konvertiereSeite(seite, koZuSchluessel, defs);
+    const { ergebnis, fehler, hinweise, archive } = konvertiereSeite(seite, koZuSchluessel, defs);
     hinweisAnzahl += hinweise.length;
+    // Archiv-Definitionen seitenübergreifend zusammenführen (P5-13c) — auch
+    // von reinen Archiv-Seiten, die kein Logik-Ergebnis haben:
+    // gleiche ID + gleiche Quelle = eine Definition, sonst Warnung, erste gewinnt.
+    for (const [id, def] of archive) {
+      const vorhanden = alleArchive.get(id);
+      if (vorhanden === undefined) alleArchive.set(id, def);
+      else if (vorhanden.quelle !== def.quelle) {
+        console.warn(
+          `WARNUNG: Archiv ${id} mit abweichenden Quellen (${vorhanden.quelle} vs ${def.quelle}) — erste gewinnt`,
+        );
+      }
+    }
     if (ergebnis) {
       writeFileSync(
         join(ziel, "logik", `${ergebnis.seiteSlug}.yaml`),
@@ -112,6 +132,16 @@ export function importiere(dumpPfad: string, ziel: string): number {
     }
   }
 
+  // Archiv-Definitionen schreiben (P5-13c: aus cmd 13/42 synthetisiert).
+  if (alleArchive.size > 0) {
+    mkdirSync(join(ziel, "archiv"), { recursive: true });
+    writeFileSync(
+      join(ziel, "archiv", "import.yaml"),
+      archiveZuYaml(Object.fromEntries(alleArchive)),
+      "utf8",
+    );
+  }
+
   // Selbstprüfung: das erzeugte Gewerk muss unser eigenes validate bestehen.
   const kontrolle = loadGewerk(ziel);
   if (kontrolle.fehler.length > 0) {
@@ -165,6 +195,10 @@ export function importiere(dumpPfad: string, ziel: string): number {
   if (voll.length > 0) {
     console.log("Voll lauffähig importiert (ohne Stubs):");
     for (const s of voll) console.log(`  ✓ ${s.seite} (${s.elemente} Elemente)`);
+  }
+  if (alleArchive.size > 0) {
+    console.log(`Archiv-Definitionen synthetisiert (archiv/import.yaml — Aufbewahrung prüfen!):`);
+    for (const [id, def] of alleArchive) console.log(`  ◇ ${id} ← ${def.quelle}`);
   }
   if (alleStubs.size > 0) {
     console.log(

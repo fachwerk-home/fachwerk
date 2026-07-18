@@ -8,6 +8,7 @@ export default defineConfig({
       "cli/src/**/*.test.ts",
       "importer/src/**/*.test.ts",
       "drivers/*/src/**/*.test.ts",
+      "ui/src/**/*.test.ts",
     ],
   },
 });

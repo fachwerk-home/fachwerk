@@ -263,8 +263,8 @@ INSERT INTO \`editLogicCmdList\` VALUES
     const tab = parseDump(FIXTURE_ARCHIV_OK);
     const { koZuSchluessel } = konvertiere(tab);
     const seite = extrahiereStruktur(tab).find((s) => s.name === "ArchivTest")!;
-    const { ergebnis, fehler, hinweise } = konvertiereSeite(seite, koZuSchluessel);
-    
+    const { ergebnis, fehler, hinweise, archive } = konvertiereSeite(seite, koZuSchluessel);
+
     expect(fehler).toEqual([]);
     
     // 3 Hinweise: cmd 13 an Port, cmd 40, cmd 50
@@ -274,8 +274,7 @@ INSERT INTO \`editLogicCmdList\` VALUES
     expect(hinweise[2]!.meldung).toContain("cmd 50");
 
     expect(ergebnis).not.toBeNull();
-    const archive = ergebnis!.archive;
-    
+
     // archiv_1001: cmd 13 mit dp-Quelle 10 (zweimal gleiche Quelle => ok)
     expect(archive.get("archiv_1001")).toMatchObject({
       name: "Archiv 1001 (aus Import)",
