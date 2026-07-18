@@ -39,9 +39,12 @@ Spur 1 reviewt, merged und verdrahtet.
 
 | Spur | Agent | Schnitt(e) | Dateibesitz (exklusiv) | Auftrag |
 |---|---|---|---|---|
-| 1 | Claude (Maintainer) | P5-4, P5-5, Integration | `cli/`, `ui/`, `core/src/api/`, `Dockerfile`, `.github/`, `tools/`, Compose | — |
-| 2 | Codex | P5-6 Visu-Format | `schema/src/visu.ts`, `core/src/visu/`, `examples/minimal/visu/`, `specs/SPEC-003` (nur Präzisierung) | `docs/auftraege/AUFTRAG-P5-6.md` |
-| 3 | Gemini | P5-13a Archiv-Kern | `schema/src/archiv.ts`, `core/src/archiv/`, `specs/SPEC-004` | `docs/auftraege/AUFTRAG-P5-13a.md` |
+| 1 | Claude (Maintainer) | P5-8, P5-9, P5-13b, Integration | `cli/`, `ui/src/admin+lib`, `core/src/api/`, `Dockerfile`, `.github/`, `tools/`, Compose | — |
+| 2 | Codex | P5-7 Visu-Renderer | `ui/src/visu/**`, `ui/src/visu.html`, `ui/public/` | `docs/auftraege/AUFTRAG-P5-7.md` |
+| 3 | Gemini | P5-13c Archiv-Import | `importer/src/logik.ts` (+ Test, index-Anfügen) | `docs/auftraege/AUFTRAG-P5-13c.md` |
+
+Runde 1 (abgeschlossen 18.07.2026): Spur 1 = P5-4/5, Spur 2 = P5-6
+(AUFTRAG-P5-6), Spur 3 = P5-13a (AUFTRAG-P5-13a) — alles gemergt.
 
 Sammel-Exporte (`core/src/index.ts`, `schema/src/index.ts`): Zeilen nur
 anfügen — Merge-Konflikte bleiben trivial.
@@ -49,17 +52,17 @@ anfügen — Merge-Konflikte bleiben trivial.
 **Abhängigkeiten (wer wen blockiert):**
 
 ```
-P5-4 ─▶ P5-5                         (Spur 1, sequenziell)
-P5-6 ─▶ P5-7 ─▶ P5-8 ─▶ P5-10(a)     (Visu-Kette; P5-7 braucht P5-6-Merge)
-P5-6 ─▶ P5-9                         (Import braucht das Zielformat)
-P5-5 ─▶ P5-11                        (Logik-Editor baut auf Monitor)
-P5-13a ─▶ P5-13b (API+Widget, Spur 1) und P5-13c (Import cmd 13/40/42)
+P5-6 ✅ ─▶ P5-7 ─▶ P5-8 ─▶ P5-10(a)   (Visu-Kette)
+P5-6 ✅ ─▶ P5-9                       (Import braucht das Zielformat;
+                                       braucht _ingest ⇒ NUR Spur 1)
+P5-5 ✅ ─▶ P5-11                      (Logik-Editor baut auf Monitor)
+P5-13a ✅ ─▶ P5-13b (API+Widget, Spur 1) und P5-13c (Import, Spur 3)
 P5-12 zuletzt (härtet alles davor)
 ```
 
-P5-4/5, P5-6 und P5-13a sind wechselseitig unabhängig → drei Spuren parallel.
-Danach sinnvoll: Spur 2 → P5-9 (nach P5-6-Merge), Spur 3 → P5-13c; die
-UI-lastigen Schnitte P5-7/8/10/11 bleiben bei Spur 1 (Hotspot-Dateien).
+Runde 2 läuft parallel: Spur 2 → P5-7 (eigener UI-Bereich `ui/src/visu/`),
+Spur 3 → P5-13c (nur importer), Spur 1 → P5-9 (Visu-Import; Nutzdaten aus
+_ingest sind für Auftrags-Agenten tabu) + P5-13b-Verdrahtung + Reviews.
 
 ---
 
@@ -147,7 +150,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
 ## Block C — Visualisierung (der Kern von Phase 5)
 
-### P5-6: Visu-Format (Schema + Renderer-Fundament)
+### P5-6: Visu-Format (Schema + Renderer-Fundament) ✅ (erledigt 18.07.2026, Spur 2)
 - **Ziel:** `visu/` im Gewerk — deklaratives Format nach SPEC-003/ADR-0010/0011.
 - **Schema (JSON-Schema + TS-Typen in @fachwerk/schema):**
   - `visu/seiten/<seite>.yaml`: Seitentyp (seite|popup|include), Größe je
@@ -238,7 +241,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
 ## Block E — Daten fürs Wohnzimmer
 
-### P5-13: Archive & Diagramme (SPEC-004 minimal) — in drei Teilen
+### P5-13: Archive & Diagramme (SPEC-004 minimal) — in drei Teilen (13a ✅ 18.07.2026, Spur 3)
 - **P5-13a Archiv-Kern (parallelisierbar, Spur 3):** Datenarchiv-Definition im
   Gewerk (`archiv/*.yaml`: Quelle-DP, Aufbewahrung, Raster), Schreiber in core
   (SQLite, ADR-0006), Abfrage-Funktion mit Raster/Aggregation — als

@@ -5,7 +5,7 @@
  *
  * ADR-0009 A-1: Die UI benutzt EXAKT diese API — keine privilegierten Wege.
  */
-import type { Datenpunkt, VisuDesigns, VisuSeite } from "@fachwerk/schema";
+import type { Datenpunkt, VisuDesigns, VisuSeite, WertFormat } from "@fachwerk/schema";
 import type { DatenpunktRegistry, Wert } from "../datenpunkte/registry.ts";
 import type { Gewerk } from "../gewerk/loader.ts";
 import type { TracePuffer } from "./trace-puffer.ts";
@@ -50,6 +50,8 @@ export interface DatenpunktSicht {
   dpt?: string;
   protected?: boolean;
   remanent?: boolean;
+  /** Format-Default des Datenpunkts (ADR-0011 FMT-1 Ebene 1). */
+  format?: WertFormat;
   wert: Wert | null;
   /** ms seit Epoche; null = noch nie geschrieben. */
   ts: number | null;
@@ -70,6 +72,7 @@ function sicht(
     ...(def.dpt !== undefined ? { dpt: def.dpt } : {}),
     ...(def.protected ? { protected: true } : {}),
     ...(def.remanent ? { remanent: true } : {}),
+    ...(def.format !== undefined ? { format: def.format } : {}),
     wert: registry.get(schluessel) ?? null,
     ts: registry.zeitstempel(schluessel) ?? null,
   };
