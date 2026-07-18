@@ -157,3 +157,36 @@ describe("TracePuffer", () => {
     expect(p.letzte(10).map((t) => t.nr)).toEqual([3, 4, 5]);
   });
 });
+
+describe("GET /api/visu", () => {
+  it("liefert Seiten und Designs; ohne Visu leere Objekte", () => {
+    const { ktx } = aufbau();
+    const leer = beantworte(ktx, "GET", "/api/visu", q()).koerper as {
+      seiten: object;
+      designs: object;
+    };
+    expect(leer.seiten).toEqual({});
+    expect(leer.designs).toEqual({});
+
+    ktx.visu = {
+      seiten: new Map([
+        [
+          "wohnzimmer",
+          {
+            typ: "seite",
+            name: "Wohnzimmer",
+            basis: "tablet",
+            groessen: { tablet: { w: 1280, h: 800 } },
+            elemente: {},
+          },
+        ],
+      ]),
+      designs: { standard: { text: "#eee" } },
+    };
+    const a = beantworte(ktx, "GET", "/api/visu", q());
+    expect(a.status).toBe(200);
+    const k = a.koerper as { seiten: Record<string, { name: string }>; designs: object };
+    expect(k.seiten["wohnzimmer"]!.name).toBe("Wohnzimmer");
+    expect(k.designs).toEqual({ standard: { text: "#eee" } });
+  });
+});

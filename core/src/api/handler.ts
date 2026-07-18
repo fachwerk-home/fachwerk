@@ -5,7 +5,7 @@
  *
  * ADR-0009 A-1: Die UI benutzt EXAKT diese API — keine privilegierten Wege.
  */
-import type { Datenpunkt } from "@fachwerk/schema";
+import type { Datenpunkt, VisuDesigns, VisuSeite } from "@fachwerk/schema";
 import type { DatenpunktRegistry, Wert } from "../datenpunkte/registry.ts";
 import type { Gewerk } from "../gewerk/loader.ts";
 import type { TracePuffer } from "./trace-puffer.ts";
@@ -30,6 +30,8 @@ export interface ApiKontext {
   version: string;
   knx: () => TreiberStatus | null;
   mqtt: () => TreiberStatus | null;
+  /** Geladene Visu (P5-6); undefined = Gewerk ohne visu/. */
+  visu?: { seiten: Map<string, VisuSeite>; designs: VisuDesigns };
   jetzt?: () => number;
 }
 
@@ -144,6 +146,13 @@ export function beantworte(
   if (pfad === "/api/traces") {
     const n = Math.min(1000, Math.max(1, Number(query.get("n") ?? 100) || 100));
     return { status: 200, koerper: { traces: ktx.traces.letzte(n) } };
+  }
+
+  if (pfad === "/api/visu") {
+    // Vertrag fuer den Visu-Client (P5-7): Seiten + Designs, wie geladen.
+    const seiten: Record<string, VisuSeite> = {};
+    for (const [key, s] of ktx.visu?.seiten ?? []) seiten[key] = s;
+    return { status: 200, koerper: { seiten, designs: ktx.visu?.designs ?? {} } };
   }
 
   if (pfad === "/api/gewerk") {

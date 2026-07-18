@@ -17,6 +17,7 @@ import {
   UhrDienst,
   WsServer,
   analysiereLogik,
+  ladeVisu,
   loadGewerk,
   sandboxAlsBaustein,
   uhrDatenpunkte,
@@ -291,10 +292,23 @@ export async function run(dir: string): Promise<number> {
   let api: ApiServer | null = null;
   if (httpPort > 0) {
     const uiVerzeichnis = process.env["FACHWERK_UI_DIR"] ?? "/app/ui";
+    // Visu (P5-6) fuer den Client ausliefern. Fehler sind hier Warnungen —
+    // validate ist das Gate; run soll mit dem gueltigen Teil weiterlaufen.
+    const visu = ladeVisu(dir, {
+      definition: (schluessel: string): unknown => {
+        const punkt = schluessel.indexOf(".");
+        if (punkt < 0) return undefined;
+        return gewerk!.datenpunkte.get(schluessel.slice(0, punkt))?.[schluessel.slice(punkt + 1)];
+      },
+    });
+    for (const f of visu.fehler) {
+      console.warn(`WARNUNG Visu ${f.datei}${f.element ? ` [${f.element}]` : ""}: ${f.grund}`);
+    }
     api = new ApiServer(
       {
         gewerk,
         registry,
+        visu: { seiten: visu.seiten, designs: visu.designs },
         traces: tracePuffer,
         gestartet: Date.now(),
         version: "0.1.0",
