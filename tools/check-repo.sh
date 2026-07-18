@@ -7,7 +7,7 @@ fail=0
 err() { echo "FAIL: $1"; fail=1; }
 
 # Required governance files
-for f in LICENSE NOTICE README.md CONTRIBUTING.md CLAUDE.md SECURITY.md \
+for f in LICENSE NOTICE README.md CONTRIBUTING.md AGENTS.md CLAUDE.md GEMINI.md SECURITY.md \
          docs/ANALYSE-UND-PLAN.md docs/ANFORDERUNGEN-COMMUNITY.md \
          adr/0000-template.md; do
   [ -f "$f" ] || err "missing required file: $f"

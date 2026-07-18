@@ -31,13 +31,45 @@ neuen System nachgebaut und alltagstauglich (Panel + Handy).
 
 ---
 
+## Parallelisierung (Spuren & Dateibesitz)
+
+Ab Block B wird in parallelen **Spuren** gearbeitet (Regeln: `AGENTS.md` § 3).
+Jede Spur besitzt disjunkte Dateien; Auftrags-Spuren liefern per Branch + PR,
+Spur 1 reviewt, merged und verdrahtet.
+
+| Spur | Agent | Schnitt(e) | Dateibesitz (exklusiv) | Auftrag |
+|---|---|---|---|---|
+| 1 | Claude (Maintainer) | P5-4, P5-5, Integration | `cli/`, `ui/`, `core/src/api/`, `Dockerfile`, `.github/`, `tools/`, Compose | — |
+| 2 | Codex | P5-6 Visu-Format | `schema/src/visu.ts`, `core/src/visu/`, `examples/minimal/visu/`, `specs/SPEC-003` (nur Präzisierung) | `docs/auftraege/AUFTRAG-P5-6.md` |
+| 3 | Gemini | P5-13a Archiv-Kern | `schema/src/archiv.ts`, `core/src/archiv/`, `specs/SPEC-004` | `docs/auftraege/AUFTRAG-P5-13a.md` |
+
+Sammel-Exporte (`core/src/index.ts`, `schema/src/index.ts`): Zeilen nur
+anfügen — Merge-Konflikte bleiben trivial.
+
+**Abhängigkeiten (wer wen blockiert):**
+
+```
+P5-4 ─▶ P5-5                         (Spur 1, sequenziell)
+P5-6 ─▶ P5-7 ─▶ P5-8 ─▶ P5-10(a)     (Visu-Kette; P5-7 braucht P5-6-Merge)
+P5-6 ─▶ P5-9                         (Import braucht das Zielformat)
+P5-5 ─▶ P5-11                        (Logik-Editor baut auf Monitor)
+P5-13a ─▶ P5-13b (API+Widget, Spur 1) und P5-13c (Import cmd 13/40/42)
+P5-12 zuletzt (härtet alles davor)
+```
+
+P5-4/5, P5-6 und P5-13a sind wechselseitig unabhängig → drei Spuren parallel.
+Danach sinnvoll: Spur 2 → P5-9 (nach P5-6-Merge), Spur 3 → P5-13c; die
+UI-lastigen Schnitte P5-7/8/10/11 bleiben bei Spur 1 (Hotspot-Dateien).
+
+---
+
 ## Block A — Fundament
 
 ### P5-0: Log-Hygiene ✅ (erledigt 18.07.2026)
 `FACHWERK_TRACE=kompakt|voll|aus` (Default kompakt: leere Kaskaden — z. B.
 sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
-### P5-1: ADR-0013 — UI-Stack festlegen
+### P5-1: ADR-0013 — UI-Stack festlegen ✅ (erledigt 18.07.2026)
 - **Ziel:** Verbindliche Technologie-Entscheidung für beide UIs.
 - **Zu entscheiden:** Framework (Kriterien: klein, TS-first, agentenfreundlich =
   von LLMs gut beherrscht, langfristig wartbar; Kandidaten: Preact, React,
@@ -51,7 +83,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 - **Akzeptanz:** ADR akzeptiert; `pnpm --filter @fachwerk/ui dev` startet ein
   Hello-Fachwerk; CI baut die UI; Dockerfile liefert sie aus.
 
-### P5-2: API-Kern (read-only) — ADR-0009 A-1/A-2 Teilmenge
+### P5-2: API-Kern (read-only) — ADR-0009 A-1/A-2 Teilmenge ✅ (erledigt 18.07.2026)
 - **Ziel:** HTTP-Server im `fachwerk run`-Prozess (Node `http`, keine
   Fremdbibliothek), Env `FACHWERK_HTTP_PORT` (Default 8300; 0 = aus).
 - **Endpunkte (alle GET, JSON):**
@@ -72,7 +104,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 - **Akzeptanz:** Unit-Tests für Ringpuffer + Handler (Node `http` injectable);
   E2E: `curl` gegen Compose-Stack liefert Status + Werte; CI-Job.
 
-### P5-3: WebSocket-Live-Kanal
+### P5-3: WebSocket-Live-Kanal ✅ (erledigt 18.07.2026)
 - **Ziel:** `/api/ws` — Push von `{art:"wert", schluessel, wert, ts}` und
   `{art:"trace", trace}` an alle Clients; Ping/Pong.
 - **Technik:** eigene RFC-6455-Serverimplementierung (Upgrade-Handshake,
@@ -206,15 +238,18 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
 ## Block E — Daten fürs Wohnzimmer
 
-### P5-13: Archive & Diagramme (SPEC-004 minimal)
-- **Ziel:** Zeitreihen ins Volume, Diagramm in die Visu.
-- **Umfang:** Datenarchiv-Definition im Gewerk (`archive/*.yaml`: Quelle-DP,
-  Aufbewahrung, Raster), Schreiber in core (SQLite, ADR-0006), API
-  `/api/archive/<id>?von&bis&raster`, Visu-Widget Diagramm (Linie, Zeitachse,
-  Zoom grob); Import: Ausgangsbox-Befehle cmd 13/40/42 → Archiv-Definitionen
-  (die 4 wartenden Archiv-Seiten des Referenz-Gewerks!).
-- **Akzeptanz:** Temperatur läuft am Simulator auf, Diagramm zeigt Verlauf
-  nach Neustart weiter (Persistenz).
+### P5-13: Archive & Diagramme (SPEC-004 minimal) — in drei Teilen
+- **P5-13a Archiv-Kern (parallelisierbar, Spur 3):** Datenarchiv-Definition im
+  Gewerk (`archiv/*.yaml`: Quelle-DP, Aufbewahrung, Raster), Schreiber in core
+  (SQLite, ADR-0006), Abfrage-Funktion mit Raster/Aggregation — als
+  eigenständiges, getestetes Modul OHNE API-/UI-Verdrahtung. Details:
+  `docs/auftraege/AUFTRAG-P5-13a.md`.
+- **P5-13b API + Widget (Spur 1, braucht 13a):** `/api/archive/<id>?von&bis&raster`,
+  Visu-Widget Diagramm (Linie, Zeitachse, Zoom grob).
+- **P5-13c Import (braucht 13a):** Ausgangsbox-Befehle cmd 13/40/42 →
+  Archiv-Definitionen (die 4 wartenden Archiv-Seiten des Referenz-Gewerks!).
+- **Akzeptanz (gesamt):** Temperatur läuft am Simulator auf, Diagramm zeigt
+  Verlauf nach Neustart weiter (Persistenz).
 
 ---
 
