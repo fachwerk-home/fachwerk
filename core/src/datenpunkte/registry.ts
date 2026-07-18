@@ -36,8 +36,12 @@ export class DatenpunktRegistry {
   readonly #definitionen = new Map<string, Datenpunkt>();
   readonly #werte = new Map<string, Wert>();
   readonly #abonnenten = new Set<(e: WertEreignis) => void>();
+  /** Zeitpunkt des letzten angenommenen Schreibens (ms seit Epoche) — für API/UI. */
+  readonly #zeitstempel = new Map<string, number>();
+  readonly #jetzt: () => number;
 
-  constructor(gewerk: Gewerk) {
+  constructor(gewerk: Gewerk, opts: { jetzt?: () => number } = {}) {
+    this.#jetzt = opts.jetzt ?? Date.now;
     for (const [gruppe, datei] of gewerk.datenpunkte) {
       for (const [key, def] of Object.entries(datei)) {
         const schluessel = `${gruppe}.${key}`;
@@ -60,6 +64,11 @@ export class DatenpunktRegistry {
 
   get(schluessel: string): Wert | undefined {
     return this.#werte.get(schluessel);
+  }
+
+  /** Zeitpunkt des letzten angenommenen Schreibens (ms) oder undefined. */
+  zeitstempel(schluessel: string): number | undefined {
+    return this.#zeitstempel.get(schluessel);
   }
 
   /**
@@ -87,6 +96,7 @@ export class DatenpunktRegistry {
     const alt = this.#werte.get(schluessel);
     const geaendert = alt !== wert;
     this.#werte.set(schluessel, wert);
+    this.#zeitstempel.set(schluessel, this.#jetzt());
 
     const ereignis: WertEreignis = { schluessel, wert, alt, geaendert, quelle };
     for (const cb of this.#abonnenten) cb(ereignis);

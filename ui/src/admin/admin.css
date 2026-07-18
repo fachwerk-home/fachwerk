@@ -1,0 +1,93 @@
+.kopf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fw-abstand);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem var(--fw-abstand);
+  background: var(--fw-flaeche);
+  border-bottom: 1px solid var(--fw-rand);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.kopf-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.marke {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--fw-rand);
+  font-size: 0.85em;
+}
+
+.marke-beobachtung {
+  border-color: var(--fw-warn);
+  color: var(--fw-warn);
+  font-weight: 600;
+}
+
+main {
+  padding: var(--fw-abstand);
+}
+
+.meldung {
+  margin: var(--fw-abstand);
+}
+
+.werkzeuge {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: var(--fw-abstand);
+}
+
+.werkzeuge input[type="search"] {
+  flex: 1;
+  max-width: 32rem;
+}
+
+.tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--fw-flaeche);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  overflow: hidden;
+}
+
+.tabelle th,
+.tabelle td {
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--fw-rand);
+  white-space: nowrap;
+}
+
+.tabelle th {
+  background: var(--fw-flaeche-2);
+  font-weight: 600;
+  position: sticky;
+  top: 3rem;
+}
+
+.tabelle tr:last-child td {
+  border-bottom: none;
+}
+
+.rechts {
+  text-align: right;
+}
+
+/* Frisch geänderte Zeile kurz hervorheben (ohne Layout-Sprung). */
+.tabelle tr.frisch td {
+  background: color-mix(in srgb, var(--fw-akzent) 18%, transparent);
+  transition: background 1.5s ease-out;
+}

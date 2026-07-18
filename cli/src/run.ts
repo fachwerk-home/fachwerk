@@ -5,19 +5,23 @@
  * Statusmeldungen nach stderr. Konfiguration über Env (Container-first):
  * FACHWERK_KNX_HOST / FACHWERK_KNX_PORT / FACHWERK_DATEN_DIR (Persistenz).
  */
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
+  ApiServer,
   BausteinSandbox,
   DatenpunktRegistry,
   LogikEngine,
   Speicher,
+  TracePuffer,
   UhrDienst,
+  WsServer,
   analysiereLogik,
   loadGewerk,
   sandboxAlsBaustein,
   uhrDatenpunkte,
   type Baustein,
+  type TreiberStatus,
   type Wert,
 } from "@fachwerk/core";
 import { KnxTreiber } from "@fachwerk/driver-knx";
@@ -119,9 +123,16 @@ export async function run(dir: string): Promise<number> {
   // „kompakt" unterdrückt leere Kaskaden (z. B. der sekündliche Uhr-Tick,
   // wenn kein Baustein feuert) — sonst ist das Log nicht lesbar.
   const traceModus = process.env["FACHWERK_TRACE"] ?? "kompakt";
+  // Ringpuffer + WS speisen die API/UI unabhängig vom stdout-Log (P5-2/P5-3).
+  const tracePuffer = new TracePuffer(Number(process.env["FACHWERK_TRACE_PUFFER"] ?? 500));
+  const ws = new WsServer();
   const engine = new LogikEngine(gewerk, registry, {
     onTrace: (t) => {
       const leer = t.schritte.length === 0 && t.schreibvorgaenge.length === 0;
+      if (!leer) {
+        tracePuffer.hinzu(t);
+        if (ws.anzahl > 0) ws.sendeAllen(JSON.stringify({ art: "trace", trace: t }));
+      }
       if (traceModus === "voll" || (traceModus !== "aus" && !leer)) {
         console.log(JSON.stringify(t));
       }
@@ -145,10 +156,21 @@ export async function run(dir: string): Promise<number> {
     }
   }
 
-  // Remanente Werte fortlaufend sichern.
+  // Remanente Werte fortlaufend sichern + Live-Push an die UI (P5-3).
   registry.abonniere((e) => {
     if (registry.definition(e.schluessel)?.remanent) {
       speicher.sichereWert(e.schluessel, e.wert);
+    }
+    if (e.geaendert && ws.anzahl > 0) {
+      ws.sendeAllen(
+        JSON.stringify({
+          art: "wert",
+          schluessel: e.schluessel,
+          wert: e.wert,
+          quelle: e.quelle,
+          ts: registry.zeitstempel(e.schluessel) ?? Date.now(),
+        }),
+      );
     }
   });
 
@@ -264,6 +286,62 @@ export async function run(dir: string): Promise<number> {
     });
   }
 
+  // ---- HTTP-API + WebSocket (P5-2/P5-3) --------------------------------------
+  const httpPort = Number(process.env["FACHWERK_HTTP_PORT"] ?? 8300);
+  let api: ApiServer | null = null;
+  if (httpPort > 0) {
+    const uiVerzeichnis = process.env["FACHWERK_UI_DIR"] ?? "/app/ui";
+    api = new ApiServer(
+      {
+        gewerk,
+        registry,
+        traces: tracePuffer,
+        gestartet: Date.now(),
+        version: "0.1.0",
+        knx: (): TreiberStatus => ({
+          verbunden: treiber.verbunden,
+          modus: beobachten ? "beobachten" : "normal",
+          endpunkt: `${host}:${port}`,
+          ...(treiber.adresse !== null ? { adresse: treiber.adresse } : {}),
+          ...(treiber.kanal >= 0 ? { kanal: treiber.kanal } : {}),
+        }),
+        mqtt: (): TreiberStatus | null =>
+          mqtt
+            ? {
+                verbunden: mqtt.verbunden,
+                modus: mqtt.beobachtet ? "beobachten" : "normal",
+                topics: topicZuDp.size,
+              }
+            : null,
+      },
+      {
+        port: httpPort,
+        ...(existsSync(uiVerzeichnis) ? { uiVerzeichnis } : {}),
+        ...(process.env["FACHWERK_API_TOKEN"]
+          ? { token: process.env["FACHWERK_API_TOKEN"] }
+          : {}),
+        onMeldung: (m) => console.error(`API: ${m}`),
+      },
+    );
+    api.setzeUpgrade((req, socket) => {
+      if ((req.url ?? "").startsWith("/api/ws")) ws.behandleUpgrade(req, socket);
+      else socket.destroy();
+    });
+    try {
+      await api.starte();
+      console.error(
+        `API/UI: http://0.0.0.0:${httpPort}` +
+          (existsSync(uiVerzeichnis) ? "" : " (nur /api — UI nicht gebaut)") +
+          (process.env["FACHWERK_API_TOKEN"] ? " [Token-Pflicht]" : ""),
+      );
+    } catch (e) {
+      console.error(`API: Start auf Port ${httpPort} fehlgeschlagen: ${
+        e instanceof Error ? e.message : e
+      } — läuft ohne API weiter.`);
+      api = null;
+    }
+  }
+
   // Verbinden mit Backoff — UNENDLICH, nie aufgeben: ein Dienst, der wegen
   // eines vorübergehend unerreichbaren Gateways stirbt, erzeugt nur einen
   // Crash-Loop (und reißt seine Logs mit). Lieber laufen bleiben und den Grund
@@ -345,6 +423,8 @@ export async function run(dir: string): Promise<number> {
     const stop = (): void => {
       console.error("fachwerk: Shutdown …");
       mqtt?.trenne();
+      ws.schliesseAlle();
+      api?.stoppe();
       void treiber.trenne().then(() => {
         engine.stop();
         uhr_dienst.stop();

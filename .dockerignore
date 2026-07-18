@@ -1,10 +1,14 @@
 .git
 node_modules
 research
+_ingest
 docs
 adr
 specs
-ui
 tools
 *.md
 .env*
+# ui/ wird GEBRAUCHT (Build-Stufe 1 baut die Oberflaeche) — nur die lokalen
+# Artefakte draussen lassen, damit der Build reproduzierbar bleibt.
+ui/dist
+ui/node_modules

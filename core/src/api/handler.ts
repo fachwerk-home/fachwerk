@@ -1,0 +1,174 @@
+/**
+ * API-Handler (P5-2) — reine Funktion Anfrage → Antwort, ohne node:http.
+ * So ist die komplette API ohne Socket testbar; der Server (server.ts) ist nur
+ * eine dünne Transportschicht. Read-only; der Schreibpfad kommt in P5-8.
+ *
+ * ADR-0009 A-1: Die UI benutzt EXAKT diese API — keine privilegierten Wege.
+ */
+import type { Datenpunkt } from "@fachwerk/schema";
+import type { DatenpunktRegistry, Wert } from "../datenpunkte/registry.ts";
+import type { Gewerk } from "../gewerk/loader.ts";
+import type { TracePuffer } from "./trace-puffer.ts";
+
+export interface TreiberStatus {
+  verbunden: boolean;
+  modus: "normal" | "beobachten";
+  endpunkt?: string;
+  /** KNX: zugewiesene Individualadresse + Tunnel-Kanal. */
+  adresse?: string;
+  kanal?: number;
+  /** MQTT: Anzahl abonnierter Topics. */
+  topics?: number;
+}
+
+export interface ApiKontext {
+  gewerk: Gewerk;
+  registry: DatenpunktRegistry;
+  traces: TracePuffer;
+  /** Startzeit des Prozesses (ms) für die Uptime. */
+  gestartet: number;
+  version: string;
+  knx: () => TreiberStatus | null;
+  mqtt: () => TreiberStatus | null;
+  jetzt?: () => number;
+}
+
+export interface ApiAntwort {
+  status: number;
+  koerper: unknown;
+}
+
+export interface DatenpunktSicht {
+  schluessel: string;
+  name: string;
+  klasse: Datenpunkt["klasse"];
+  typ: Datenpunkt["typ"];
+  treiber?: string;
+  adresse?: string;
+  dpt?: string;
+  protected?: boolean;
+  remanent?: boolean;
+  wert: Wert | null;
+  /** ms seit Epoche; null = noch nie geschrieben. */
+  ts: number | null;
+}
+
+function sicht(
+  schluessel: string,
+  def: Datenpunkt,
+  registry: DatenpunktRegistry,
+): DatenpunktSicht {
+  return {
+    schluessel,
+    name: def.name,
+    klasse: def.klasse,
+    typ: def.typ,
+    ...(def.treiber !== undefined ? { treiber: def.treiber } : {}),
+    ...(def.adresse !== undefined ? { adresse: def.adresse } : {}),
+    ...(def.dpt !== undefined ? { dpt: def.dpt } : {}),
+    ...(def.protected ? { protected: true } : {}),
+    ...(def.remanent ? { remanent: true } : {}),
+    wert: registry.get(schluessel) ?? null,
+    ts: registry.zeitstempel(schluessel) ?? null,
+  };
+}
+
+/** Alle Datenpunkte als flache Liste (Schlüssel → Definition). */
+function alleDatenpunkte(gewerk: Gewerk): Array<[string, Datenpunkt]> {
+  const liste: Array<[string, Datenpunkt]> = [];
+  for (const [gruppe, datei] of gewerk.datenpunkte) {
+    for (const [key, def] of Object.entries(datei)) liste.push([`${gruppe}.${key}`, def]);
+  }
+  return liste;
+}
+
+/**
+ * Beantwortet eine API-Anfrage. `pfad` ohne Query, `query` bereits geparst.
+ * Unbekannte Pfade ⇒ 404 (der Server entscheidet, ob er stattdessen die UI
+ * ausliefert).
+ */
+export function beantworte(
+  ktx: ApiKontext,
+  methode: string,
+  pfad: string,
+  query: URLSearchParams,
+): ApiAntwort {
+  if (methode !== "GET") {
+    return { status: 405, koerper: { fehler: "nur GET (Schreibpfad folgt in P5-8)" } };
+  }
+
+  if (pfad === "/api/status") {
+    const jetzt = (ktx.jetzt ?? Date.now)();
+    const dps = alleDatenpunkte(ktx.gewerk);
+    return {
+      status: 200,
+      koerper: {
+        gewerk: ktx.gewerk.manifest.name,
+        version: ktx.version,
+        uptimeMs: jetzt - ktx.gestartet,
+        datenpunkte: dps.length,
+        logikseiten: ktx.gewerk.logik.size,
+        bausteine: ktx.gewerk.bausteine?.size ?? 0,
+        traces: { anzahl: ktx.traces.anzahl, kapazitaet: ktx.traces.kapazitaet },
+        knx: ktx.knx(),
+        mqtt: ktx.mqtt(),
+      },
+    };
+  }
+
+  if (pfad === "/api/datenpunkte") {
+    const filter = (query.get("filter") ?? "").toLowerCase();
+    const klasse = query.get("klasse");
+    const nurGesetzt = query.get("gesetzt") === "1";
+    let liste = alleDatenpunkte(ktx.gewerk).map(([s, d]) => sicht(s, d, ktx.registry));
+    if (filter) {
+      liste = liste.filter(
+        (d) =>
+          d.schluessel.toLowerCase().includes(filter) ||
+          d.name.toLowerCase().includes(filter) ||
+          (d.adresse ?? "").toLowerCase().includes(filter),
+      );
+    }
+    if (klasse) liste = liste.filter((d) => d.klasse === klasse);
+    if (nurGesetzt) liste = liste.filter((d) => d.ts !== null);
+    return { status: 200, koerper: { anzahl: liste.length, datenpunkte: liste } };
+  }
+
+  if (pfad.startsWith("/api/datenpunkte/")) {
+    const schluessel = decodeURIComponent(pfad.slice("/api/datenpunkte/".length));
+    const def = ktx.registry.definition(schluessel);
+    if (!def) return { status: 404, koerper: { fehler: `unbekannter Datenpunkt: ${schluessel}` } };
+    return { status: 200, koerper: sicht(schluessel, def, ktx.registry) };
+  }
+
+  if (pfad === "/api/traces") {
+    const n = Math.min(1000, Math.max(1, Number(query.get("n") ?? 100) || 100));
+    return { status: 200, koerper: { traces: ktx.traces.letzte(n) } };
+  }
+
+  if (pfad === "/api/gewerk") {
+    const seiten = [...ktx.gewerk.logik.entries()].map(([name, seite]) => ({
+      name,
+      notizen: seite.notizen ?? null,
+      knoten: Object.entries(seite.knoten).map(([id, k]) => ({
+        id,
+        baustein: k.baustein,
+        parameter: k.parameter ?? {},
+      })),
+      kanten: seite.kanten,
+    }));
+    const bausteine = [...(ktx.gewerk.bausteine?.values() ?? [])].map((b) => ({
+      id: b.manifest.id,
+      name: b.manifest.name,
+      eingaenge: b.manifest.eingaenge,
+      ausgaenge: b.manifest.ausgaenge,
+      beschreibung: b.manifest.beschreibung ?? null,
+    }));
+    return {
+      status: 200,
+      koerper: { name: ktx.gewerk.manifest.name, seiten, bausteine },
+    };
+  }
+
+  return { status: 404, koerper: { fehler: `unbekannter Endpunkt: ${pfad}` } };
+}

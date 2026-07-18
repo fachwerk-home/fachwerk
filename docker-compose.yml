@@ -17,6 +17,10 @@ services:
       FACHWERK_DATEN_DIR: /daten
       # Beobachtungsmodus vom Host durchreichen (leer = normal senden).
       FACHWERK_KNX_MODUS: ${FACHWERK_KNX_MODUS:-}
+      FACHWERK_HTTP_PORT: "8300"
+    ports:
+      # API + UI (P5-2/P5-3) auf dem Host erreichbar.
+      - "8300:8300"
     volumes:
       # Gewerk ist Daten, nicht Image-Inhalt: kommt immer per Volume.
       - ./examples:/gewerke:ro

@@ -1,0 +1,108 @@
+/* Design-Tokens (ADR-0013 U-5): plain CSS, kein UI-Kit. Dark/Light folgt dem
+   System; Werte bewusst wenige und sprechend. */
+:root {
+  color-scheme: light dark;
+
+  --fw-bg: #f6f7f9;
+  --fw-flaeche: #ffffff;
+  --fw-flaeche-2: #eef0f4;
+  --fw-rand: #d5d9e0;
+  --fw-text: #1a1d21;
+  --fw-text-schwach: #626a75;
+  --fw-akzent: #2f6f4f;
+  --fw-warn: #a8620b;
+  --fw-fehler: #b3261e;
+  --fw-ok: #2f6f4f;
+
+  --fw-abstand: 0.75rem;
+  --fw-radius: 8px;
+  --fw-schrift: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fw-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fw-bg: #16181c;
+    --fw-flaeche: #1e2126;
+    --fw-flaeche-2: #262a31;
+    --fw-rand: #363b44;
+    --fw-text: #e6e8ec;
+    --fw-text-schwach: #9aa3b0;
+    --fw-akzent: #6fbf95;
+    --fw-warn: #e0a458;
+    --fw-fehler: #ef7a72;
+    --fw-ok: #6fbf95;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fw-bg);
+  color: var(--fw-text);
+  font-family: var(--fw-schrift);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+a {
+  color: var(--fw-akzent);
+}
+
+code,
+.mono {
+  font-family: var(--fw-mono);
+  font-size: 0.9em;
+}
+
+.karte {
+  background: var(--fw-flaeche);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  padding: var(--fw-abstand);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--fw-flaeche-2);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--fw-akzent);
+}
+button[aria-pressed="true"] {
+  background: var(--fw-akzent);
+  color: var(--fw-bg);
+  border-color: var(--fw-akzent);
+}
+
+input[type="search"],
+input[type="text"],
+select {
+  font: inherit;
+  color: inherit;
+  background: var(--fw-flaeche);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  padding: 0.35rem 0.55rem;
+}
+
+.schwach {
+  color: var(--fw-text-schwach);
+}
+.ok {
+  color: var(--fw-ok);
+}
+.warn {
+  color: var(--fw-warn);
+}
+.fehler {
+  color: var(--fw-fehler);
+}

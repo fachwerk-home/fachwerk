@@ -4,3 +4,9 @@ packages:
   - cli
   - importer
   - drivers/*
+  - ui
+# esbuild (Bundler hinter Vite) braucht seinen Install-Schritt fuer die
+# native Binary — bewusst erlaubt; reine BUILD-Zeit-Abhaengigkeit der UI,
+# der Kern bleibt abhaengigkeitsfrei (ADR-0013).
+allowBuilds:
+  esbuild: true

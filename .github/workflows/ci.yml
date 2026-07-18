@@ -40,6 +40,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      - name: UI bauen (ADR-0013)
+        run: pnpm --filter @fachwerk/ui build
 
   container:
     name: Container build & smoke test
@@ -68,3 +70,5 @@ jobs:
         run: bash tools/e2e-beobachtung.sh
       - name: MQTT-Rundlauf (echter Mosquitto → Logik → Mosquitto)
         run: bash tools/e2e-mqtt.sh
+      - name: API + WebSocket (Status, Werte, Traces, Live, UI)
+        run: bash tools/e2e-api.sh
