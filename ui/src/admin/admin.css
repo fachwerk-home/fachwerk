@@ -199,3 +199,108 @@ main {
   padding: 0.15rem 0;
   overflow-wrap: anywhere;
 }
+
+/* ---- Logik-Monitor (P5-5) -------------------------------------------------- */
+
+.logik-huelle {
+  overflow: auto;
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche);
+  max-height: calc(100vh - 14rem);
+}
+
+.logik-notiz {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40rem;
+}
+
+.logik-detail {
+  margin-bottom: var(--fw-abstand);
+}
+
+.logik-detail h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1em;
+}
+
+.marke-stub {
+  border-color: var(--fw-warn);
+  color: var(--fw-warn);
+  margin-left: 0.5rem;
+}
+
+.logik-svg .knoten {
+  fill: var(--fw-flaeche-2);
+  stroke: var(--fw-rand);
+  stroke-width: 1;
+  transition: stroke 0.6s ease-out, stroke-width 0.6s ease-out;
+}
+
+.logik-svg .knoten-feuert {
+  stroke: var(--fw-akzent);
+  stroke-width: 2.5;
+  transition: none;
+}
+
+.logik-svg .knoten-stub {
+  stroke-dasharray: 5 3;
+  stroke: var(--fw-warn);
+}
+
+.logik-svg .knoten-fehler {
+  stroke: var(--fw-fehler);
+  stroke-width: 2;
+}
+
+.logik-svg .knoten-gewaehlt {
+  stroke: var(--fw-akzent);
+  stroke-width: 2;
+}
+
+.knoten-klick {
+  cursor: pointer;
+}
+
+.logik-svg .knoten-titel {
+  fill: var(--fw-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.logik-svg .port-text {
+  fill: var(--fw-text-schwach);
+  font-size: 10px;
+  font-family: var(--fw-mono);
+}
+
+.logik-svg .dp-knoten {
+  fill: var(--fw-flaeche);
+  stroke: var(--fw-akzent);
+  stroke-width: 1;
+}
+
+.logik-svg .dp-text {
+  fill: var(--fw-text);
+  font-size: 10.5px;
+  font-family: var(--fw-mono);
+}
+
+.logik-svg .kante {
+  fill: none;
+  stroke: var(--fw-rand);
+  stroke-width: 1.4;
+}
+
+.logik-svg .kante-an {
+  stroke: var(--fw-akzent);
+  stroke-width: 2;
+}
+
+.logik-svg .kante-wert {
+  fill: var(--fw-text-schwach);
+  font-size: 10px;
+  font-family: var(--fw-mono);
+}

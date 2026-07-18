@@ -6,6 +6,7 @@ import {
   api,
   verbindeLive,
   type DatenpunktSicht,
+  type GewerkStruktur,
   type LiveNachricht,
   type Status,
   type Trace,
@@ -13,8 +14,31 @@ import {
 import { dauer } from "./format.ts";
 import { Datenpunkte } from "./datenpunkte.tsx";
 import { Traces } from "./traces.tsx";
+import { Logik, type LetzterSchritt } from "./logik.tsx";
 
 const TRACE_LIMIT = 300;
+
+/** Letzten Trace-Schritt je Knoten einarbeiten ("seite/knoten" → Schritt). */
+function schritteAus(
+  traces: Trace[],
+  alt: Record<string, LetzterSchritt>,
+): Record<string, LetzterSchritt> {
+  const neu = { ...alt };
+  for (const t of traces) {
+    for (const s of t.schritte) {
+      const bisher = neu[s.knoten];
+      if (bisher && bisher.traceNr > t.nr) continue;
+      neu[s.knoten] = {
+        ts: t.gestartet,
+        traceNr: t.nr,
+        eingaenge: s.eingaenge,
+        ausgaenge: s.ausgaenge,
+        fehler: s.fehler,
+      };
+    }
+  }
+  return neu;
+}
 
 function Kopf({ status, live }: { status: Status | null; live: boolean }) {
   const knx = status?.knx;
@@ -46,7 +70,7 @@ function Kopf({ status, live }: { status: Status | null; live: boolean }) {
   );
 }
 
-type Ansicht = "datenpunkte" | "traces";
+type Ansicht = "datenpunkte" | "traces" | "logik";
 
 function App() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -55,6 +79,10 @@ function App() {
   const [live, setLive] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [ansicht, setAnsicht] = useState<Ansicht>("datenpunkte");
+  const [gewerk, setGewerk] = useState<GewerkStruktur | null>(null);
+  // Letzter Schritt je Knoten — läuft an der Trace-Pause VORBEI, damit der
+  // Logik-Monitor immer live bleibt (Pause gehört zur Trace-Ansicht).
+  const [schritte, setSchritte] = useState<Record<string, LetzterSchritt>>({});
 
   const [traces, setTraces] = useState<Trace[]>([]);
   const [pausiert, setPausiert] = useState(false);
@@ -69,11 +97,18 @@ function App() {
     let aktiv = true;
     const laden = async (): Promise<void> => {
       try {
-        const [s, d, t] = await Promise.all([api.status(), api.datenpunkte(), api.traces(100)]);
+        const [s, d, t, g] = await Promise.all([
+          api.status(),
+          api.datenpunkte(),
+          api.traces(100),
+          api.gewerk(),
+        ]);
         if (!aktiv) return;
         setStatus(s);
         setDps(d.datenpunkte);
         setTraces([...t.traces].sort((a, b) => b.nr - a.nr));
+        setSchritte((alt) => schritteAus(t.traces, alt));
+        setGewerk(g);
         setFehler(null);
       } catch (e) {
         if (aktiv) setFehler(e instanceof Error ? e.message : String(e));
@@ -98,6 +133,7 @@ function App() {
         return;
       }
       if (n.art === "trace") {
+        setSchritte((alt) => schritteAus([n.trace], alt));
         if (pausiertRef.current) {
           puffer.current.push(n.trace);
           setWartend(puffer.current.length);
@@ -128,6 +164,9 @@ function App() {
         <button aria-pressed={ansicht === "traces"} onClick={() => setAnsicht("traces")}>
           Traces{pausiert && wartend > 0 ? ` (${wartend})` : ""}
         </button>
+        <button aria-pressed={ansicht === "logik"} onClick={() => setAnsicht("logik")}>
+          Logik
+        </button>
       </nav>
       {fehler && <div class="karte fehler meldung">API nicht erreichbar: {fehler}</div>}
       <main>
@@ -138,6 +177,9 @@ function App() {
         </section>
         <section hidden={ansicht !== "traces"}>
           <Traces traces={traces} pausiert={pausiert} wartend={wartend} setzePause={setzePause} />
+        </section>
+        <section hidden={ansicht !== "logik"}>
+          <Logik gewerk={gewerk} dps={dps} schritte={schritte} />
         </section>
       </main>
     </>
