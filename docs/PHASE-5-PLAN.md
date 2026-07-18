@@ -119,7 +119,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
 ## Block B — Sichtbarer Nutzen (Monitor)
 
-### P5-4: Status-UI („der Beobachter im Browser")
+### P5-4: Status-UI („der Beobachter im Browser") ✅ (erledigt 18.07.2026)
 - **Ziel:** Erste echte Seite — ersetzt das Portainer-Log-Elend.
 - **Umfang:**
   - Kopf: Status (KNX/MQTT verbunden, Modus-Banner BEOBACHTUNG, Uptime).
@@ -131,7 +131,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 - **Akzeptanz:** Im Compose-Stack: Simulator-Injektion sichtbar als
   Wert-Update + Trace im Browser, ohne Reload; Trace-Pause hält die Ansicht.
 
-### P5-5: Logik-Monitor (read-only)
+### P5-5: Logik-Monitor (read-only) ✅ (erledigt 18.07.2026)
 - **Ziel:** EDOMIs heimliches Killer-Feature, modern: Logikseiten als Graph
   SEHEN, mit Live-Werten.
 - **Umfang:** Seitenliste aus `/api/gewerk`; Graph-Rendering (Knoten, Ports,
