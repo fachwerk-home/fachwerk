@@ -1,0 +1,6 @@
+aussen_temperatur:
+  name: Außentemperatur
+  quelle: aussen.temperatur
+  aufbewahrung_tage: 365
+  mindestabstand_s: 60
+  notizen: fuer das Wohnzimmer-Diagramm

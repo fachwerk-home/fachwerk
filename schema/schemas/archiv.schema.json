@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fachwerk.io/schemas/archiv.schema.json",
+  "title": "Archiv-Datei",
+  "description": "Definition von Zeitreihen-Archiven (Schlüssel -> Definition)",
+  "type": "object",
+  "patternProperties": {
+    "^[a-zA-Z0-9_]+$": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "quelle": { "type": "string" },
+        "aufbewahrung_tage": { "type": "integer", "minimum": 1 },
+        "mindestabstand_s": { "type": "integer", "minimum": 0 },
+        "notizen": { "type": "string" }
+      },
+      "required": ["name", "quelle", "aufbewahrung_tage"],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

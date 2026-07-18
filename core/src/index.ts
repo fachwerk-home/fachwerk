@@ -53,3 +53,7 @@ export type { VisuLadeErgebnis, VisuLadeFehler, DatenpunktDefinitionen } from ".
 export { effektivesFormat, formatiereWert } from "./visu/format.ts";
 export { kompiliereTemplate } from "./visu/ausdruck.ts";
 export type { AusdruckFehler, AusdruckErgebnis, KompiliertesTemplate, WertLookup } from "./visu/ausdruck.ts";
+export { ladeArchive } from "./archiv/laden.ts";
+export type { ArchivLadeErgebnis, ArchivLadeFehler } from "./archiv/laden.ts";
+export { ArchivDienst } from "./archiv/dienst.ts";
+export type { ArchivDienstOptionen, RohPunkt, AggregiertPunkt, AbfrageOptionen, Aggregation } from "./archiv/dienst.ts";
