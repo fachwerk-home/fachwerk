@@ -247,6 +247,33 @@ describe("KnxTreiber", () => {
     expect([...telegramme[0]!.rohBytes]).toEqual([0x0c, 0x33]);
   });
 
+  it("DPT-Payload-Konflikt: kein Crash, Rohwert + EINE Warnung je GA (Realbus-Bug)", async () => {
+    // Genau der Absturz vom echten Bus: GA als 9.001 gemappt, aber es kommt
+    // ein 6-Bit-Telegramm (falsches Mapping/zweiter Sender). Früher:
+    // ungefangene Exception im UDP-Handler ⇒ Prozess tot ⇒ Restart-Loop.
+    const telegramme: KnxTelegramm[] = [];
+    const fehler: string[] = [];
+    server = new MockServer();
+    await server.start();
+    treiber = new KnxTreiber({
+      host: "127.0.0.1",
+      port: server.port,
+      dpts: new Map([["0/4/17", "9.001"]]),
+      onTelegramm: (t) => telegramme.push(t),
+      onFehler: (m) => fehler.push(m),
+    });
+    await treiber.verbinde();
+
+    server.injiziere(gaZuZahl("0/4/17"), 1, 0); // 6-Bit statt 2 Byte
+    server.injiziere(gaZuZahl("0/4/17"), 0, 1); // gleiche GA nochmal
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(telegramme).toHaveLength(2); // lebt weiter, liefert Rohwerte
+    expect(telegramme[0]).toMatchObject({ ga: "0/4/17", wert: 1 });
+    expect(fehler.filter((m) => m.includes("0/4/17"))).toHaveLength(1); // Dedup
+    expect(fehler[0]).toContain("9.001");
+  });
+
   it("ohne DPT: rohBytes sind maßgeblich, lange Nutzlast wird NICHT geraten", async () => {
     const telegramme: KnxTelegramm[] = [];
     const { server } = await verbunden((t) => telegramme.push(t));

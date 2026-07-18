@@ -77,6 +77,8 @@ export class KnxTreiber {
   #heartbeat: ReturnType<typeof setInterval> | null = null;
   #verbunden = false;
   #adresse: string | null = null;
+  /** GAs mit bereits gemeldetem DPT-Payload-Konflikt (Warnung nur einmal). */
+  readonly #dptWarnungen = new Set<string>();
 
   constructor(opts: KnxTreiberOptionen) {
     this.#opts = { port: 3671, heartbeatMs: 60_000, ...opts };
@@ -89,7 +91,18 @@ export class KnxTreiber {
   async verbinde(timeoutMs = 3000): Promise<void> {
     const socket = createSocket("udp4");
     this.#socket = socket;
-    socket.on("message", (msg) => this.#aufNachricht(msg));
+    socket.on("message", (msg) => {
+      // Verteidigungslinie: Bus-Input ist ungewiss — ein kaputtes Telegramm
+      // darf den Prozess NIE beenden (ungefangene Exception im UDP-Handler
+      // wäre sofortiger Tod + Restart-Loop).
+      try {
+        this.#aufNachricht(msg);
+      } catch (e) {
+        this.#opts.onFehler?.(
+          `Telegramm verworfen (${e instanceof Error ? e.message : String(e)})`,
+        );
+      }
+    });
     socket.on("error", (e) => this.#opts.onFehler?.(`Socket-Fehler: ${e.message}`));
 
     await new Promise<void>((resolve) => socket.bind(0, resolve));
@@ -241,19 +254,32 @@ export class KnxTreiber {
         ? Uint8Array.of(apciHigh & 0x3f)
         : Uint8Array.from(cemi.subarray(p + 9, p + 9 + npduLen - 1));
 
-    let wert: boolean | number;
+    // Rohwert-Notbehelf: kurze Nutzlast als Ganzzahl (exakt); Längeres NICHT
+    // in eine Zahl pressen (lief über MAX_SAFE_INTEGER → Fantasiewerte).
+    const rohwert = rohBytes.length <= 4 ? rohBytes.reduce((a, b) => a * 256 + b, 0) : 0;
+
+    let wert: boolean | number = rohwert;
     if (dpt) {
-      wert = decodeDpt(
-        dpt,
-        npduLen === 1 ? { art: "klein", wert: apciHigh & 0x3f } : { art: "bytes", bytes: rohBytes },
-      );
-    } else if (rohBytes.length <= 4) {
-      // Ohne DPT: kurze Nutzlast als Ganzzahl (Notbehelf, bleibt exakt).
-      wert = rohBytes.reduce((a, b) => a * 256 + b, 0);
-    } else {
-      // Längeres ohne DPT NICHT in eine Zahl pressen: das lief über
-      // Number.MAX_SAFE_INTEGER und erzeugte Fantasiewerte (1.58e+33).
-      wert = 0;
+      try {
+        wert = decodeDpt(
+          dpt,
+          npduLen === 1
+            ? { art: "klein", wert: apciHigh & 0x3f }
+            : { art: "bytes", bytes: rohBytes },
+        );
+      } catch {
+        // Realer Bus: Payload passt nicht zum konfigurierten DPT (falsches
+        // Mapping oder zweiter Sender auf der GA). Das darf NIE den Prozess
+        // beenden — Rohwert nehmen, EINMAL je GA benennen (Mapping fixbar).
+        if (!this.#dptWarnungen.has(ga)) {
+          this.#dptWarnungen.add(ga);
+          const hex = [...rohBytes].map((b) => b.toString(16).padStart(2, "0")).join(" ");
+          this.#opts.onFehler?.(
+            `GA ${ga}: Payload 0x${hex} passt nicht zu DPT ${dpt} — nutze Rohwert ` +
+              "(DPT-Zuordnung im Gewerk prüfen; Warnung erscheint je GA nur einmal)",
+          );
+        }
+      }
     }
 
     this.#opts.onTelegramm?.({ ga, wert, rohBytes, art });

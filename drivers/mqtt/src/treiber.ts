@@ -127,8 +127,15 @@ export class MqttTreiber {
     });
 
     socket.on("data", (chunk: Buffer) => {
-      this.#puffer = Buffer.concat([this.#puffer, chunk]);
-      this.#verarbeitePuffer(beiConnack);
+      // Gleiche Verteidigungslinie wie beim KNX-Treiber: kaputte Pakete
+      // dürfen den Prozess nie beenden.
+      try {
+        this.#puffer = Buffer.concat([this.#puffer, chunk]);
+        this.#verarbeitePuffer(beiConnack);
+      } catch (e) {
+        this.#opts.onStatus?.(false, `Paket verworfen (${e instanceof Error ? e.message : e})`);
+        this.#puffer = Buffer.alloc(0); // Parser-Zustand verwerfen, weiterleben
+      }
       beiConnack = undefined; // nur beim ersten CONNACK auflösen
     });
 
