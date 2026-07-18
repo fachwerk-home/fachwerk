@@ -8,7 +8,7 @@
  * Clean-Room: liest ausschließlich die Konfigurations-/Verdrahtungsdaten des
  * Anlagenbetreibers, niemals Programmcode.
  */
-import type { Datenpunkt, LogikSeite } from "@fachwerk/schema";
+import type { Datenpunkt, LogikSeite, ArchivDefinition } from "@fachwerk/schema";
 import type { Tabelle, Zeile } from "./sql-dump.ts";
 import { slug } from "./konvertiere.ts";
 import { befehlDef, type BefehlKategorie } from "./befehle-katalog.ts";
@@ -578,6 +578,8 @@ export interface SeitenKonvertierung {
   neueDatenpunkte: Map<string, Record<string, Datenpunkt>>;
   /** Auf dieser Seite verwendete Stubs (Fremd-LBS, Portierungs-TODO). */
   stubs: StubInfo[];
+  /** Synthetisierte Archiv-Definitionen (cmd 13/42). */
+  archive: Map<string, ArchivDefinition>;
 }
 
 /** Fachwerk-Knoten-Id eines Elements. */
@@ -608,6 +610,7 @@ export function konvertiereSeite(
   const byId = new Map(seite.elemente.map((e) => [e.id, e]));
   const neueDatenpunkte = new Map<string, Record<string, Datenpunkt>>();
   const stubs = new Map<number, StubInfo>();
+  const archive = new Map<string, ArchivDefinition>();
 
   // ---- Datenpunkt-Quellen (MQTT-Subscribe → mqtt-Datenpunkt) ----------------
   const dpQuelle = new Map<number, { schluessel: string; wertAusgang: number }>();
@@ -854,6 +857,48 @@ export function konvertiereSeite(
         } else {
           kanten.push({ von: wertVon, nach: `dp:${schluessel}` });
         }
+      } else if (bf.cmd === 13) {
+        if (!wertVon) {
+          meld(`Ausgangsbox ${box.id}: keine Wertquelle für Archiv-Befehl`);
+          continue;
+        }
+        if (wertVon.startsWith("dp:")) {
+          const schluessel = wertVon.slice(3);
+          const existing = archive.get(`archiv_${bf.id1}`);
+          if (existing) {
+            if (existing.quelle !== schluessel) meld(`Ausgangsbox ${box.id}: Archiv ${bf.id1} hat abweichende Quellen (${existing.quelle} vs ${schluessel})`);
+          } else {
+            archive.set(`archiv_${bf.id1}`, {
+              name: `Archiv ${bf.id1} (aus Import)`,
+              quelle: schluessel,
+              aufbewahrung_tage: 365,
+              notizen: `Seite "${seite.name}", Box ${box.id}, Befehl ${bf.cmd}`,
+            });
+          }
+        } else {
+          hinweis(`Ausgangsbox ${box.id}: Archiv ${bf.id1} haengt an Port ${wertVon} — Hilfs-Datenpunkt noetig (manuell nacharbeiten)`);
+        }
+      } else if (bf.cmd === 42) {
+        const schluessel = koZuSchluessel.get(bf.id2);
+        if (!schluessel) {
+          meld(`Ausgangsbox ${box.id}: Ziel-KO ${bf.id2} ohne Datenpunkt`);
+          continue;
+        }
+        const existing = archive.get(`archiv_${bf.id1}`);
+        if (existing) {
+          if (existing.quelle !== schluessel) meld(`Ausgangsbox ${box.id}: Archiv ${bf.id1} hat abweichende Quellen (${existing.quelle} vs ${schluessel})`);
+        } else {
+          archive.set(`archiv_${bf.id1}`, {
+            name: `Archiv ${bf.id1} (aus Import)`,
+            quelle: schluessel,
+            aufbewahrung_tage: 365,
+            notizen: `Seite "${seite.name}", Box ${box.id}, Befehl ${bf.cmd}`,
+          });
+        }
+      } else if (bf.cmd === 40) {
+        hinweis(`Ausgangsbox ${box.id}: cmd 40 (fester Wert auf Archiv ${bf.id1}) nicht abbildbar, manuell prüfen`);
+      } else if (bf.cmd === 50 || bf.cmd === 51 || bf.cmd === 52) {
+        hinweis(`Ausgangsbox ${box.id}: cmd ${bf.cmd} (Eintrag entfernen aus Archiv ${bf.id1}) nicht abbildbar, manuell prüfen`);
       } else {
         // Andere Befehle gehören anderen Subsystemen (Archiv/Visu/Aktion) —
         // sie blockieren die Seite NICHT, sondern werden als Hinweis notiert.
@@ -887,6 +932,7 @@ export function konvertiereSeite(
       logik: { notizen, knoten: logikSeite.knoten, kanten: logikSeite.kanten },
       neueDatenpunkte,
       stubs: stubListe,
+      archive,
     },
     fehler: [],
     hinweise,
