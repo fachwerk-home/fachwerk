@@ -10,9 +10,12 @@
 #   Repository reference: refs/heads/main
 #   Compose path:         docker-compose.gewerk.yml
 #   Environment:
-#     FACHWERK_KNX_HOST    = <IP des KNX-IP-Routers>        (Pflicht)
-#     FACHWERK_GEWERK_HOST = /opt/fachwerk/gewerk           (Pflicht, Host-Pfad)
+#     FACHWERK_KNX_HOST    = <IP des KNX-IP-Routers>        (EINZIGE Pflichtangabe)
+#     FACHWERK_GEWERK_HOST = Host-Pfad des Gewerks          (optional, Default unten)
 #     FACHWERK_MQTT_HOST   = <Broker-IP>                    (optional; ohne = MQTT aus)
+#
+# Greift eine Env-Variable in Portainer nicht? Dann Werte einfach unten direkt
+# eintragen und den Stack als „Web editor" anlegen — Interpolation entfaellt.
 services:
   fachwerk:
     image: ghcr.io/fachwerk-home/fachwerk:latest
@@ -30,7 +33,7 @@ services:
       FACHWERK_DATEN_DIR: /daten
       TZ: ${TZ:-Europe/Berlin}
     volumes:
-      - ${FACHWERK_GEWERK_HOST:?bitte FACHWERK_GEWERK_HOST auf das Gewerk-Verzeichnis (Host-Pfad) setzen}:/gewerk:ro
+      - ${FACHWERK_GEWERK_HOST:-/opt/fachwerk/gewerk}:/gewerk:ro
       - fachwerk-daten:/daten
 
 volumes:
