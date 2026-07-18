@@ -1,21 +1,18 @@
 .kopf {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--fw-abstand);
+  gap: 0.4rem var(--fw-abstand);
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem var(--fw-abstand);
   background: var(--fw-flaeche);
   border-bottom: 1px solid var(--fw-rand);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .kopf-status {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.9rem;
+  gap: 0.4rem 0.9rem;
   align-items: center;
   font-size: 0.9em;
 }
@@ -34,6 +31,19 @@
   font-weight: 600;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem var(--fw-abstand) 0;
+  border-bottom: 1px solid var(--fw-rand);
+  background: var(--fw-flaeche);
+}
+
+.tabs button {
+  border-radius: var(--fw-radius) var(--fw-radius) 0 0;
+  border-bottom: none;
+}
+
 main {
   padding: var(--fw-abstand);
 }
@@ -44,6 +54,7 @@ main {
 
 .werkzeuge {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   align-items: center;
   margin-bottom: var(--fw-abstand);
@@ -51,16 +62,23 @@ main {
 
 .werkzeuge input[type="search"] {
   flex: 1;
+  min-width: 12rem;
   max-width: 32rem;
+}
+
+/* Breite Tabellen scrollen in ihrer eigenen Hülle statt die Seite zu
+   verzerren (Handy/Panel!). Deshalb auch kein sticky-thead mehr — dessen
+   fixer top-Wert kollidierte mit dem umbrechenden Seitenkopf. */
+.tabelle-huelle {
+  overflow-x: auto;
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche);
 }
 
 .tabelle {
   width: 100%;
   border-collapse: collapse;
-  background: var(--fw-flaeche);
-  border: 1px solid var(--fw-rand);
-  border-radius: var(--fw-radius);
-  overflow: hidden;
 }
 
 .tabelle th,
@@ -74,8 +92,8 @@ main {
 .tabelle th {
   background: var(--fw-flaeche-2);
   font-weight: 600;
-  position: sticky;
-  top: 3rem;
+  cursor: pointer;
+  user-select: none;
 }
 
 .tabelle tr:last-child td {
@@ -90,4 +108,94 @@ main {
 .tabelle tr.frisch td {
   background: color-mix(in srgb, var(--fw-akzent) 18%, transparent);
   transition: background 1.5s ease-out;
+}
+
+/* ---- Trace-Liste (P5-4) ---------------------------------------------------- */
+
+.trace-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.trace {
+  padding: 0;
+  overflow: hidden;
+}
+
+.trace-zeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0.45rem 0.6rem;
+}
+
+.trace-zeile:hover {
+  background: var(--fw-flaeche-2);
+}
+
+.trace-offen .trace-zeile {
+  background: var(--fw-flaeche-2);
+  border-bottom: 1px solid var(--fw-rand);
+}
+
+.trace-titel {
+  flex: 1;
+  min-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marke-timer {
+  border-color: var(--fw-akzent);
+  color: var(--fw-akzent);
+}
+
+.marke-fortsetzung {
+  border-color: var(--fw-warn);
+  color: var(--fw-warn);
+}
+
+.trace-detail {
+  padding: 0.5rem 0.75rem 0.7rem;
+  display: grid;
+  gap: var(--fw-abstand);
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.trace-abschnitt h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9em;
+  color: var(--fw-text-schwach);
+  font-weight: 600;
+}
+
+.trace-schritt {
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed var(--fw-rand);
+}
+
+.trace-schritt:last-child {
+  border-bottom: none;
+}
+
+.trace-io {
+  padding-left: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.io-paar {
+  margin-right: 0.6rem;
+}
+
+.trace-schreiben {
+  padding: 0.15rem 0;
+  overflow-wrap: anywhere;
 }

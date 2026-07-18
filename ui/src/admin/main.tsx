@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import "../lib/stil.css";
 import "./admin.css";
 import {
@@ -8,30 +8,13 @@ import {
   type DatenpunktSicht,
   type LiveNachricht,
   type Status,
-  type Wert,
+  type Trace,
 } from "../lib/api.ts";
+import { dauer } from "./format.ts";
+import { Datenpunkte } from "./datenpunkte.tsx";
+import { Traces } from "./traces.tsx";
 
-function dauer(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const t = Math.floor(s / 86_400);
-  const h = Math.floor((s % 86_400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (t > 0) return `${t}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m ${s % 60}s`;
-}
-
-function zeit(ts: number | null): string {
-  if (ts === null) return "—";
-  const d = new Date(ts);
-  return d.toLocaleTimeString("de-DE", { hour12: false });
-}
-
-function wertText(w: Wert | null): string {
-  if (w === null) return "—";
-  if (typeof w === "boolean") return w ? "an" : "aus";
-  return String(w);
-}
+const TRACE_LIMIT = 300;
 
 function Kopf({ status, live }: { status: Status | null; live: boolean }) {
   const knx = status?.knx;
@@ -63,24 +46,34 @@ function Kopf({ status, live }: { status: Status | null; live: boolean }) {
   );
 }
 
+type Ansicht = "datenpunkte" | "traces";
+
 function App() {
   const [status, setStatus] = useState<Status | null>(null);
   const [dps, setDps] = useState<DatenpunktSicht[]>([]);
-  const [filter, setFilter] = useState("");
-  const [nurGesetzt, setNurGesetzt] = useState(true);
-  const [live, setLive] = useState(false);
   const [geaendert, setGeaendert] = useState<Record<string, number>>({});
+  const [live, setLive] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [ansicht, setAnsicht] = useState<Ansicht>("datenpunkte");
+
+  const [traces, setTraces] = useState<Trace[]>([]);
+  const [pausiert, setPausiert] = useState(false);
+  const [wartend, setWartend] = useState(0);
+  // Während der Pause laufen neue Traces in diesen Puffer statt in die Ansicht —
+  // die Liste bleibt exakt stehen (scrollstabil), nichts geht verloren.
+  const puffer = useRef<Trace[]>([]);
+  const pausiertRef = useRef(false);
 
   // Erstladen + Status-Refresh
   useEffect(() => {
     let aktiv = true;
     const laden = async (): Promise<void> => {
       try {
-        const [s, d] = await Promise.all([api.status(), api.datenpunkte()]);
+        const [s, d, t] = await Promise.all([api.status(), api.datenpunkte(), api.traces(100)]);
         if (!aktiv) return;
         setStatus(s);
         setDps(d.datenpunkte);
+        setTraces([...t.traces].sort((a, b) => b.nr - a.nr));
         setFehler(null);
       } catch (e) {
         if (aktiv) setFehler(e instanceof Error ? e.message : String(e));
@@ -94,79 +87,58 @@ function App() {
     };
   }, []);
 
-  // Live-Werte
+  // Live-Kanal: Werte immer anwenden, Traces nur wenn nicht pausiert
   useEffect(() => {
     return verbindeLive((n: LiveNachricht) => {
-      if (n.art !== "wert") return;
-      setDps((alt) =>
-        alt.map((d) => (d.schluessel === n.schluessel ? { ...d, wert: n.wert, ts: n.ts } : d)),
-      );
-      setGeaendert((alt) => ({ ...alt, [n.schluessel]: Date.now() }));
+      if (n.art === "wert") {
+        setDps((alt) =>
+          alt.map((d) => (d.schluessel === n.schluessel ? { ...d, wert: n.wert, ts: n.ts } : d)),
+        );
+        setGeaendert((alt) => ({ ...alt, [n.schluessel]: Date.now() }));
+        return;
+      }
+      if (n.art === "trace") {
+        if (pausiertRef.current) {
+          puffer.current.push(n.trace);
+          setWartend(puffer.current.length);
+        } else {
+          setTraces((alt) => [n.trace, ...alt].slice(0, TRACE_LIMIT));
+        }
+      }
     }, setLive);
   }, []);
 
-  const suche = filter.trim().toLowerCase();
-  const sichtbar = dps.filter((d) => {
-    if (nurGesetzt && d.ts === null) return false;
-    if (!suche) return true;
-    return (
-      d.schluessel.toLowerCase().includes(suche) ||
-      d.name.toLowerCase().includes(suche) ||
-      (d.adresse ?? "").toLowerCase().includes(suche)
-    );
-  });
+  const setzePause = (an: boolean): void => {
+    pausiertRef.current = an;
+    setPausiert(an);
+    if (!an && puffer.current.length > 0) {
+      const neu = puffer.current.splice(0).reverse();
+      setTraces((alt) => [...neu, ...alt].slice(0, TRACE_LIMIT));
+    }
+    if (!an) setWartend(0);
+  };
 
   return (
     <>
       <Kopf status={status} live={live} />
+      <nav class="tabs">
+        <button aria-pressed={ansicht === "datenpunkte"} onClick={() => setAnsicht("datenpunkte")}>
+          Datenpunkte
+        </button>
+        <button aria-pressed={ansicht === "traces"} onClick={() => setAnsicht("traces")}>
+          Traces{pausiert && wartend > 0 ? ` (${wartend})` : ""}
+        </button>
+      </nav>
       {fehler && <div class="karte fehler meldung">API nicht erreichbar: {fehler}</div>}
       <main>
-        <div class="werkzeuge">
-          <input
-            type="search"
-            placeholder="Suchen (Name, Schlüssel, GA/Topic) …"
-            value={filter}
-            onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
-          />
-          <button aria-pressed={nurGesetzt} onClick={() => setNurGesetzt((v) => !v)}>
-            nur mit Wert
-          </button>
-          <span class="schwach">
-            {sichtbar.length} von {dps.length}
-          </span>
-        </div>
-
-        <table class="tabelle">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Schlüssel</th>
-              <th>Adresse</th>
-              <th class="rechts">Wert</th>
-              <th class="rechts">geändert</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sichtbar.slice(0, 500).map((d) => {
-              const frisch = Date.now() - (geaendert[d.schluessel] ?? 0) < 2000;
-              return (
-                <tr key={d.schluessel} class={frisch ? "frisch" : ""}>
-                  <td>
-                    {d.name}
-                    {d.protected && <span class="marke" title="geschützt">🔒</span>}
-                  </td>
-                  <td class="mono schwach">{d.schluessel}</td>
-                  <td class="mono schwach">{d.adresse ?? "—"}</td>
-                  <td class="rechts mono">{wertText(d.wert)}</td>
-                  <td class="rechts schwach">{zeit(d.ts)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {sichtbar.length > 500 && (
-          <p class="schwach">… weitere {sichtbar.length - 500} ausgeblendet (Filter nutzen)</p>
-        )}
+        {/* Beide Ansichten bleiben gemountet: Tab-Wechsel verliert weder
+            Filter/Sortierung noch die Scroll-Position oder ein offenes Detail. */}
+        <section hidden={ansicht !== "datenpunkte"}>
+          <Datenpunkte dps={dps} geaendert={geaendert} />
+        </section>
+        <section hidden={ansicht !== "traces"}>
+          <Traces traces={traces} pausiert={pausiert} wartend={wartend} setzePause={setzePause} />
+        </section>
       </main>
     </>
   );
