@@ -1,0 +1,18 @@
+{
+  "name": "Fachwerk Visu",
+  "short_name": "Fachwerk",
+  "description": "Visualisierung eines Fachwerk-Gewerks",
+  "start_url": "./visu.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0f12",
+  "theme_color": "#15191e",
+  "icons": [
+    {
+      "src": "./fachwerk-visu.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

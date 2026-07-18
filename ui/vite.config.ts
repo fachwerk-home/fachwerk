@@ -9,6 +9,7 @@ const apiZiel = process.env["FACHWERK_API"] ?? "http://localhost:8300";
 
 export default defineConfig({
   root: "src",
+  publicDir: "../public",
   base: "./",
   esbuild: { jsx: "automatic", jsxImportSource: "preact" },
   resolve: {

@@ -7,3 +7,15 @@ standard:
 aktiv:
   hintergrund: "#fc0"
   text: "#000"
+akzent:
+  hintergrund: "#183b2c"
+  text: "#8ee0b3"
+  rand:
+    staerke: 1
+    farbe: "#4da979"
+    radius: 14
+symbol_an:
+  hintergrund: "#2c2512"
+  text: "#ffd45c"
+  icon: "●"
+  schriftgroesse: 28
