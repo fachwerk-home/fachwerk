@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fachwerk.dev/schemas/visu-seite.schema.json",
+  "title": "Visu-Seite (visu/seiten/<seite>.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["typ", "name", "basis", "groessen", "elemente"],
+  "properties": {
+    "typ": { "enum": ["seite", "popup", "include"] },
+    "name": { "type": "string", "minLength": 1 },
+    "basis": { "$ref": "#/$defs/schluessel" },
+    "groessen": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/schluessel" },
+      "additionalProperties": { "$ref": "#/$defs/groesse" }
+    },
+    "gruppen": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/schluessel" },
+      "additionalProperties": { "$ref": "#/$defs/gruppe" }
+    },
+    "elemente": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/schluessel" },
+      "additionalProperties": { "$ref": "#/$defs/element" }
+    },
+    "notizen": { "type": "string" }
+  },
+  "$defs": {
+    "schluessel": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "groesse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "h"],
+      "properties": {
+        "w": { "type": "number", "exclusiveMinimum": 0 },
+        "h": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "gruppe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "ebene": { "type": "integer" }
+      }
+    },
+    "format": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "einheit": { "type": "string" },
+        "praefix": { "type": "string" },
+        "suffix": { "type": "string" },
+        "dezimalstellen": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "skalierung": { "type": "number" },
+        "offset": { "type": "number" },
+        "tausendertrenner": { "type": "boolean" },
+        "enum_map": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } },
+        "bool_map": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wahr", "falsch"],
+          "properties": { "wahr": { "type": "string" }, "falsch": { "type": "string" } }
+        },
+        "fallback": { "type": "string" },
+        "leerwert": { "type": "string" },
+        "max_laenge": { "type": "integer", "minimum": 0 },
+        "ellipsis": { "type": "string" },
+        "muster": { "type": "string" },
+        "modus": { "enum": ["absolut", "relativ"] },
+        "template": { "type": "string" }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number", "exclusiveMinimum": 0 },
+        "h": { "type": "number", "exclusiveMinimum": 0 },
+        "sichtbar": { "type": "boolean" },
+        "format": { "$ref": "#/$defs/format" }
+      }
+    },
+    "wert": { "type": ["string", "number", "boolean", "null"] },
+    "designJeWert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wenn", "design"],
+      "properties": {
+        "wenn": { "$ref": "#/$defs/wert" },
+        "design": { "$ref": "#/$defs/schluessel" }
+      }
+    },
+    "aktion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["art"],
+          "properties": { "art": { "enum": ["umschalten"] } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["setze"],
+          "properties": { "setze": { "$ref": "#/$defs/wert" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["seite"],
+          "properties": { "seite": { "$ref": "#/$defs/schluessel" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["popup"],
+          "properties": { "popup": { "$ref": "#/$defs/schluessel" } }
+        }
+      ]
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preset": { "enum": ["taster", "schalter", "statusanzeige", "wertanzeige", "label", "symbol", "navigation"] },
+        "widget": { "enum": ["slider", "diagramm"] },
+        "parameter": { "type": "object" },
+        "bindungen": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/schluessel" },
+          "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$" }
+        },
+        "gruppe": { "$ref": "#/$defs/schluessel" },
+        "ebene": { "type": "integer" },
+        "design": { "$ref": "#/$defs/schluessel" },
+        "design_je_wert": { "type": "array", "items": { "$ref": "#/$defs/designJeWert" } },
+        "aktionen": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/schluessel" },
+          "additionalProperties": { "$ref": "#/$defs/aktion" }
+        },
+        "format": { "$ref": "#/$defs/format" },
+        "placements": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/schluessel" },
+          "additionalProperties": { "$ref": "#/$defs/placement" }
+        }
+      },
+      "oneOf": [
+        { "required": ["preset"], "not": { "required": ["widget"] } },
+        { "required": ["widget"], "not": { "required": ["preset"] } }
+      ],
+      "allOf": [
+        { "if": { "required": ["preset"] }, "then": { "not": { "required": ["parameter"] } } },
+        { "if": { "required": ["widget"] }, "then": { "required": ["parameter"] } }
+      ]
+    }
+  }
+}
