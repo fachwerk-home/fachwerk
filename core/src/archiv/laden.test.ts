@@ -1,5 +1,4 @@
-import { test } from "node:test";
-import assert from "node:assert/strict";
+import { expect, test } from "vitest";
 import { join } from "node:path";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,16 +8,17 @@ import type { DatenpunktDatei } from "@fachwerk/schema";
 
 test("ladeArchive: fehlendes Verzeichnis ist kein Fehler", () => {
   const { archive, fehler } = ladeArchive("/gibts/nicht/wirklich");
-  assert.equal(archive.size, 0);
-  assert.equal(fehler.length, 0);
+  expect(archive.size).toBe(0);
+  expect(fehler.length).toBe(0);
 });
 
 test("ladeArchive: liest, validiert und meldet Fehler", () => {
   const dir = join(tmpdir(), "fw-test-" + randomBytes(4).toString("hex"));
   mkdirSync(join(dir, "archiv"), { recursive: true });
   
-  // Gut
-  writeFileSync(join(dir, "archiv", "gut.yaml"), `
+  // Gut — Dateiname bewusst VOR duplikat.yaml (Dateien werden sortiert
+  // gelesen; die erste Definition einer ID gewinnt).
+  writeFileSync(join(dir, "archiv", "a_gut.yaml"), `
 klima_aussen:
   name: Außen
   quelle: aussen.temp
@@ -44,15 +44,15 @@ klima_aussen:
 
   const { archive, fehler } = ladeArchive(dir);
   
-  assert.equal(archive.size, 1);
-  assert.equal(archive.get("klima_aussen")?.quelle, "aussen.temp");
+  expect(archive.size).toBe(1);
+  expect(archive.get("klima_aussen")?.quelle).toBe("aussen.temp");
   
-  assert.equal(fehler.length, 3); // missing quelle, negative tage, and duplikat
+  expect(fehler.length).toBe(3); // missing quelle, negative tage, and duplikat
   
   const duplikatFehler = fehler.find(f => f.meldung.includes("nicht eindeutig"));
-  assert.ok(duplikatFehler);
-  assert.equal(duplikatFehler.datei, "archiv/duplikat.yaml");
-  assert.equal(duplikatFehler.pfad, "/klima_aussen");
+  expect(duplikatFehler).toBeTruthy();
+  expect(duplikatFehler!.datei).toBe("archiv/duplikat.yaml");
+  expect(duplikatFehler!.pfad).toBe("/klima_aussen");
 
   rmSync(dir, { recursive: true, force: true });
 });
@@ -91,13 +91,13 @@ p4:
 
   const { archive, fehler } = ladeArchive(dir, datenpunkte);
   
-  assert.equal(archive.size, 2);
-  assert.ok(archive.has("p1"));
-  assert.ok(archive.has("p2"));
+  expect(archive.size).toBe(2);
+  expect(archive.has("p1")).toBeTruthy();
+  expect(archive.has("p2")).toBeTruthy();
   
-  assert.equal(fehler.length, 2);
-  assert.ok(fehler.find(f => f.pfad === "/p3/quelle" && f.meldung.includes("Typ 'zahl' oder 'bool'")));
-  assert.ok(fehler.find(f => f.pfad === "/p4/quelle" && f.meldung.includes("existiert nicht")));
+  expect(fehler.length).toBe(2);
+  expect(fehler.find(f => f.pfad === "/p3/quelle" && f.meldung.includes("Typ 'zahl' oder 'bool'"))).toBeTruthy();
+  expect(fehler.find(f => f.pfad === "/p4/quelle" && f.meldung.includes("existiert nicht"))).toBeTruthy();
 
   rmSync(dir, { recursive: true, force: true });
 });

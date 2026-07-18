@@ -90,7 +90,7 @@ export class ArchivDienst {
       }
 
       this.#db.prepare("INSERT INTO punkte (archiv_id, ts, wert) VALUES (?, ?, ?)").run(id, timestamp, numWert);
-    } catch (e) {
+    } catch {
       this.ignoriertZaehler++;
     }
   }
@@ -100,21 +100,22 @@ export class ArchivDienst {
     if (!this.#archive.has(id)) return [];
 
     const stmt = this.#db.prepare("SELECT ts, wert FROM punkte WHERE archiv_id = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC");
-    const roh = stmt.all(id, von, bis) as RohPunkt[];
+    const roh = stmt.all(id, von, bis) as unknown as RohPunkt[];
 
-    if (!rasterS || roh.length === 0) {
+    const erster = roh[0];
+    if (!rasterS || erster === undefined) {
       return roh;
     }
 
     const fensterMs = rasterS * 1000;
     const erg: AggregiertPunkt[] = [];
-    
-    let aktuellesFenster = Math.floor(roh[0].ts / fensterMs) * fensterMs;
-    let min = roh[0].wert;
-    let max = roh[0].wert;
+
+    let aktuellesFenster = Math.floor(erster.ts / fensterMs) * fensterMs;
+    let min = erster.wert;
+    let max = erster.wert;
     let sum = 0;
     let anzahl = 0;
-    let letzter = roh[0].wert;
+    let letzter = erster.wert;
     
     for (const p of roh) {
         const f = Math.floor(p.ts / fensterMs) * fensterMs;
@@ -161,7 +162,7 @@ export class ArchivDienst {
       const grenze = jetzt - aufbewahrungMs;
       
       const res = stmt.run(id, grenze);
-      geloescht += res.changes;
+      geloescht += Number(res.changes);
     }
     
     return geloescht;
