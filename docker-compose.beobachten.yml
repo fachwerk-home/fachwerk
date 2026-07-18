@@ -31,6 +31,10 @@ services:
       # Sicherheitsnetz: empfangen ja, senden NIE.
       FACHWERK_KNX_MODUS: beobachten
       FACHWERK_DATEN_DIR: /daten
+      # Monitor-UI + API: nach dem Start unter http://<docker-host>:8300
+      # (network_mode: host -> Port direkt offen). 0 = abschalten;
+      # FACHWERK_API_TOKEN setzt optional ein Bearer-Token davor.
+      FACHWERK_HTTP_PORT: ${FACHWERK_HTTP_PORT:-8300}
       # Zeitzone fuer Zeit-Bausteine/Uhr-Dienst (Container-Default waere UTC).
       TZ: ${TZ:-Europe/Berlin}
     volumes:
