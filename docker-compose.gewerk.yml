@@ -1,0 +1,37 @@
+# Fachwerk mit EIGENEM Gewerk vom Host — Beobachtungsmodus (empfaengt, sendet NIE).
+# Das Gewerk ist PRIVAT (GAs, Raumnamen): es liegt nur auf dem Docker-Host,
+# nie im oeffentlichen Repo/Image.
+#
+# Vorbereitung auf dem Docker-Host:
+#   mkdir -p /opt/fachwerk && <gewerk dorthin kopieren, z. B. per scp>
+#
+# Portainer -> Stacks -> Add stack -> Repository:
+#   Repository URL:       https://github.com/fachwerk-home/fachwerk
+#   Repository reference: refs/heads/main
+#   Compose path:         docker-compose.gewerk.yml
+#   Environment:
+#     FACHWERK_KNX_HOST    = <IP des KNX-IP-Routers>        (Pflicht)
+#     FACHWERK_GEWERK_HOST = /opt/fachwerk/gewerk           (Pflicht, Host-Pfad)
+#     FACHWERK_MQTT_HOST   = <Broker-IP>                    (optional; ohne = MQTT aus)
+services:
+  fachwerk:
+    image: ghcr.io/fachwerk-home/fachwerk:latest
+    pull_policy: always
+    network_mode: host
+    command: ["run", "/gewerk"]
+    restart: unless-stopped
+    environment:
+      FACHWERK_KNX_HOST: ${FACHWERK_KNX_HOST:?bitte FACHWERK_KNX_HOST setzen}
+      FACHWERK_KNX_PORT: ${FACHWERK_KNX_PORT:-3671}
+      # Sicherheitsnetz: empfangen ja, senden NIE (KNX und MQTT).
+      FACHWERK_KNX_MODUS: beobachten
+      FACHWERK_MQTT_MODUS: beobachten
+      FACHWERK_MQTT_HOST: ${FACHWERK_MQTT_HOST:-}
+      FACHWERK_DATEN_DIR: /daten
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ${FACHWERK_GEWERK_HOST:?bitte FACHWERK_GEWERK_HOST auf das Gewerk-Verzeichnis (Host-Pfad) setzen}:/gewerk:ro
+      - fachwerk-daten:/daten
+
+volumes:
+  fachwerk-daten:

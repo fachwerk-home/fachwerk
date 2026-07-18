@@ -215,10 +215,17 @@ export async function run(dir: string): Promise<number> {
     }
   }
   let mqtt: MqttTreiber | null = null;
-  if (topicZuDp.size > 0) {
+  if (topicZuDp.size > 0 && !process.env["FACHWERK_MQTT_HOST"]) {
+    // Kein Broker konfiguriert: MQTT-Datenpunkte bleiben stumm statt die
+    // Runtime in einen endlosen 127.0.0.1-Verbindungsversuch zu schicken.
+    console.error(
+      `WARNUNG: ${topicZuDp.size} MQTT-Datenpunkt(e) im Gewerk, aber FACHWERK_MQTT_HOST ` +
+        "ist nicht gesetzt — MQTT bleibt deaktiviert.",
+    );
+  } else if (topicZuDp.size > 0) {
     const mqttBeobachten = process.env["FACHWERK_MQTT_MODUS"] === "beobachten";
     mqtt = new MqttTreiber({
-      host: process.env["FACHWERK_MQTT_HOST"] ?? "127.0.0.1",
+      host: process.env["FACHWERK_MQTT_HOST"]!,
       port: Number(process.env["FACHWERK_MQTT_PORT"] ?? 1883),
       ...(process.env["FACHWERK_MQTT_BENUTZER"]
         ? { benutzer: process.env["FACHWERK_MQTT_BENUTZER"] }
