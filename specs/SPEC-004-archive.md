@@ -1,6 +1,6 @@
 # SPEC-004-archive: Archive & Zeitreihen
 
-- **Status:** Fragenkatalog (Gerüst — wird in Phase 1 befüllt)
+- **Status:** Entwurf (Implementiert in v1)
 - **Quellen:** Zielspezifikation · Betreiberwissen · Forum (öffentlich)
 - **Clean-Room-Erklärung:** Diese Spec beschreibt beobachtetes Verhalten und eigene
   Design-Entscheidungen. Kein Inhalt stammt aus EDOMI-Quellcode oder -Dokumentation.
@@ -8,11 +8,51 @@
 ## Zweck & Geltungsbereich
 
 Datenlogging, Aggregation, Diagramme, Export, Aufbewahrung.
+Die Archive ermöglichen das Mitschreiben von Datenpunkt-Werten als Zeitreihen.
 
-## Verhalten
+## Definition im Gewerk
 
-*(offen — Phase 1)*
+Archive werden deklarativ im Gewerk im Verzeichnis `archiv/*.yaml` definiert. Jede Datei exportiert eine Map von `Archiv-ID` auf die Definition:
 
-## Offene Fragen
+- `name`: Anzeigename (Text)
+- `quelle`: Der Schlüssel des Datenpunkts (z. B. `aussen.temperatur`). Darf nur auf Datenpunkte vom Typ `zahl` oder `bool` verweisen.
+- `aufbewahrung_tage`: Lebensdauer der Rohdaten. Ältere Datenpunkte werden asynchron durch den `ArchivDienst` aufgeräumt.
+- `mindestabstand_s` (optional): Rate-Limiting. Wenn gesetzt, werden neue Werte, die zu dicht am vorherigen Wert des gleichen Archivs liegen, still ignoriert.
+- `notizen` (optional): Dokumentation für Betreiber.
 
-*(Fragenkatalog folgt; Vorgehen wie in SPEC-002)*
+Fehlende `archiv/` Verzeichnisse sind valide, die Plattform funktioniert auch ohne definierte Archive. Eindeutigkeit der Archiv-IDs ist über das gesamte Gewerk hinweg sichergestellt.
+
+## Erfassungsregeln
+
+Werte werden vom `ArchivDienst` in einer SQLite Datenbank im WAL-Modus erfasst (`archiv.sqlite`). Die Erfassung ist fehlertolerant ausgelegt, da der Prozess niemals durch externe Eingaben crashen darf:
+- Nicht-numerische Werte oder unbekannte IDs werden still ignoriert und in einem Zähler (`ignoriertZaehler`) vermerkt.
+- Boolesche Werte (`true`/`false`) werden automatisch in numerische Werte (`1`/`0`) gewandelt.
+- Werte, die gegen den `mindestabstand_s` verstoßen, werden still ignoriert.
+
+## Abfrage- und Aggregations-Semantik
+
+Abfragen definieren zwingend eine Zeitspanne (`von`, `bis`). Bei `von > bis` wird eine leere Liste zurückgegeben.
+
+### Roh-Abfrage
+Erfolgt die Abfrage ohne Raster (`rasterS`), liefert sie exakt die erfassten Werte `[{ts, wert}]` innerhalb der Zeitspanne (Grenzen inklusive).
+
+### Raster-Aggregation
+Wird ein Raster (z. B. `rasterS = 60` Sekunden) vorgegeben, aggregiert der Dienst die Daten in Zeitfenster.
+Unterstützte Aggregationen:
+- `mittel` (Standard): Arithmetisches Mittel aller Werte im Fenster.
+- `min`: Der kleinste Wert im Fenster.
+- `max`: Der größte Wert im Fenster.
+- `letzter`: Der chronologisch letzte Wert des Fensters.
+
+Zusätzlich liefert das aggregierte Fenster-Objekt neben `wert` immer auch `min`, `max`, und `anzahl`.
+**Leere Fenster werden ausgelassen** (keine implizite Null-Füllung).
+
+## Aufbewahrung
+
+Die Archivierung berücksichtigt die endliche Kapazität der Speichersysteme.
+Die Methode `raeumeAuf()` wertet für jede Archiv-ID individuell `aufbewahrung_tage` aus. Punkte, deren Zeitstempel diese Aufbewahrungsdauer überschreiten, werden aus der SQLite-Datenbank entfernt.
+
+## Offene Ausbaustufen (v2+)
+
+- **Typ-Einschränkungen**: Aktuell können in v1 ausschließlich Werte der Typen `zahl` und `bool` archiviert werden. Die Speicherung von `text`-Werten (z. B. Enum-States als Text) ist noch nicht implementiert.
+- **Verdichtungs-Stufen / Downsampling**: Aktuell existiert noch kein Downsampling zur persistenten Langzeitspeicherung (z. B. "hebe Rohwerte 7 Tage auf, danach Stundenmittelwerte für 1 Jahr"). Alles sind Rohdaten, Rasterung findet rein bei der Lese-Abfrage statt.
