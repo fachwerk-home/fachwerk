@@ -115,9 +115,16 @@ export async function run(dir: string): Promise<number> {
     );
     timerHandle.unref?.();
   };
+  // Trace-Ausgabe: FACHWERK_TRACE = kompakt (Default) | voll | aus.
+  // „kompakt" unterdrückt leere Kaskaden (z. B. der sekündliche Uhr-Tick,
+  // wenn kein Baustein feuert) — sonst ist das Log nicht lesbar.
+  const traceModus = process.env["FACHWERK_TRACE"] ?? "kompakt";
   const engine = new LogikEngine(gewerk, registry, {
     onTrace: (t) => {
-      console.log(JSON.stringify(t));
+      const leer = t.schritte.length === 0 && t.schreibvorgaenge.length === 0;
+      if (traceModus === "voll" || (traceModus !== "aus" && !leer)) {
+        console.log(JSON.stringify(t));
+      }
       // Nach jeder Kaskade: Timer + Baustein-Zustände sichern (T-5/T-6).
       speicher.sichereEngine(engine.momentaufnahme());
     },
