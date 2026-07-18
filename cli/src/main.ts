@@ -2,7 +2,13 @@
  * Einstiegspunkt `fachwerk` — Walking Skeleton (Phase 3).
  * Kommandos entstehen schrittweise: validate (S-2), run (S-6).
  */
-import { analysiereLogik, loadGewerk, SUPPORTED_GEWERK_FORMAT } from "@fachwerk/core";
+import {
+  analysiereLogik,
+  ladeArchive,
+  ladeVisu,
+  loadGewerk,
+  SUPPORTED_GEWERK_FORMAT,
+} from "@fachwerk/core";
 import { CLI_VERSION } from "./index.ts";
 
 const [cmd = "--version", ...args] = process.argv.slice(2);
@@ -39,12 +45,39 @@ switch (cmd) {
       for (const f of analyse.fehler) console.error(`FEHLER: ${f}`);
       process.exit(1);
     }
+    // Visu + Archive sind optional, aber wenn vorhanden, muessen sie stimmen
+    // (Integration P5-6/P5-13a; Querbezuege gegen die Datenpunkt-Definitionen).
+    const dpLookup = {
+      definition: (schluessel: string): unknown => {
+        const punkt = schluessel.indexOf(".");
+        if (punkt < 0) return undefined;
+        return gewerk!.datenpunkte.get(schluessel.slice(0, punkt))?.[schluessel.slice(punkt + 1)];
+      },
+    };
+    const visu = ladeVisu(dir, dpLookup);
+    const archive = ladeArchive(dir, gewerk!.datenpunkte);
+    if (visu.fehler.length > 0 || archive.fehler.length > 0) {
+      console.error(`FEHLER: ${visu.fehler.length + archive.fehler.length} Problem(e) in ${dir}`);
+      for (const f of visu.fehler) {
+        console.error(`  ${f.datei}${f.element ? ` [${f.element}]` : ""}: ${f.grund}`);
+      }
+      for (const f of archive.fehler) {
+        console.error(`  ${f.datei}${f.pfad === "/" ? "" : ` ${f.pfad}`}: ${f.meldung}`);
+      }
+      process.exit(1);
+    }
     const dpAnzahl = [...gewerk!.datenpunkte.values()].reduce(
       (n, datei) => n + Object.keys(datei).length,
       0,
     );
+    const extras = [
+      visu.seiten.size > 0 ? `${visu.seiten.size} Visuseite(n)` : "",
+      archive.archive.size > 0 ? `${archive.archive.size} Archiv(e)` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
     console.log(
-      `OK: „${gewerk!.manifest.name}" — ${dpAnzahl} Datenpunkte, ${gewerk!.logik.size} Logikseite(n)`,
+      `OK: „${gewerk!.manifest.name}" — ${dpAnzahl} Datenpunkte, ${gewerk!.logik.size} Logikseite(n)${extras ? `, ${extras}` : ""}`,
     );
     break;
   }

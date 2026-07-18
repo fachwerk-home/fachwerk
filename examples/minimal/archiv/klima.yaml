@@ -1,6 +1,6 @@
-aussen_temperatur:
-  name: Außentemperatur
-  quelle: aussen.temperatur
+schaltzaehler:
+  name: Schaltzähler-Verlauf
+  quelle: wohnen.zaehler
   aufbewahrung_tage: 365
   mindestabstand_s: 60
-  notizen: fuer das Wohnzimmer-Diagramm
+  notizen: Beispiel-Archiv — Quelle muss ein existierender zahl/bool-Datenpunkt sein
