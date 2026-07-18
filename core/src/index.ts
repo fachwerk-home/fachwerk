@@ -48,3 +48,8 @@ export { ApiServer } from "./api/server.ts";
 export type { ServerOptionen } from "./api/server.ts";
 export { WsServer } from "./api/websocket.ts";
 export type { WsVerbindung } from "./api/websocket.ts";
+export { ladeVisu } from "./visu/laden.ts";
+export type { VisuLadeErgebnis, VisuLadeFehler, DatenpunktDefinitionen } from "./visu/laden.ts";
+export { effektivesFormat, formatiereWert } from "./visu/format.ts";
+export { kompiliereTemplate } from "./visu/ausdruck.ts";
+export type { AusdruckFehler, AusdruckErgebnis, KompiliertesTemplate, WertLookup } from "./visu/ausdruck.ts";

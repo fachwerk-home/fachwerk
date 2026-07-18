@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fachwerk.dev/schemas/visu-designs.schema.json",
+  "title": "Benannte Visu-Designs (visu/designs.yaml)",
+  "type": "object",
+  "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+  "additionalProperties": { "$ref": "#/$defs/design" },
+  "$defs": {
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "hintergrund": { "type": "string" },
+        "text": { "type": "string" },
+        "icon": { "type": "string" },
+        "schriftgroesse": { "type": "number", "exclusiveMinimum": 0 },
+        "deckkraft": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rand": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "staerke": { "type": "number", "minimum": 0 },
+            "farbe": { "type": "string" },
+            "radius": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

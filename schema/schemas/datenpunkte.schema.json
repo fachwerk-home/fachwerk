@@ -53,6 +53,9 @@
           "type": "boolean",
           "default": false
         },
+        "format": {
+          "$ref": "#/$defs/wertFormat"
+        },
         "protected": {
           "description": "Nie durch Agenten/Bausteine schreibbar (Plan 4.2).",
           "type": "boolean",
@@ -72,6 +75,42 @@
           }
         }
       ]
+    },
+    "wertFormat": {
+      "description": "Darstellungsformat; wirkt nie auf den Semantikwert (ADR-0011 FMT-4).",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "einheit": { "type": "string" },
+        "praefix": { "type": "string" },
+        "suffix": { "type": "string" },
+        "dezimalstellen": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "skalierung": { "type": "number" },
+        "offset": { "type": "number" },
+        "tausendertrenner": { "type": "boolean" },
+        "enum_map": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": "string" }
+        },
+        "bool_map": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wahr", "falsch"],
+          "properties": {
+            "wahr": { "type": "string" },
+            "falsch": { "type": "string" }
+          }
+        },
+        "fallback": { "type": "string" },
+        "leerwert": { "type": "string" },
+        "max_laenge": { "type": "integer", "minimum": 0 },
+        "ellipsis": { "type": "string" },
+        "muster": { "type": "string" },
+        "modus": { "enum": ["absolut", "relativ"] },
+        "template": { "type": "string" }
+      }
     }
   }
 }
