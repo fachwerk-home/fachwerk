@@ -57,30 +57,47 @@ fassen nie dieselben Dateien an. Die aktuelle Spurbelegung steht in
 Regeln für Auftrags-Agenten:
 
 1. **Ein Auftrag = ein Branch = ein PR.** Branch-Name exakt wie im Auftrag
-   angegeben (Muster `auftrag/p5-6-visu-format`). Basis ist aktueller `main`.
-2. **Nie auf `main` pushen. Nie force-pushen. Nie fremde Branches anfassen.**
-3. Dateien außerhalb des im Auftrag definierten Besitzes werden NICHT
+   angegeben (Muster `auftrag/p5-6-visu-format`). **Basis ist zwingend der
+   aktuelle `origin/main`** — Branch so anlegen, nicht vom zufälligen HEAD:
+   `git fetch origin && git switch -c auftrag/<name> origin/main`.
+2. **Eigenes Arbeitsverzeichnis.** Arbeite in einem eigenen Worktree
+   (`git worktree add ../fachwerk-<auftrag> auftrag/<name>`), nie im
+   Verzeichnis einer anderen Spur. Zwei Agenten in einem Checkout vermischen
+   ihre uncommitteten Dateien — das ist bereits passiert.
+3. **Nie auf `main` pushen. Nie force-pushen. Nie fremde Branches anfassen.**
+4. Dateien außerhalb des im Auftrag definierten Besitzes werden NICHT
    geändert — auch nicht „nur kurz aufgeräumt". Brauchst du eine Änderung
    dort: im PR-Text als „Integrationswunsch" beschreiben, Spur 1 erledigt das.
-4. Sammel-Exportdateien (`core/src/index.ts`, `schema/src/index.ts`): eigene
+5. **Niemals `git add .` oder `git add -A`.** Stage ausschließlich die
+   explizit benannten Pfade deines Dateibesitzes. Eigene Arbeitsnotizen
+   (task.md, commit.txt, TODO-Listen …) gehören NIE ins Repo-Verzeichnis —
+   lege sie außerhalb ab (Temp-Verzeichnis).
+6. Sammel-Exportdateien (`core/src/index.ts`, `schema/src/index.ts`): eigene
    Export-Zeilen nur ANFÜGEN, nie umsortieren oder Fremdzeilen ändern.
-5. **Keine neuen Abhängigkeiten.** Laufzeit-Deps im Kern sind exakt `ajv` +
+7. **Keine neuen Abhängigkeiten.** Laufzeit-Deps im Kern sind exakt `ajv` +
    `yaml`; HTTP/WS/KNX/MQTT sind bewusst selbst implementiert. Auch
    devDependencies nur, wenn der Auftrag sie ausdrücklich erlaubt.
    `pnpm-lock.yaml` ändert sich folglich in einem Auftrags-PR normalerweise
    NICHT.
-6. Ist etwas im Auftrag unklar oder widerspricht einer Spec: Frage stellen
+8. Ist etwas im Auftrag unklar oder widerspricht einer Spec: Frage stellen
    (PR-Kommentar/Notiz), nicht raten und weiterbauen.
 
-## 4. Qualitäts-Gates (vor jedem Commit, zwingend)
+## 4. Qualitäts-Gates (vor jedem Commit, zwingend und BLOCKIEREND)
 
 ```
 pnpm typecheck          # alle Pakete
 pnpm lint
-pnpm test               # node:test; neue Logik braucht neue Tests
+pnpm test               # Vitest; neue Logik braucht neue Tests
 bash tools/check-repo.sh
 ```
 
+- **Diese Gates sind eine Push-Sperre, keine Empfehlung.** Wenn du sie nicht
+  ausführen kannst (pnpm/Node fehlt im PATH, Sandbox-Grenze, was auch immer):
+  **STOPP — nicht committen, nicht pushen.** Melde das Problem und warte.
+  „Die CI wird es schon prüfen" ist ausdrücklich KEIN gültiger Ersatz: ein
+  gepushter Stand, der nie lokal lief, ist bereits ein Regelverstoß.
+  (Windows-Hinweis: auf Entwicklungsrechnern liegt Node+pnpm ggf. portabel
+  unter `%USERPROFILE%\tools\node` — je Sitzung dem PATH voranstellen.)
 - Jede Verhaltensänderung kommt mit Tests. Logik-/Bus-Verhalten wird gegen
   den Bus-Simulator getestet (busloses CI); E2E-Skripte liegen in `tools/`.
 - CI (`.github/workflows/ci.yml`) muss auf dem PR grün sein, sonst kein Merge.
@@ -110,7 +127,9 @@ bash tools/check-repo.sh
 - Baustein-/Schema-Ports: `snake_case` (Schema-Pattern erzwingt das).
 - **In Code-Strings nur gerade ASCII-Anführungszeichen** — typografische
   Zeichen haben schon mehrfach Parse-Fehler verursacht.
-- Zeilenenden LF. Tests mit `node:test` neben der Quelldatei (`*.test.ts`).
+- Zeilenenden LF (`.gitattributes` erzwingt es). **Tests mit Vitest**
+  (`import { expect, test } from "vitest"`) neben der Quelldatei
+  (`*.test.ts`) — NICHT `node:test`.
 - Fehlerbehandlung an Prozessgrenzen: Eingaben von Bus/Broker/HTTP dürfen den
   Prozess NIE töten (try/catch in Handlern, Warnung statt Crash).
 
