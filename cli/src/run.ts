@@ -9,6 +9,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   ApiServer,
+  ArchivDienst,
   BausteinSandbox,
   DatenpunktRegistry,
   LogikEngine,
@@ -17,6 +18,7 @@ import {
   UhrDienst,
   WsServer,
   analysiereLogik,
+  ladeArchive,
   ladeVisu,
   loadGewerk,
   sandboxAlsBaustein,
@@ -183,6 +185,47 @@ export async function run(dir: string): Promise<number> {
     console.error(`Uhr-Dienst: speist ${[...uhrZiele.keys()].join(", ")}`);
   }
 
+  // ---- Archive (P5-13a/13b) --------------------------------------------------
+  // Fehler in archiv/ sind Warnungen, nicht das Aus — wie bei der Visu ist
+  // validate das Gate; run laeuft mit dem gueltigen Teil weiter.
+  const archivLaden = ladeArchive(dir, gewerk.datenpunkte);
+  for (const f of archivLaden.fehler) {
+    console.error(`WARNUNG Archiv ${f.datei} ${f.pfad}: ${f.meldung}`);
+  }
+  let archiv: ArchivDienst | null = null;
+  let archivTimer: ReturnType<typeof setInterval> | null = null;
+  if (archivLaden.archive.size > 0) {
+    archiv = new ArchivDienst({
+      pfad: join(datenDir, "archiv.sqlite"),
+      archive: archivLaden.archive,
+    });
+    // Ein Datenpunkt kann mehrere Archive speisen: Quelle -> IDs einmal beim
+    // Start bauen, damit im Wertstrom nur ein Map-Zugriff noetig ist.
+    const quelleZuArchive = new Map<string, string[]>();
+    for (const [id, def] of archivLaden.archive) {
+      const bisher = quelleZuArchive.get(def.quelle);
+      if (bisher) bisher.push(id);
+      else quelleZuArchive.set(def.quelle, [id]);
+    }
+    const dienst = archiv;
+    registry.abonniere((e) => {
+      if (!e.geaendert) return; // Archive zeichnen Aenderungen auf, kein Rauschen
+      const ids = quelleZuArchive.get(e.schluessel);
+      if (!ids) return;
+      const ts = registry.zeitstempel(e.schluessel) ?? Date.now();
+      for (const id of ids) dienst.erfasse(id, e.wert, ts);
+    });
+    // Aufbewahrung: einmal beim Start (der Prozess kann Tage gestanden haben)
+    // und danach alle 6 h. unref, damit der Timer den Prozess nie am Leben haelt.
+    const geloescht = archiv.raeumeAuf();
+    archivTimer = setInterval(() => dienst.raeumeAuf(), 6 * 60 * 60 * 1000);
+    archivTimer.unref?.();
+    console.error(
+      `Archive: ${archivLaden.archive.size} aktiv auf ${quelleZuArchive.size} Datenpunkt(en)` +
+        (geloescht > 0 ? ` — ${geloescht} abgelaufene(r) Punkt(e) aufgeraeumt` : ""),
+    );
+  }
+
 
   // KNX-Zuordnung: GA ↔ Datenpunkt + DPT-Karte (P4-4).
   const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
@@ -309,6 +352,7 @@ export async function run(dir: string): Promise<number> {
         gewerk,
         registry,
         visu: { seiten: visu.seiten, designs: visu.designs },
+        ...(archiv ? { archiv } : {}),
         traces: tracePuffer,
         gestartet: Date.now(),
         version: "0.1.0",
@@ -443,6 +487,8 @@ export async function run(dir: string): Promise<number> {
         engine.stop();
         uhr_dienst.stop();
         if (timerHandle) clearTimeout(timerHandle);
+        if (archivTimer) clearInterval(archivTimer);
+        archiv?.schliesse();
         speicher.sichereEngine(engine.momentaufnahme()); // letzter Stand (T-5)
         speicher.schliesse();
         for (const s of sandboxen) s.beende();
