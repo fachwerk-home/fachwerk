@@ -46,10 +46,12 @@ Parallelarbeit läuft in **Spuren** mit striktem **Dateibesitz** — zwei Spuren
 fassen nie dieselben Dateien an. Die aktuelle Spurbelegung steht in
 `docs/PHASE-5-PLAN.md` (Abschnitt „Parallelisierung").
 
-- **Spur 1 = Maintainer-Agent (Claude).** Einziger, der direkt auf `main`
-  pusht. Besitzt die Integrations-Hotspots: `cli/`, `ui/`, `core/src/api/`,
-  `Dockerfile`, `docker-compose*.yml`, `.github/`, `tools/`. Führt Reviews und
-  Merges der anderen Spuren durch und verdrahtet deren Module.
+- **Spur 1 = Maintainer-Agent (Claude — jede Claude-Code-Instanz, z. B.
+  Opus).** Einziger, der direkt auf `main` pusht. Besitzt die Integrations-
+  Hotspots: `core/`, `cli/`, `Dockerfile`, `docker-compose*.yml`, `.github/`,
+  `tools/`. Führt Reviews und Merges der anderen Spuren durch und verdrahtet
+  deren Module. Rollenübernahme + Merge-Ritual: `docs/auftraege/README.md`.
+  Ab Runde 3 gehört `ui/**` komplett Spur 2 (Codex).
 - **Spur 2, 3, … = Auftrags-Agenten (Codex, Gemini, …).** Arbeiten NUR den
   ihnen zugewiesenen Auftrag aus `docs/auftraege/` ab, NUR in den dort
   genannten Dateien/Verzeichnissen, NUR auf ihrem Branch.
