@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DatenpunktDatei, LogikSeite } from "@fachwerk/schema";
 import type { Gewerk } from "../gewerk/loader.ts";
+import { ArchivDienst } from "../archiv/dienst.ts";
 import { DatenpunktRegistry } from "../datenpunkte/registry.ts";
 import { TracePuffer } from "./trace-puffer.ts";
 import { beantworte, type ApiKontext } from "./handler.ts";
@@ -188,5 +189,102 @@ describe("GET /api/visu", () => {
     const k = a.koerper as { seiten: Record<string, { name: string }>; designs: object };
     expect(k.seiten["wohnzimmer"]!.name).toBe("Wohnzimmer");
     expect(k.designs).toEqual({ standard: { text: "#eee" } });
+  });
+});
+
+describe("GET /api/archive (P5-13b)", () => {
+  // In-Memory-Dienst: derselbe Code wie im Betrieb, nur ohne Datei.
+  function mitArchiv(): ApiKontext {
+    const { ktx } = aufbau();
+    const dienst = new ArchivDienst({
+      pfad: ":memory:",
+      archive: new Map([
+        [
+          "zaehler",
+          { name: "Schaltzaehler", quelle: "flur.licht", aufbewahrung_tage: 30 },
+        ],
+      ]),
+    });
+    // Vier Punkte im Abstand von 10 s, damit Rasterung etwas zu tun hat.
+    for (let i = 0; i < 4; i++) dienst.erfasse("zaehler", i, 100_000 + i * 10_000);
+    ktx.archiv = dienst;
+    return ktx;
+  }
+
+  it("listet Archive samt Punktzahl; ohne Dienst leere Liste", () => {
+    const { ktx } = aufbau();
+    expect(beantworte(ktx, "GET", "/api/archive", q()).koerper).toEqual({
+      anzahl: 0,
+      archive: [],
+    });
+
+    const a = beantworte(mitArchiv(), "GET", "/api/archive", q());
+    expect(a.status).toBe(200);
+    const k = a.koerper as { anzahl: number; archive: Array<Record<string, unknown>> };
+    expect(k.anzahl).toBe(1);
+    expect(k.archive[0]).toEqual({
+      id: "zaehler",
+      name: "Schaltzaehler",
+      quelle: "flur.licht",
+      aufbewahrung_tage: 30,
+      punkte: 4,
+    });
+  });
+
+  it("meldet die Archiv-Anzahl im Status", () => {
+    const ohne = beantworte(aufbau().ktx, "GET", "/api/status", q()).koerper as {
+      archive: { anzahl: number };
+    };
+    expect(ohne.archive).toEqual({ anzahl: 0 });
+    const mit = beantworte(mitArchiv(), "GET", "/api/status", q()).koerper as {
+      archive: { anzahl: number };
+    };
+    expect(mit.archive).toEqual({ anzahl: 1 });
+  });
+
+  it("liefert Rohpunkte bei rasterS=0 und respektiert von/bis", () => {
+    const a = beantworte(mitArchiv(), "GET", "/api/archive/zaehler", q("von=100000&bis=120000&rasterS=0"));
+    expect(a.status).toBe(200);
+    const k = a.koerper as { anzahl: number; rasterS: number; punkte: Array<{ ts: number }> };
+    expect(k.rasterS).toBe(0);
+    expect(k.punkte.map((p) => p.ts)).toEqual([100_000, 110_000, 120_000]);
+  });
+
+  it("aggregiert auf dem gewuenschten Raster", () => {
+    const a = beantworte(mitArchiv(), "GET", "/api/archive/zaehler", q("von=100000&bis=130000&rasterS=30&aggregation=max"));
+    const k = a.koerper as {
+      aggregation: string;
+      punkte: Array<{ ts: number; wert: number; anzahl: number }>;
+    };
+    expect(k.aggregation).toBe("max");
+    // Fenster liegen absolut auf der Epoche (SPEC-004), nicht relativ zu „von":
+    // 90 s-Fenster haelt 100/110 s, 120 s-Fenster haelt 120/130 s.
+    expect(k.punkte.map((p) => [p.ts, p.wert, p.anzahl])).toEqual([
+      [90_000, 1, 2],
+      [120_000, 3, 2],
+    ]);
+  });
+
+  it("rastert ohne rasterS selbst auf grob 1000 Punkte (Default 24 h)", () => {
+    const ktx = mitArchiv();
+    ktx.jetzt = () => 130_000;
+    const k = beantworte(ktx, "GET", "/api/archive/zaehler", q()).koerper as {
+      von: number;
+      bis: number;
+      rasterS: number;
+    };
+    expect(k.bis).toBe(130_000);
+    expect(k.von).toBe(130_000 - 24 * 60 * 60 * 1000);
+    // 86400 s Spanne / 1000 Punkte = 87 s Raster (aufgerundet).
+    expect(k.rasterS).toBe(87);
+  });
+
+  it("weist unbekannte Archive, kaputte Zahlen und Aggregationen ab", () => {
+    const ktx = mitArchiv();
+    expect(beantworte(ktx, "GET", "/api/archive/gibtsnicht", q()).status).toBe(404);
+    expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("von=gestern")).status).toBe(400);
+    expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("rasterS=-1")).status).toBe(400);
+    expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("von=200&bis=100")).status).toBe(400);
+    expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("aggregation=median")).status).toBe(400);
   });
 });

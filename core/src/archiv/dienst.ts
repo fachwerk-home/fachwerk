@@ -57,6 +57,23 @@ export class ArchivDienst {
     this.#db.close();
   }
 
+  /** Geladene Archiv-Definitionen — die API listet daraus (P5-13b). */
+  get definitionen(): ReadonlyMap<string, ArchivDefinition> {
+    return this.#archive;
+  }
+
+  /**
+   * Anzahl erfasster Punkte eines Archivs. Unbekannte ID ⇒ 0 (die API listet
+   * nur bekannte IDs, aber ein Fehlgriff darf hier nichts werfen).
+   */
+  anzahlPunkte(id: string): number {
+    if (!this.#archive.has(id)) return 0;
+    const zeile = this.#db
+      .prepare("SELECT COUNT(*) AS n FROM punkte WHERE archiv_id = ?")
+      .get(id) as { n: number | bigint } | undefined;
+    return zeile === undefined ? 0 : Number(zeile.n);
+  }
+
   erfasse(id: string, wert: boolean | number | string, ts?: number): void {
     try {
       if (!this.#archive.has(id)) {
