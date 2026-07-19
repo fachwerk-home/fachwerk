@@ -3,7 +3,7 @@
  * Layout ist bewusst simpel — Schichten nach Topologie (kantensicher auch bei
  * Zyklen), keine Kantenkreuzungs-Optimierung. Der Editor (P5-11) baut darauf auf.
  */
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { DatenpunktSicht, GewerkSeite, GewerkStruktur, Wert } from "../lib/api.ts";
 import { wertText, zeit } from "./format.ts";
 
@@ -247,13 +247,20 @@ export function Logik({
   gewerk,
   dps,
   schritte,
+  escSignal,
 }: {
   gewerk: GewerkStruktur | null;
   dps: DatenpunktSicht[];
   schritte: Record<string, LetzterSchritt>;
+  escSignal: number;
 }) {
   const [seitenName, setSeitenName] = useState<string | null>(null);
   const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+  const [kamera, setKamera] = useState({ x: 20, y: 20, zoom: 1 });
+  const zeiger = useRef(new Map<number, { x: number; y: number }>());
+  const geste = useRef<{ abstand: number; mitteX: number; mitteY: number } | null>(null);
+
+  useEffect(() => setGewaehlt(null), [escSignal]);
 
   const seite =
     gewerk?.seiten.find((s) => s.name === seitenName) ?? gewerk?.seiten[0] ?? null;
@@ -284,6 +291,46 @@ export function Logik({
 
   const jetzt = Date.now();
   const detailKnoten = layout.knoten.find((n) => n.id === gewaehlt && n.art === "baustein");
+  const begrenzeZoom = (zoom: number): number => Math.min(2.5, Math.max(0.35, zoom));
+  const zuruecksetzen = (): void => setKamera({ x: 20, y: 20, zoom: 1 });
+
+  const zeigerStart = (event: PointerEvent): void => {
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    zeiger.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  };
+  const zeigerBewegt = (event: PointerEvent): void => {
+    const vorher = zeiger.current.get(event.pointerId);
+    if (!vorher) return;
+    zeiger.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const punkte = [...zeiger.current.values()];
+    if (punkte.length === 1) {
+      setKamera((alt) => ({ ...alt, x: alt.x + event.clientX - vorher.x, y: alt.y + event.clientY - vorher.y }));
+      return;
+    }
+    const [a, b] = punkte;
+    if (!a || !b) return;
+    const abstand = Math.hypot(a.x - b.x, a.y - b.y);
+    const mitteX = (a.x + b.x) / 2;
+    const mitteY = (a.y + b.y) / 2;
+    if (geste.current) {
+      const faktor = abstand / Math.max(1, geste.current.abstand);
+      setKamera((alt) => ({
+        x: alt.x + mitteX - geste.current!.mitteX,
+        y: alt.y + mitteY - geste.current!.mitteY,
+        zoom: begrenzeZoom(alt.zoom * faktor),
+      }));
+    }
+    geste.current = { abstand, mitteX, mitteY };
+  };
+  const zeigerEnde = (event: PointerEvent): void => {
+    zeiger.current.delete(event.pointerId);
+    geste.current = null;
+  };
+  const zoome = (event: WheelEvent): void => {
+    event.preventDefault();
+    const faktor = event.deltaY < 0 ? 1.12 : 0.89;
+    setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom * faktor) }));
+  };
 
   return (
     <>
@@ -302,6 +349,11 @@ export function Logik({
           ))}
         </select>
         {seite.notizen && <span class="schwach logik-notiz">{seite.notizen}</span>}
+        <span class="werkzeuge-trenner" />
+        <button onClick={() => setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom / 1.2) }))} aria-label="Verkleinern">−</button>
+        <span class="mono schwach">{Math.round(kamera.zoom * 100)}%</span>
+        <button onClick={() => setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom * 1.2) }))} aria-label="Vergrößern">+</button>
+        <button onClick={zuruecksetzen}>Ansicht zurücksetzen</button>
       </div>
 
       {detailKnoten && (
@@ -313,13 +365,16 @@ export function Logik({
         />
       )}
 
-      <div class="logik-huelle">
-        <svg
-          width={layout.breite}
-          height={layout.hoehe}
-          viewBox={`0 0 ${layout.breite} ${layout.hoehe}`}
-          class="logik-svg"
-        >
+      <div
+        class="logik-huelle"
+        onPointerDown={zeigerStart}
+        onPointerMove={zeigerBewegt}
+        onPointerUp={zeigerEnde}
+        onPointerCancel={zeigerEnde}
+        onWheel={zoome}
+      >
+        <div class="logik-canvas" style={{ transform: `translate(${kamera.x}px, ${kamera.y}px) scale(${kamera.zoom})` }}>
+          <svg width={layout.breite} height={layout.hoehe} viewBox={`0 0 ${layout.breite} ${layout.hoehe}`} class="logik-svg">
           {layout.kanten.map((k, i) => {
             const wert = kantenWert(k, seite.name, dpWerte, schritte);
             const dx = Math.max(40, (k.x2 - k.x1) / 2);
@@ -403,7 +458,9 @@ export function Logik({
               </g>
             );
           })}
-        </svg>
+          </svg>
+        </div>
+        <div class="logik-hinweis">Ziehen zum Verschieben · Mausrad oder Zwei-Finger-Geste zum Zoomen</div>
       </div>
     </>
   );

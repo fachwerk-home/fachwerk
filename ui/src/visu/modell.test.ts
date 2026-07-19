@@ -21,10 +21,10 @@ const SEITE: VisuSeite = {
 };
 
 describe("Breakpoint und Placement", () => {
-  it("wählt den größten passenden Breakpoint und sonst die Basis", () => {
+  it("wählt den größten passenden Breakpoint und sonst den kleinsten", () => {
     expect(waehleBreakpoint(SEITE, 1400)).toBe("tablet");
     expect(waehleBreakpoint(SEITE, 390)).toBe("handy");
-    expect(waehleBreakpoint(SEITE, 375)).toBe("tablet");
+    expect(waehleBreakpoint(SEITE, 375)).toBe("handy");
   });
 
   it("erbt Basis-Geometrie und überschreibt Placement-Felder samt Format", () => {
