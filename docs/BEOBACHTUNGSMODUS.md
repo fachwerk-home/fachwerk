@@ -95,3 +95,52 @@ das erst, wenn wir Guardrails (DEV/PROD, ADR-0009) und eine Visu haben.
 - Datenpunkte ohne bekannten Wert (noch kein Telegramm gesehen) tragen erst ab dem ersten
   Empfang einen Wert (ADR-0005: letzter bekannter Wert).
 - Beobachtungsmodus ändert nichts an der Anlage — er ist ausdrücklich zum Zuschauen da.
+
+## Schreibpfad der API (P5-8) — Vertrag für UI-Clients
+
+Der Schreibpfad ist **dreifach verriegelt**. Für den Beobachtungsmodus gilt dabei
+die wichtigste Zusage unverändert: die Registry nimmt den Wert an (damit die Logik
+reagiert und man sieht, was passieren *würde*), aber **kein Treiber sendet**.
+
+```
+POST /api/datenpunkte/<gruppe>.<key>
+Authorization: Bearer <FACHWERK_API_TOKEN>
+Content-Type: application/json
+
+{"wert": true}
+```
+
+Antwort bei Erfolg (`200`):
+
+```json
+{"angenommen": true, "schluessel": "wohnen.licht", "wert": true, "geaendert": true,
+ "hinweis": "beobachten: nicht auf den Bus gesendet"}
+```
+
+`hinweis` fehlt, wenn der zuständige Treiber wirklich sendet. **Eine UI muss diesen
+Hinweis anzeigen** — sonst drückt jemand auf einen Schalter, sieht „angenommen" und
+wundert sich, warum die Lampe dunkel bleibt.
+
+| Code | Bedeutung | Fehlerform |
+|---|---|---|
+| 200 | angenommen | `{angenommen:true, …}` |
+| 400 | Body ist kein JSON-Objekt mit `wert`, oder `wert` ist kein bool/zahl/text | `{angenommen:false, fehler}` |
+| 401 | Token fehlt oder ist falsch (Transportschicht) | `{fehler}` |
+| 403 | Schreibpfad aus (kein `FACHWERK_API_TOKEN` konfiguriert) **oder** Datenpunkt ist `protected` | `{angenommen:false, fehler}` |
+| 404 | unbekannter Datenpunkt | `{angenommen:false, fehler}` |
+| 413 | Body größer als 64 KB | `{angenommen:false, fehler}` |
+| 422 | Typverstoß gegen die Datenpunkt-Definition | `{angenommen:false, fehler}` |
+| 429 | Rate-Limit (`FACHWERK_API_SCHREIBLIMIT`, Default 30 pro 10 s, token-weit) | `{angenommen:false, fehler}` |
+
+Weitere Zusagen, auf die sich eine UI verlassen darf:
+
+- **Ohne `FACHWERK_API_TOKEN` existiert der Schreibpfad nicht** — nicht „offen für
+  alle", sondern aus. Eine reine Lese-UI läuft also gefahrlos ohne Token.
+- **`protected`-Datenpunkte** (Schlösser, Alarm, Tore, Zutritt) sind über die API
+  **nie** schreibbar — zusätzlich lehnt die Registry sie selbst ab (zweite Schicht).
+- **Der WebSocket bleibt read-only.** Kommandos über WS kommen frühestens mit P5-11.
+- **Jeder Versuch wird protokolliert**, auch der abgelehnte: `audit.jsonl` im
+  Datenverzeichnis (`FACHWERK_DATEN_DIR`), eine JSON-Zeile je Versuch
+  (`{ts, schluessel, wert, quelle:"api", angenommen, grund?}`), append-only.
+  **Keine Rotation in v1** — wer die Datei klein halten will, schneidet sie extern
+  (z. B. `logrotate`); die Laufzeit kürzt sie nie selbst.

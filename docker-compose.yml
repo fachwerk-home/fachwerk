@@ -18,6 +18,10 @@ services:
       # Beobachtungsmodus vom Host durchreichen (leer = normal senden).
       FACHWERK_KNX_MODUS: ${FACHWERK_KNX_MODUS:-}
       FACHWERK_HTTP_PORT: "8300"
+      # Schreibpfad (P5-8): leer = API bleibt lesend. Nie ein echtes Token
+      # hier eintragen — immer vom Host durchreichen.
+      FACHWERK_API_TOKEN: ${FACHWERK_API_TOKEN:-}
+      FACHWERK_API_SCHREIBLIMIT: ${FACHWERK_API_SCHREIBLIMIT:-30}
     ports:
       # API + UI (P5-2/P5-3) auf dem Host erreichbar.
       - "8300:8300"

@@ -74,3 +74,5 @@ jobs:
         run: bash tools/e2e-api.sh
       - name: Archive (Wertänderung wird aufgezeichnet, überlebt Neustart)
         run: bash tools/e2e-archiv.sh
+      - name: Schreibpfad (Token, protected, Beobachtungsmodus, Audit)
+        run: bash tools/e2e-schreiben.sh

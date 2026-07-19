@@ -10,6 +10,12 @@ taster:
   typ: bool
   treiber: knx
   adresse: 1/0/1
+tuer:
+  name: Haustür-Schloss (geschützt)
+  klasse: intern
+  typ: bool
+  protected: true
+  notizen: Über die API nie schreibbar (SPEC-001).
 zaehler:
   name: Schaltzähler (intern)
   klasse: intern

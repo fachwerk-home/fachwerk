@@ -180,12 +180,18 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 ### P5-8: Schreibpfad (API) + Bedienen
 - **Ziel:** Erstes kontrolliertes SCHREIBEN über die API.
 - **Umfang:** `POST /api/datenpunkte/<schluessel>` `{wert}` — Scope `operate`
-  (Token-Pflicht!), verweigert bei `protected` (SPEC-001) und im
-  Beobachtungsmodus (Treiber sendet ohnehin nicht — API meldet es ehrlich);
+  (Token-Pflicht!), verweigert bei `protected` (SPEC-001); im
+  Beobachtungsmodus wird der Wert ANGENOMMEN (die Logik soll reagieren), aber
+  kein Treiber sendet — die Antwort sagt das ehrlich per `hinweis`;
   Rate-Limit (ADR-0009 A-6 minimal); Audit-Zeile (append-only JSONL in
   /daten). UI: Taster/Schalter/Slider funktionieren.
 - **Akzeptanz:** E2E: Schalter in UI → Telegramm am Simulator; protected-DP
-  und Beobachtungsmodus → 403 mit Grund; Audit-Datei wächst.
+  → 403 mit Grund; Beobachtungsmodus → angenommen, aber nachweislich kein
+  Telegramm; Audit-Datei wächst.
+- **Erledigt (Spur 1):** API-Seite steht — Token-Schalter, Rate-Limit,
+  protected-Sperre (zwei Schichten), Typprüfung 422, Audit-JSONL; E2E
+  `tools/e2e-schreiben.sh` in CI; UI-Vertrag in `docs/BEOBACHTUNGSMODUS.md`.
+  Offen bleibt die UI-Seite (Codex, P5-UI-B).
 
 ### P5-9: Visu-Import (Stufe 3) — Referenz-Visu übernehmen
 - **Ziel:** `exportVisu.json` (Userscript-Export; liegt als Nutzdaten vor)
