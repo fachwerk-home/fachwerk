@@ -1,0 +1,19 @@
+id: telegram_nachricht
+name: Telegram Nachricht
+version: 1
+beschreibung: "Sendet eine Nachricht an einen Telegram-Chat."
+eingaenge: [ausloeser, wert]
+ausgaenge: [gesendet, fehler]
+parameter:
+  bot_token: ""
+  chat_id: ""
+  text: "{wert}"
+  nur_bei: null
+  api_basis: "https://api.telegram.org"
+tests:
+  - eingaenge: { ausloeser: true, wert: "Test" }
+    parameter: { text: "Nachricht: {wert}" }
+    erwartet: { gesendet: true, fehler: "" }
+  - eingaenge: { ausloeser: true, wert: false }
+    parameter: { nur_bei: true }
+    erwartet: null

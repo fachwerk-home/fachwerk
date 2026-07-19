@@ -68,3 +68,9 @@ fachwerk validate <gewerk-verzeichnis>        # prüft Manifest + Verdrahtung
 ```
 
 Beispiel zum Abschauen: `examples/minimal/bausteine/flankenzaehler/`.
+
+## Beispiel: Telegram
+
+Ein einfaches Beispiel für einen Telegram-Nachrichtenversand (`examples/bausteine-telegram`) zeigt, wie man Templates (`{wert}`) und einfache Filter (`nur_bei`) in der Sandbox verarbeitet. 
+
+**Wichtig:** Da die Sandbox streng synchron arbeitet, ist ein echter asynchroner `fetch()`-Aufruf, der sein Ergebnis (z. B. Erfolg/Fehler) auf die Baustein-Ausgänge legt, aktuell nicht möglich. Ein solches Netzwerk-Feature für Dienste-Bausteine wird gemäß ADR-0008 separat konzipiert.
