@@ -64,9 +64,9 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-P5-13a.md | Gemini | ✅ gemergt |
 | AUFTRAG-P5-7.md | Codex | ✅ gemergt |
 | AUFTRAG-P5-13c.md | Gemini | ✅ gemergt |
-| AUFTRAG-P5-UI.md | Codex | offen |
+| AUFTRAG-P5-UI.md | Codex | ✅ gemergt |
+| AUFTRAG-P5-13b.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
 | AUFTRAG-P5-UI-B.md | Codex (nach P5-8 + 13b) | offen |
-| AUFTRAG-P5-13b.md | Spur 1 (Opus) | offen |
 | AUFTRAG-BAUSTEIN-TELEGRAM.md | Gemini | offen |
 | AUFTRAG-P5-8.md | Spur 1 (Opus) | offen |
 | AUFTRAG-P5-9.md | Spur 1 (Opus, mit Betreiber-Rückfragen) | offen |

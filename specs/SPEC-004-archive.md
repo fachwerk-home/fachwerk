@@ -52,6 +52,27 @@ Zusätzlich liefert das aggregierte Fenster-Objekt neben `wert` immer auch `min`
 Die Archivierung berücksichtigt die endliche Kapazität der Speichersysteme.
 Die Methode `raeumeAuf()` wertet für jede Archiv-ID individuell `aufbewahrung_tage` aus. Punkte, deren Zeitstempel diese Aufbewahrungsdauer überschreiten, werden aus der SQLite-Datenbank entfernt.
 
+Die Fenster liegen absolut auf der Epoche (`floor(ts / raster) * raster`), nicht relativ zu `von` — dieselbe Abfrage liefert damit unabhängig vom gewählten Ausschnitt dieselben Fenstergrenzen.
+
+## Laufzeit-Verhalten
+
+Beim Start lädt `fachwerk run` die Definitionen aus `archiv/*.yaml` und prüft sie gegen die Datenpunkte des Gewerks. **Ladefehler sind Warnungen, kein Startabbruch** — wie bei der Visu ist `fachwerk validate` das Gate; die Laufzeit läuft mit dem gültigen Teil weiter, damit ein Tippfehler in einer Archiv-Definition nicht die Gebäudesteuerung anhält.
+
+Sind Archive definiert, öffnet die Laufzeit den `ArchivDienst` auf `archiv.sqlite` unterhalb von `FACHWERK_DATEN_DIR`. Die Zeitreihen liegen damit auf demselben Volume wie der übrige Zustand (ADR-0006) und überleben Container-Neustarts.
+
+- **Erfassung:** Der Dienst hängt an der Datenpunkt-Registry. Erfasst wird bei *Wertänderung* eines Quell-Datenpunkts, mit dem Zeitstempel der Registry. Ein Datenpunkt darf mehrere Archive speisen; die Zuordnung Quelle → Archiv-IDs entsteht einmal beim Start. Feineres Rate-Limiting regelt `mindestabstand_s`.
+- **Aufbewahrung:** `raeumeAuf()` läuft einmal beim Start (der Prozess kann tagelang gestanden haben) und danach alle 6 Stunden.
+- **Herunterfahren:** Der Aufräum-Timer wird gestoppt und die Datenbank sauber geschlossen.
+
+## HTTP-API
+
+Beide Endpunkte gehören zur öffentlichen API (ADR-0009 A-1: die UI benutzt exakt diese Wege, keine privilegierten).
+
+- `GET /api/archive` — Liste aller Archive mit `id`, `name`, `quelle`, `aufbewahrung_tage`, optional `mindestabstand_s` und der Anzahl gespeicherter `punkte`. Gewerk ohne Archive: leere Liste.
+- `GET /api/archive/<id>?von&bis&rasterS&aggregation` — Zeitreihe. Defaults: `bis` = jetzt, `von` = `bis` − 24 h. Fehlt `rasterS`, wählt die API selbst ein Raster, das über die angefragte Spanne grob 1000 Punkte ergibt — eine 24-h-Rohabfrage würde einen Client sonst mit beliebig vielen Punkten überschütten. `rasterS=0` fordert ausdrücklich Rohdaten an. `aggregation` ist eine der oben genannten Stufen, Standard `mittel`.
+- Unbekannte Archiv-IDs ergeben 404; nicht-numerische `von`/`bis`/`rasterS`, negatives Raster, `von` hinter `bis` und unbekannte Aggregationen ergeben 400 — die API rät nicht.
+- `GET /api/status` enthält `archive: { anzahl }`.
+
 ## Offene Ausbaustufen (v2+)
 
 - **Typ-Einschränkungen**: Aktuell können in v1 ausschließlich Werte der Typen `zahl` und `bool` archiviert werden. Die Speicherung von `text`-Werten (z. B. Enum-States als Text) ist noch nicht implementiert.

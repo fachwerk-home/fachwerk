@@ -72,3 +72,5 @@ jobs:
         run: bash tools/e2e-mqtt.sh
       - name: API + WebSocket (Status, Werte, Traces, Live, UI)
         run: bash tools/e2e-api.sh
+      - name: Archive (Wertänderung wird aufgezeichnet, überlebt Neustart)
+        run: bash tools/e2e-archiv.sh
