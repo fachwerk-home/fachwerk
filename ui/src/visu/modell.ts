@@ -16,14 +16,15 @@ export interface WertEintrag {
   format?: WertFormat;
 }
 
-/** Größter Breakpoint, der hineinpasst; ohne Treffer gilt die deklarierte Basis. */
+/** Größter Breakpoint, der hineinpasst; auf schmaleren Geräten der kleinste. */
 export function waehleBreakpoint(seite: VisuSeite, breite: number): string {
   const passend = Object.entries(seite.groessen)
     .filter(([, groesse]) => groesse.w <= breite)
     .sort(([aKey, a], [bKey, b]) => a.w - b.w || aKey.localeCompare(bKey));
   if (passend.length > 0) return passend.at(-1)?.[0] ?? seite.basis;
-  if (seite.groessen[seite.basis]) return seite.basis;
-  return Object.keys(seite.groessen).sort()[0] ?? seite.basis;
+  return Object.entries(seite.groessen)
+    .sort(([aKey, a], [bKey, b]) => a.w - b.w || aKey.localeCompare(bKey))[0]?.[0]
+    ?? seite.basis;
 }
 
 /** Eine partielle Geräte-Platzierung überschreibt die geerbte Basis feldweise. */

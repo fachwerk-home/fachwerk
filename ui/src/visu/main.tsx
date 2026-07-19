@@ -24,6 +24,9 @@ import {
 
 type LiveStatus = "verbindet" | "verbunden" | "getrennt";
 
+const thema = new URLSearchParams(location.search).get("theme");
+if (thema === "light" || thema === "dark") document.documentElement.dataset.theme = thema;
+
 function viewport(): { w: number; h: number } {
   return { w: window.innerWidth, h: window.innerHeight };
 }
@@ -265,6 +268,14 @@ function App() {
       return neu;
     });
   }, (verbunden) => setLive(verbunden ? "verbunden" : "getrennt")), []);
+
+  useEffect(() => {
+    const schliessen = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setPopupKey(null);
+    };
+    window.addEventListener("keydown", schliessen);
+    return () => window.removeEventListener("keydown", schliessen);
+  }, []);
 
   const aktiviere = (aktion: VisuAktion): void => {
     if (!visu) return;
