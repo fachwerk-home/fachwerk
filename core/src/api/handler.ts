@@ -8,6 +8,8 @@
 import type { Datenpunkt, VisuDesigns, VisuSeite, WertFormat } from "@fachwerk/schema";
 import type { Aggregation, ArchivDienst } from "../archiv/dienst.ts";
 import type { DatenpunktRegistry, Wert } from "../datenpunkte/registry.ts";
+import type { AuditEintrag } from "./audit.ts";
+import type { Schreibbremse } from "./schreibbremse.ts";
 import type { Gewerk } from "../gewerk/loader.ts";
 import type { TracePuffer } from "./trace-puffer.ts";
 
@@ -36,6 +38,18 @@ export interface ApiKontext {
   /** Laufender Archiv-Dienst (P5-13b); undefined = Gewerk ohne Archive. */
   archiv?: ArchivDienst;
   jetzt?: () => number;
+
+  // ---- Schreibpfad (P5-8) ---------------------------------------------------
+  /**
+   * Erste Verriegelung: Ohne konfiguriertes FACHWERK_API_TOKEN ist der
+   * Schreibpfad KOMPLETT aus. Nicht „offen fuer alle", sondern aus — eine
+   * Lese-UI soll man ohne Token betreiben koennen, schreiben nie.
+   */
+  schreibenAktiv?: boolean;
+  /** Rate-Limit (ADR-0009 A-6). Fehlt es, wird nicht gebremst. */
+  bremse?: Schreibbremse;
+  /** Jeder Versuch wird protokolliert — auch der abgelehnte. */
+  audit?: (eintrag: AuditEintrag) => void;
 }
 
 export interface ApiAntwort {
@@ -92,6 +106,87 @@ function alleDatenpunkte(gewerk: Gewerk): Array<[string, Datenpunkt]> {
 
 const AGGREGATIONEN: readonly string[] = ["mittel", "min", "max", "letzter"];
 
+/**
+ * Sendet der zustaendige Treiber diesen Datenpunkt gerade NICHT auf den Bus?
+ * Genau dann, wenn er im Beobachtungsmodus laeuft. Die Antwort sagt das
+ * ehrlich — ein „angenommen" ohne Hinweis waere eine Luege gegenueber einem
+ * Bediener, der auf ein Licht drueckt und nichts passieren sieht.
+ */
+function sendetNicht(ktx: ApiKontext, def: Datenpunkt): boolean {
+  if (def.klasse !== "bus") return false;
+  if (def.treiber === "knx") return ktx.knx()?.modus === "beobachten";
+  if (def.treiber === "mqtt") return ktx.mqtt()?.modus === "beobachten";
+  return false;
+}
+
+/**
+ * Schreibpfad (P5-8) — dreifach verriegelt und in dieser Reihenfolge:
+ * Token-Schalter, Rate-Limit, Existenz, protected, Typ. Die Registry prueft
+ * protected und Typ ANSCHLIESSEND noch einmal selbst (zweite Schicht), und
+ * die Treiber senden im Beobachtungsmodus ohnehin nie (dritte Schicht).
+ * Jeder Versuch wird protokolliert, bevor er beantwortet wird.
+ */
+function schreibe(ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAntwort {
+  const jetzt = (ktx.jetzt ?? Date.now)();
+  const wertRoh = (koerper as { wert?: unknown } | null | undefined)?.wert;
+
+  const ab = (status: number, grund: string): ApiAntwort => {
+    ktx.audit?.({ ts: jetzt, schluessel, wert: wertRoh ?? null, quelle: "api", angenommen: false, grund });
+    return { status, koerper: { angenommen: false, fehler: grund } };
+  };
+
+  // 1. Schalter: ohne Token-Konfiguration existiert der Schreibpfad nicht.
+  if (!ktx.schreibenAktiv) {
+    return ab(403, "Schreibpfad ist aus: FACHWERK_API_TOKEN ist nicht gesetzt");
+  }
+  // 2. Rate-Limit vor allem Fachlichen — auch Raten auf Schluesseln kostet.
+  if (ktx.bremse && !ktx.bremse.versuche()) {
+    return ab(
+      429,
+      `Rate-Limit erreicht: mehr als ${ktx.bremse.grenze} Schreibzugriffe in ${ktx.bremse.fensterS} s`,
+    );
+  }
+  // 3. Body-Form.
+  if (typeof koerper !== "object" || koerper === null || !("wert" in koerper)) {
+    return ab(400, "Body muss ein JSON-Objekt mit dem Feld wert sein");
+  }
+  if (typeof wertRoh !== "boolean" && typeof wertRoh !== "number" && typeof wertRoh !== "string") {
+    return ab(400, `wert muss bool, zahl oder text sein, nicht ${typeof wertRoh}`);
+  }
+  // 4. Existenz.
+  const def = ktx.registry.definition(schluessel);
+  if (!def) return ab(404, `unbekannter Datenpunkt: ${schluessel}`);
+  // 5. protected (SPEC-001) — erste Schicht; die Registry lehnt zusaetzlich ab.
+  if (def.protected) {
+    return ab(403, `„${schluessel}" ist protected und ueber die API nie schreibbar`);
+  }
+  // 6. Typ gegen die Definition; 422 ist hier die ehrlichere Antwort als 400,
+  //    weil der Body syntaktisch in Ordnung, fachlich aber falsch ist.
+  if (
+    (def.typ === "bool" && typeof wertRoh !== "boolean") ||
+    (def.typ === "zahl" && (typeof wertRoh !== "number" || !Number.isFinite(wertRoh))) ||
+    (def.typ === "text" && typeof wertRoh !== "string")
+  ) {
+    return ab(422, `Typverstoss auf „${schluessel}": erwartet ${def.typ}, erhalten ${typeof wertRoh}`);
+  }
+
+  const erg = ktx.registry.schreibe(schluessel, wertRoh, "agent");
+  if (!erg.angenommen) return ab(403, erg.grund);
+
+  const hinweis = sendetNicht(ktx, def) ? "beobachten: nicht auf den Bus gesendet" : undefined;
+  ktx.audit?.({ ts: jetzt, schluessel, wert: wertRoh, quelle: "api", angenommen: true });
+  return {
+    status: 200,
+    koerper: {
+      angenommen: true,
+      schluessel,
+      wert: wertRoh,
+      geaendert: erg.geaendert,
+      ...(hinweis !== undefined ? { hinweis } : {}),
+    },
+  };
+}
+
 /** Query-Parameter als endliche Zahl; fehlt er, kommt undefined, sonst null bei Unsinn. */
 function optZahl(roh: string | null): number | null | undefined {
   if (roh === null || roh === "") return undefined;
@@ -118,9 +213,13 @@ export function beantworte(
   methode: string,
   pfad: string,
   query: URLSearchParams,
+  koerper?: unknown,
 ): ApiAntwort {
+  if (methode === "POST" && pfad.startsWith("/api/datenpunkte/")) {
+    return schreibe(ktx, decodeURIComponent(pfad.slice("/api/datenpunkte/".length)), koerper);
+  }
   if (methode !== "GET") {
-    return { status: 405, koerper: { fehler: "nur GET (Schreibpfad folgt in P5-8)" } };
+    return { status: 405, koerper: { fehler: `Methode ${methode} nicht erlaubt auf ${pfad}` } };
   }
 
   if (pfad === "/api/status") {

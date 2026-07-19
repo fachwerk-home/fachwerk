@@ -10,9 +10,11 @@ import { join } from "node:path";
 import {
   ApiServer,
   ArchivDienst,
+  AuditProtokoll,
   BausteinSandbox,
   DatenpunktRegistry,
   LogikEngine,
+  Schreibbremse,
   Speicher,
   TracePuffer,
   UhrDienst,
@@ -347,12 +349,22 @@ export async function run(dir: string): Promise<number> {
     for (const f of visu.fehler) {
       console.warn(`WARNUNG Visu ${f.datei}${f.element ? ` [${f.element}]` : ""}: ${f.grund}`);
     }
+    // Schreibpfad (P5-8): NUR mit Token. Ohne Token bleibt die API lesend —
+    // das ist der Schalter, nicht bloss eine Empfehlung.
+    const apiToken = process.env["FACHWERK_API_TOKEN"];
+    const schreiblimit = Number(process.env["FACHWERK_API_SCHREIBLIMIT"] ?? 30);
+    const audit = new AuditProtokoll(join(datenDir, "audit.jsonl"), (m) =>
+      console.error(`WARNUNG: ${m}`),
+    );
     api = new ApiServer(
       {
         gewerk,
         registry,
         visu: { seiten: visu.seiten, designs: visu.designs },
         ...(archiv ? { archiv } : {}),
+        schreibenAktiv: apiToken !== undefined && apiToken !== "",
+        bremse: new Schreibbremse({ grenze: Number.isFinite(schreiblimit) ? schreiblimit : 30 }),
+        audit: (e) => audit.schreibe(e),
         traces: tracePuffer,
         gestartet: Date.now(),
         version: "0.1.0",
@@ -390,7 +402,9 @@ export async function run(dir: string): Promise<number> {
       console.error(
         `API/UI: http://0.0.0.0:${httpPort}` +
           (existsSync(uiVerzeichnis) ? "" : " (nur /api — UI nicht gebaut)") +
-          (process.env["FACHWERK_API_TOKEN"] ? " [Token-Pflicht]" : ""),
+          (apiToken
+            ? ` [Token-Pflicht · Schreibpfad aktiv, max. ${schreiblimit}/10 s]`
+            : " [ohne Token — nur lesend]"),
       );
     } catch (e) {
       console.error(`API: Start auf Port ${httpPort} fehlgeschlagen: ${

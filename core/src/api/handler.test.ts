@@ -4,7 +4,9 @@ import type { Gewerk } from "../gewerk/loader.ts";
 import { ArchivDienst } from "../archiv/dienst.ts";
 import { DatenpunktRegistry } from "../datenpunkte/registry.ts";
 import { TracePuffer } from "./trace-puffer.ts";
-import { beantworte, type ApiKontext } from "./handler.ts";
+import { beantworte, type ApiAntwort, type ApiKontext } from "./handler.ts";
+import type { AuditEintrag } from "./audit.ts";
+import { Schreibbremse } from "./schreibbremse.ts";
 import type { KaskadenTrace } from "../logik/engine.ts";
 
 function aufbau(): { ktx: ApiKontext; registry: DatenpunktRegistry } {
@@ -141,9 +143,9 @@ describe("GET /api/traces und /api/gewerk", () => {
 });
 
 describe("Sonstiges", () => {
-  it("Schreiben ist (noch) nicht erlaubt und unbekannte Pfade sind 404", () => {
+  it("Schreiben ist ohne Token-Konfiguration aus; unbekannte Pfade sind 404", () => {
     const { ktx } = aufbau();
-    expect(beantworte(ktx, "POST", "/api/datenpunkte/flur.licht", q()).status).toBe(405);
+    expect(beantworte(ktx, "POST", "/api/datenpunkte/flur.licht", q()).status).toBe(403);
     expect(beantworte(ktx, "GET", "/api/quatsch", q()).status).toBe(404);
   });
 });
@@ -286,5 +288,112 @@ describe("GET /api/archive (P5-13b)", () => {
     expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("rasterS=-1")).status).toBe(400);
     expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("von=200&bis=100")).status).toBe(400);
     expect(beantworte(ktx, "GET", "/api/archive/zaehler", q("aggregation=median")).status).toBe(400);
+  });
+});
+
+describe("POST /api/datenpunkte/<schluessel> (P5-8 Schreibpfad)", () => {
+  // Vollstaendig verdrahteter Schreibpfad; jede Verriegelung einzeln pruefbar.
+  function schreibbar(opts: { grenze?: number } = {}): {
+    ktx: ApiKontext;
+    audit: AuditEintrag[];
+  } {
+    const { ktx } = aufbau();
+    const audit: AuditEintrag[] = [];
+    ktx.schreibenAktiv = true;
+    ktx.bremse = new Schreibbremse({ grenze: opts.grenze ?? 30, jetzt: () => 1000 });
+    ktx.audit = (e) => audit.push(e);
+    return { ktx, audit };
+  }
+
+  const post = (ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAntwort =>
+    beantworte(ktx, "POST", `/api/datenpunkte/${schluessel}`, q(), koerper);
+
+  it("schreibt einen gueltigen Wert und protokolliert ihn", () => {
+    const { ktx, audit } = schreibbar();
+    const a = post(ktx, "flur.licht", { wert: false });
+    expect(a.status).toBe(200);
+    expect(a.koerper).toMatchObject({ angenommen: true, schluessel: "flur.licht", wert: false });
+    expect(ktx.registry.get("flur.licht")).toBe(false);
+    expect(audit).toEqual([
+      { ts: 61_000, schluessel: "flur.licht", wert: false, quelle: "api", angenommen: true },
+    ]);
+  });
+
+  it("Verriegelung 1: ohne Token-Konfiguration ist der Schreibpfad komplett aus", () => {
+    const { ktx } = aufbau();
+    const audit: AuditEintrag[] = [];
+    ktx.audit = (e) => audit.push(e);
+    const a = post(ktx, "flur.licht", { wert: false });
+    expect(a.status).toBe(403);
+    expect((a.koerper as { fehler: string }).fehler).toContain("FACHWERK_API_TOKEN");
+    // Wert unveraendert — und der Versuch steht trotzdem im Audit.
+    expect(ktx.registry.get("flur.licht")).toBe(true);
+    expect(audit).toHaveLength(1);
+    expect(audit[0]!.angenommen).toBe(false);
+  });
+
+  it("Verriegelung 2: protected-Datenpunkte sind nie schreibbar (SPEC-001)", () => {
+    const { ktx, audit } = schreibbar();
+    const a = post(ktx, "flur.schloss", { wert: true });
+    expect(a.status).toBe(403);
+    expect((a.koerper as { fehler: string }).fehler).toContain("protected");
+    expect(ktx.registry.get("flur.schloss")).toBeUndefined();
+    expect(audit[0]!.angenommen).toBe(false);
+  });
+
+  it("Verriegelung 2b: auch die Registry selbst lehnt protected ab (zweite Schicht)", () => {
+    const { registry } = aufbau();
+    const erg = registry.schreibe("flur.schloss", true, "agent");
+    expect(erg.angenommen).toBe(false);
+  });
+
+  it("Verriegelung 3: Typverstoss ist 422, kein stilles Verbiegen", () => {
+    const { ktx, audit } = schreibbar();
+    const a = post(ktx, "flur.licht", { wert: "an" });
+    expect(a.status).toBe(422);
+    expect(ktx.registry.get("flur.licht")).toBe(true);
+    expect(audit[0]!.grund).toContain("erwartet bool");
+  });
+
+  it("Verriegelung 4: Rate-Limit greift token-weit und antwortet 429", () => {
+    const { ktx, audit } = schreibbar({ grenze: 2 });
+    expect(post(ktx, "flur.licht", { wert: false }).status).toBe(200);
+    expect(post(ktx, "flur.licht", { wert: true }).status).toBe(200);
+    const dritt = post(ktx, "flur.licht", { wert: false });
+    expect(dritt.status).toBe(429);
+    expect((dritt.koerper as { fehler: string }).fehler).toContain("Rate-Limit");
+    // Auch unbekannte Schluessel zaehlen gegen das Limit — Raten ist nicht gratis.
+    expect(post(ktx, "gibts.nicht", { wert: 1 }).status).toBe(429);
+    expect(audit.filter((e) => !e.angenommen)).toHaveLength(2);
+  });
+
+  it("Verriegelung 5: im Beobachtungsmodus wird angenommen, aber ehrlich gewarnt", () => {
+    const { ktx } = schreibbar(); // knx() meldet modus "beobachten"
+    const a = post(ktx, "flur.licht", { wert: false });
+    expect(a.koerper).toMatchObject({
+      angenommen: true,
+      hinweis: "beobachten: nicht auf den Bus gesendet",
+    });
+  });
+
+  it("kein Hinweis, wenn der Treiber wirklich sendet", () => {
+    const { ktx } = schreibbar();
+    ktx.knx = () => ({ verbunden: true, modus: "normal", endpunkt: "x:3671" });
+    expect(post(ktx, "flur.licht", { wert: false }).koerper).not.toHaveProperty("hinweis");
+  });
+
+  it("weist unbekannte Datenpunkte und kaputte Bodies ab", () => {
+    const { ktx } = schreibbar();
+    expect(post(ktx, "gibts.nicht", { wert: true }).status).toBe(404);
+    expect(post(ktx, "flur.licht", {}).status).toBe(400);
+    expect(post(ktx, "flur.licht", undefined).status).toBe(400);
+    expect(post(ktx, "flur.licht", { wert: null }).status).toBe(400);
+    expect(post(ktx, "flur.licht", { wert: { a: 1 } }).status).toBe(400);
+  });
+
+  it("laesst andere Methoden und andere Pfade nicht durch", () => {
+    const { ktx } = schreibbar();
+    expect(beantworte(ktx, "DELETE", "/api/datenpunkte/flur.licht", q()).status).toBe(405);
+    expect(beantworte(ktx, "POST", "/api/status", q(), { wert: 1 }).status).toBe(405);
   });
 });

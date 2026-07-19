@@ -107,8 +107,24 @@ export class ApiServer {
             return;
           }
         }
-        const antwort = beantworte(this.#ktx, req.method ?? "GET", pfad, url.searchParams);
-        json(res, antwort.status, antwort.koerper);
+        const methode = req.method ?? "GET";
+        if (methode === "GET") {
+          const antwort = beantworte(this.#ktx, methode, pfad, url.searchParams);
+          json(res, antwort.status, antwort.koerper);
+          return;
+        }
+        // Schreibpfad (P5-8): Body einsammeln, dann dieselbe reine Funktion.
+        this.#liesKoerper(req, (fehler, koerper) => {
+          if (fehler !== null) {
+            json(res, fehler === "zu gross" ? 413 : 400, {
+              angenommen: false,
+              fehler: fehler === "zu gross" ? "Body zu gross" : "Body ist kein gueltiges JSON",
+            });
+            return;
+          }
+          const antwort = beantworte(this.#ktx, methode, pfad, url.searchParams, koerper);
+          json(res, antwort.status, antwort.koerper);
+        });
         return;
       }
 
@@ -124,6 +140,44 @@ export class ApiServer {
       if (!res.headersSent) json(res, 500, { fehler: "interner Fehler" });
       else res.end();
     }
+  }
+
+  /**
+   * Body einsammeln — mit hartem Deckel. Ein Client, der endlos sendet, darf
+   * den Speicher nicht auffressen (Prozessgrenze); 64 KB reichen fuer
+   * {"wert": …} um Groessenordnungen.
+   */
+  #liesKoerper(
+    req: IncomingMessage,
+    fertig: (fehler: "zu gross" | "kaputt" | null, koerper?: unknown) => void,
+  ): void {
+    const MAX = 64 * 1024;
+    let text = "";
+    let abgebrochen = false;
+    req.setEncoding("utf8");
+    req.on("data", (stueck: string) => {
+      if (abgebrochen) return;
+      text += stueck;
+      if (text.length > MAX) {
+        abgebrochen = true;
+        fertig("zu gross");
+        req.destroy();
+      }
+    });
+    req.on("end", () => {
+      if (abgebrochen) return;
+      try {
+        fertig(null, text === "" ? undefined : JSON.parse(text));
+      } catch {
+        fertig("kaputt");
+      }
+    });
+    req.on("error", () => {
+      if (!abgebrochen) {
+        abgebrochen = true;
+        fertig("kaputt");
+      }
+    });
   }
 
   stoppe(): void {
