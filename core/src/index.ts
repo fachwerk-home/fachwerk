@@ -58,3 +58,7 @@ export { ladeArchive } from "./archiv/laden.ts";
 export type { ArchivLadeErgebnis, ArchivLadeFehler } from "./archiv/laden.ts";
 export { ArchivDienst } from "./archiv/dienst.ts";
 export type { ArchivDienstOptionen, RohPunkt, AggregiertPunkt, AbfrageOptionen, Aggregation } from "./archiv/dienst.ts";
+export { Schreibbremse } from "./api/schreibbremse.ts";
+export type { SchreibbremseOptionen } from "./api/schreibbremse.ts";
+export { AuditProtokoll } from "./api/audit.ts";
+export type { AuditEintrag } from "./api/audit.ts";
