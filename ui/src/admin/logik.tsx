@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { DatenpunktSicht, GewerkSeite, GewerkStruktur, Wert } from "../lib/api.ts";
 import { wertText, zeit } from "./format.ts";
+import { LogikEditor } from "./logik-editor.tsx";
 
 /** Letzter Trace-Schritt je Knoten (Schlüssel: "seite/knotenId"). */
 export interface LetzterSchritt {
@@ -256,6 +257,7 @@ export function Logik({
 }) {
   const [seitenName, setSeitenName] = useState<string | null>(null);
   const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+  const [editieren, setEditieren] = useState(false);
   const [kamera, setKamera] = useState({ x: 20, y: 20, zoom: 1 });
   const zeiger = useRef(new Map<number, { x: number; y: number }>());
   const geste = useRef<{ abstand: number; mitteX: number; mitteY: number } | null>(null);
@@ -284,6 +286,26 @@ export function Logik({
 
   if (!gewerk || !seite || !layout) {
     return <p class="schwach">Gewerk-Struktur lädt …</p>;
+  }
+
+  if (editieren) {
+    return (
+      <>
+        <div class="werkzeuge">
+          <button onClick={() => setEditieren(false)}>← Monitor</button>
+          <span class="schwach">Logik-Editor v1 · Speichern schreibt die YAML-Datei, Aktivieren schaltet atomar um.</span>
+        </div>
+        <LogikEditor
+          gewerk={gewerk}
+          dps={dps}
+          seiteKey={seite.name}
+          setSeiteKey={(key) => {
+            setSeitenName(key);
+            setGewaehlt(null);
+          }}
+        />
+      </>
+    );
   }
 
   // Stubs entstehen im Import als lbs<FunctionId> (Verhalten = Portierungs-TODO)
@@ -350,6 +372,7 @@ export function Logik({
         </select>
         {seite.notizen && <span class="schwach logik-notiz">{seite.notizen}</span>}
         <span class="werkzeuge-trenner" />
+        <button class="primaer" onClick={() => setEditieren(true)}>Editieren</button>
         <button onClick={() => setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom / 1.2) }))} aria-label="Verkleinern">−</button>
         <span class="mono schwach">{Math.round(kamera.zoom * 100)}%</span>
         <button onClick={() => setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom * 1.2) }))} aria-label="Vergrößern">+</button>
