@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, basename } from "node:path";
 import { parse } from "yaml";
+import { pruefeBausteinCode } from "../logik/faehigkeiten.ts";
 import {
   type ErrorObject,
   validateGewerkManifest,
@@ -201,6 +202,27 @@ export function loadGewerk(dir: string): LadeErgebnis {
           pfad: "/",
           meldung: "baustein.js fehlt (plain JS, ESM, default-Export rechne)",
         });
+        continue;
+      }
+      // Statischer Code-Check (ADR-0014 V-2): ein Baustein, der sich
+      // Node-Module holt, umgeht jede Faehigkeitspruefung. Solcher Code wird
+      // gar nicht erst geladen — Ablehnung beim Laden, nicht zur Laufzeit.
+      let quelltext = "";
+      try {
+        quelltext = readFileSync(jsPfad, "utf8");
+      } catch {
+        fehler.push({
+          datei: `bausteine/${eintrag.name}/baustein.js`,
+          pfad: "/",
+          meldung: "baustein.js nicht lesbar",
+        });
+        continue;
+      }
+      const verstoesse = pruefeBausteinCode(quelltext);
+      if (verstoesse.length > 0) {
+        for (const v of verstoesse) {
+          fehler.push({ datei: `bausteine/${eintrag.name}/baustein.js`, pfad: "/", meldung: v });
+        }
         continue;
       }
       bausteine.set(roh.id, { manifest: roh, jsPfad });

@@ -5,6 +5,7 @@
  * Die volle Sandbox für Fremd-Bausteine (Worker/WASM) kommt in P4-5.
  */
 import type { Wert } from "../datenpunkte/registry.ts";
+import type { AufgeloesteFaehigkeiten } from "./faehigkeiten.ts";
 import { extrahiere, introspizieren, type ExtractFormat, type Feld } from "./extract.ts";
 import { formelAuswerten } from "./formel.ts";
 
@@ -14,7 +15,16 @@ export type Ausgaenge = Record<string, Wert>;
 /** Warum ein Baustein gerade läuft. */
 export type Ausloeser =
   | { art: "eingang" }
-  | { art: "timer"; id: string; nachgeholt: boolean };
+  | { art: "timer"; id: string; nachgeholt: boolean }
+  /** Antwort auf ein früheres ctx.netz.hole (ADR-0014 V-2). */
+  | { art: "netz"; id: string; ok: boolean; status: number; text: string; fehler?: string };
+
+/** Auftrag an den Netz-Dienst der Engine (ADR-0014 V-2). */
+export interface NetzOptionen {
+  methode?: string;
+  kopfzeilen?: Record<string, string>;
+  koerper?: string;
+}
 
 export interface BausteinKontext {
   parameter: Readonly<Record<string, unknown>>;
@@ -30,6 +40,13 @@ export interface BausteinKontext {
   /** Plant/ersetzt den Timer (knoten, id) — SPEC-002 T-1/T-2. */
   planeTimer(id: string, ms: number): void;
   brichAb(id: string): void;
+  /**
+   * Netz-Zugriff (ADR-0014 V-2) — der EINZIGE Weg nach draussen. Kehrt sofort
+   * zurueck; die Antwort kommt spaeter als eigener Auslöser `netz` mit
+   * derselben `id`. Ohne `netz`-Faehigkeit im Manifest schlaegt jeder Aufruf
+   * mit einer Fehler-Antwort fehl — er wird nicht etwa still verworfen.
+   */
+  netz: { hole(id: string, url: string, optionen?: NetzOptionen): void };
 }
 
 export interface Baustein {
@@ -56,6 +73,11 @@ export interface Baustein {
    * verfügbaren Felder für den Editor-Feldpicker/Agenten. Rein, seiteneffektfrei.
    */
   introspizieren?(beispiel: string, parameter: Readonly<Record<string, unknown>>): Feld[];
+  /**
+   * Deklarierte Faehigkeiten aus dem Manifest (ADR-0014 V-1). Fehlt sie, ist
+   * es ein Stdlib-Baustein: kein Netz, alles andere erlaubt.
+   */
+  faehigkeiten?: AufgeloesteFaehigkeiten;
 }
 
 /** Ein gemapptes Feld eines konfig-variablen Extraktions-Bausteins. */

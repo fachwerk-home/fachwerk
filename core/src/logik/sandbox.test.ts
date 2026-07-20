@@ -47,7 +47,7 @@ describe("BausteinSandbox", () => {
       ausloeser: { art: "eingang" },
       frischeEingaenge: ["in"],
     });
-    expect(r).toEqual({ ausgaenge: { out: false }, zustand: {}, timerBefehle: [] });
+    expect(r).toEqual({ ausgaenge: { out: false }, zustand: {}, timerBefehle: [], netzBefehle: [] });
   });
 
   it("reicht Zustand und Timer-Befehle zurück", () => {

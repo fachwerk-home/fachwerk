@@ -19,6 +19,8 @@ function ctx(
     frischeEingaenge: new Set(frischeEingaenge),
     planeTimer: () => {},
     brichAb: () => {},
+    // Stdlib-Bausteine gehen nie ins Netz; der Dienst steht hier nur im Vertrag.
+    netz: { hole: () => {} },
   };
 }
 

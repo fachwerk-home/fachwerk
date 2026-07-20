@@ -26,7 +26,9 @@ import {
   UhrDienst,
   WsServer,
   analysiereLogik,
+  holeMitGrenzen,
   ladeArchive,
+  loeseFaehigkeitenAuf,
   ladeVisu,
   loadGewerk,
   pruefeGewerkPfad,
@@ -143,9 +145,21 @@ export async function run(dir: string): Promise<number> {
     const sandboxen: BausteinSandbox[] = [];
     const eigene = new Map<string, Baustein>();
     for (const [id, def] of gewerk.bausteine ?? []) {
-      const sandbox = new BausteinSandbox(def.jsPfad);
+      // Faehigkeiten aus dem Manifest (ADR-0014 V-1) begleiten den Baustein
+      // ueberallhin: der Worker sperrt danach, die Engine prueft danach.
+      const faehig = loeseFaehigkeitenAuf(def.manifest.capabilities);
+      const sandbox = new BausteinSandbox(def.jsPfad, { faehigkeiten: faehig });
       sandboxen.push(sandbox);
-      eigene.set(id, sandboxAlsBaustein(id, sandbox));
+      eigene.set(id, sandboxAlsBaustein(id, sandbox, faehig));
+      // Sichtbarkeit ist der halbe Schutz: der Betreiber soll im Log sehen,
+      // welcher Baustein ins Netz darf und wohin.
+      if (faehig.netzHosts.length > 0) {
+        console.error(`Baustein ${id}: darf ins Netz zu ${faehig.netzHosts.join(", ")}`);
+      } else if (faehig.alt) {
+        console.error(
+          `WARNUNG: Baustein ${id} hat keinen capabilities-Block (ADR-0014 V-1) — kein Netzzugriff.`,
+        );
+      }
     }
     const resolver = (typ: string): Baustein | undefined => eigene.get(typ);
 
@@ -176,6 +190,8 @@ export async function run(dir: string): Promise<number> {
       bausteine: resolver,
       uhr,
       onTimerAenderung: () => pumpe(),
+      // Der EINZIGE Weg nach draussen fuer Bausteine (ADR-0014 V-2).
+      netz: holeMitGrenzen,
     });
 
     // Uhr-Dienst: speist deklarierte System-Datenpunkte (zeit/datum/unix/wochentag).

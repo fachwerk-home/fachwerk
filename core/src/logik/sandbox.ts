@@ -8,21 +8,33 @@ import { Worker, MessageChannel, receiveMessageOnPort } from "node:worker_thread
 import type { MessagePort } from "node:worker_threads";
 import type { Wert } from "../datenpunkte/registry.ts";
 import type { Ausloeser, Ausgaenge, Baustein, Eingaenge } from "./bausteine.ts";
+import type { AufgeloesteFaehigkeiten } from "./faehigkeiten.ts";
 
 export interface SandboxOptionen {
   /** Zeitlimit je Aufruf in ms (Default 100). */
   zeitlimitMs?: number;
   /** Heap-Limit des Workers in MB (Default 64). */
   speicherMb?: number;
+  /** Deklarierte Faehigkeiten (ADR-0014 V-1); fehlt = kein Netz. */
+  faehigkeiten?: AufgeloesteFaehigkeiten;
 }
 
 type TimerBefehl = { art: "plane"; id: string; ms: number } | { art: "brichab"; id: string };
+
+interface NetzBefehl {
+  id: string;
+  url: string;
+  methode?: string;
+  kopfzeilen?: Record<string, string>;
+  koerper?: string;
+}
 
 type SandboxAntwort =
   | {
       ausgaenge: Ausgaenge | null;
       zustand: Record<string, Wert>;
       timerBefehle: TimerBefehl[];
+      netzBefehle?: NetzBefehl[];
     }
   | { fehler: string };
 
@@ -39,7 +51,12 @@ export class BausteinSandbox {
     this.#port = port1;
     this.#signal = new Int32Array(new SharedArrayBuffer(8));
     this.#worker = new Worker(new URL("./sandbox-worker.ts", import.meta.url), {
-      workerData: { jsPfad, port: port2, signal: this.#signal },
+      workerData: {
+        jsPfad,
+        port: port2,
+        signal: this.#signal,
+        ...(opts.faehigkeiten ? { faehigkeiten: opts.faehigkeiten } : {}),
+      },
       transferList: [port2],
       resourceLimits: {
         maxOldGenerationSizeMb: opts.speicherMb ?? 64,
@@ -90,9 +107,14 @@ export class BausteinSandbox {
 }
 
 /** Verpackt eine Sandbox als Engine-Baustein (synchron, Kontext-Brücke). */
-export function sandboxAlsBaustein(typ: string, sandbox: BausteinSandbox): Baustein {
+export function sandboxAlsBaustein(
+  typ: string,
+  sandbox: BausteinSandbox,
+  faehigkeiten?: AufgeloesteFaehigkeiten,
+): Baustein {
   return {
     typ,
+    ...(faehigkeiten ? { faehigkeiten } : {}),
     rechne(eingaenge, ctx) {
       const antwort = sandbox.rechne({
         eingaenge,
@@ -109,6 +131,15 @@ export function sandboxAlsBaustein(typ: string, sandbox: BausteinSandbox): Baust
       for (const t of antwort.timerBefehle) {
         if (t.art === "plane") ctx.planeTimer(t.id, t.ms);
         else ctx.brichAb(t.id);
+      }
+      // Netz-Auftraege gehen an die Engine — sie prueft die Allowlist und
+      // stellt die Antwort spaeter als eigene Kaskade zu (ADR-0014 V-2).
+      for (const n of antwort.netzBefehle ?? []) {
+        ctx.netz.hole(n.id, n.url, {
+          ...(n.methode !== undefined ? { methode: n.methode } : {}),
+          ...(n.kopfzeilen !== undefined ? { kopfzeilen: n.kopfzeilen } : {}),
+          ...(n.koerper !== undefined ? { koerper: n.koerper } : {}),
+        });
       }
       return antwort.ausgaenge;
     },
