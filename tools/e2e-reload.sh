@@ -25,9 +25,21 @@ trap aufraeumen EXIT
 rm -rf "$GEWERK"
 mkdir -p "$GEWERK"
 cp -r examples/treppenlicht/. "$GEWERK/"
+# Der Container laeuft als Nutzer node (uid 1000); auf Linux-Runnern gehoert
+# das Verzeichnis dem Runner-Nutzer. Ohne Schreibrecht scheitert die Editor-API,
+# und zwar NUR in CI: Docker Desktop unter Windows ignoriert Unix-Rechte.
+chmod -R 0777 "$GEWERK"
 
 sim() { $COMPOSE exec -T bus-simulator python simctl.py 127.0.0.1 "$@"; }
 post() { curl -s -X POST -H "$AUTH" -H "content-type: application/json" -d "$2" "$BASIS$1"; }
+# Eine Datei zu schreiben ist ein Testschritt, kein Nebengeraeusch: wer die
+# Antwort verwirft, sucht den Fehler drei Schritte spaeter an der falschen Stelle.
+schreibe() {
+  local antwort
+  antwort=$(post /api/gewerk/dateien "$1")
+  echo "$antwort" | grep -q '"angenommen":true' || {
+    echo "FAIL: Gewerk-Datei nicht geschrieben: $antwort"; exit 1; }
+}
 
 warte_api() {
   for i in $(seq 1 40); do
@@ -51,8 +63,8 @@ kanal_vorher=$(curl -s -H "$AUTH" "$BASIS/api/status" | sed -E 's/.*"kanal":([0-
 
 # --- 1) Reload im laufenden Betrieb -------------------------------------------
 # Neue Logikseite dazu: ein zweites Licht, das dem Impuls direkt folgt.
-post /api/gewerk/dateien '{"pfad":"datenpunkte/flur.yaml","inhalt":"impuls:\n  name: Treppenlicht Impuls\n  klasse: bus\n  typ: bool\n  treiber: knx\n  adresse: 1/0/3\nlicht:\n  name: Treppenlicht\n  klasse: bus\n  typ: bool\n  treiber: knx\n  adresse: 1/0/4\nzweit:\n  name: Zweitlicht\n  klasse: bus\n  typ: bool\n  treiber: knx\n  adresse: 1/0/9\n"}' >/dev/null
-post /api/gewerk/dateien '{"pfad":"logik/zweit.yaml","inhalt":"knoten:\n  n1:\n    baustein: NOT\nkanten:\n  - von: dp:flur.impuls\n    nach: n1.in\n  - von: n1.out\n    nach: dp:flur.zweit\n"}' >/dev/null
+schreibe '{"pfad":"datenpunkte/flur.yaml","inhalt":"impuls:\n  name: Treppenlicht Impuls\n  klasse: bus\n  typ: bool\n  treiber: knx\n  adresse: 1/0/3\nlicht:\n  name: Treppenlicht\n  klasse: bus\n  typ: bool\n  treiber: knx\n  adresse: 1/0/4\nzweit:\n  name: Zweitlicht\n  klasse: bus\n  typ: bool\n  treiber: knx\n  adresse: 1/0/9\n"}'
+schreibe '{"pfad":"logik/zweit.yaml","inhalt":"knoten:\n  n1:\n    baustein: NOT\nkanten:\n  - von: dp:flur.impuls\n    nach: n1.in\n  - von: n1.out\n    nach: dp:flur.zweit\n"}'
 
 antwort=$(post /api/gewerk/aktivieren '{}')
 echo "$antwort" | grep -q '"angenommen":true' || { echo "FAIL: Reload abgelehnt: $antwort"; exit 1; }
@@ -79,7 +91,7 @@ done
 echo "OK: neue Logik aktiv, KNX-Tunnel (Kanal $kanal_nachher) blieb bestehen."
 
 # --- 2) Kaputtes Gewerk: Ablehnung, alte Logik laeuft weiter -------------------
-post /api/gewerk/dateien '{"pfad":"logik/zweit.yaml","inhalt":"knoten:\n  murks:\n    baustein: GIBTSNICHT\nkanten: []\n"}' >/dev/null
+schreibe '{"pfad":"logik/zweit.yaml","inhalt":"knoten:\n  murks:\n    baustein: GIBTSNICHT\nkanten: []\n"}'
 kaputt=$(post /api/gewerk/aktivieren '{}')
 echo "$kaputt" | grep -q '"angenommen":false' || { echo "FAIL: kaputtes Gewerk wurde aktiviert: $kaputt"; exit 1; }
 echo "OK: kaputtes Gewerk abgelehnt ($(echo "$kaputt" | head -c 120)…)."
@@ -99,7 +111,7 @@ done
 echo "OK: nach der Ablehnung steuert die alte Logik unveraendert weiter."
 
 # Wieder eine gueltige Datei hinlegen, damit der naechste Reload gelingt.
-post /api/gewerk/dateien '{"pfad":"logik/zweit.yaml","inhalt":"knoten:\n  n1:\n    baustein: NOT\nkanten:\n  - von: dp:flur.impuls\n    nach: n1.in\n  - von: n1.out\n    nach: dp:flur.zweit\n"}' >/dev/null
+schreibe '{"pfad":"logik/zweit.yaml","inhalt":"knoten:\n  n1:\n    baustein: NOT\nkanten:\n  - von: dp:flur.impuls\n    nach: n1.in\n  - von: n1.out\n    nach: dp:flur.zweit\n"}'
 
 # --- 3) Laufender Timer ueberlebt den Reload (T-5) ----------------------------
 sim events_clear >/dev/null
