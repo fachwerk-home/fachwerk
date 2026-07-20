@@ -149,17 +149,169 @@ Sandbox-Schiene (ADR-0008).
 - **Analoguhr, Skizze, Notizen, Codeschloss, Touchpad, Drehregler, Sprachausgabe, Ton-URL,
   Kamera-/Anrufarchiv** — Nischen; kommen als Presets/Widgets nach Nachfrage nach.
 
+## Seitenmodell — Festlegung (konkretisiert R-11, Stand 2026-07-20)
+
+R-11 fordert Popup- und Include-Seiten. Hier steht, wie sie sich verhalten.
+
+### Seitentypen
+
+Jede Seite trägt `typ`:
+
+| `typ` | Bedeutung |
+|---|---|
+| `seite` | normale Seite (Default) |
+| `popup` | wird über einer Seite geöffnet, schließt zurück zur Aufruferseite |
+| `include` | eigenständig nicht aufrufbar; wird in andere Seiten eingebettet |
+
+### Inkludieren ist explizit
+
+Eine Seite nennt ihre Includes selbst:
+
+```yaml
+typ: seite
+name: Startseite
+inkludiert: [header, footer]
+elemente: { ... }
+```
+
+**Bewusst kein globaler Automatismus.** Die Alternative — eine Visu-weite Liste plus
+Opt-out je Seite — wurde verworfen: Sie macht das Verhalten einer Seite von einer Datei
+abhängig, die man beim Lesen der Seite nicht sieht (Verstoß gegen R-5, Text ist die
+Wahrheit) und erzeugt genau die Konfigurationstiefe, die R-7 zähmen soll. Der Nutzen, den
+ein globaler Header stiftet, bleibt erhalten: **der Inhalt** steht einmal in
+`visu/seiten/header.yaml`, gepflegt an einer Stelle. Nur die Zuordnung ist sichtbar.
+
+### Verschachtelung
+
+Ein Include darf selbst `inkludiert` verwenden (Header, der eine Sidebar einbettet).
+
+- **Zyklen sind ein Fehler**, kein Laufzeitverhalten — geprüft beim Laden, wie beim
+  Logik-Graph (ADR-0005 E-6). `a → b → a` lehnt `validate` ab.
+- Maximale Tiefe 8. Wer sie erreicht, hat einen Denkfehler, keinen Anwendungsfall.
+- Ein Include wird je Seite **einmal** eingebettet, auch wenn es über mehrere Pfade
+  erreichbar ist (Diamant-Fall) — sonst lägen Elemente doppelt übereinander.
+
+### Zusammenführung
+
+Includes werden beim Laden in die einbettende Seite **hineingerechnet**; der Renderer
+sieht am Ende eine flache Elementliste. Damit ändert sich für Bedienung, Bindungen und
+Aktionen nichts — ein Element im Header verhält sich wie jedes andere.
+
+- **Schlüssel** werden mit dem Include-Namen qualifiziert: `header/btn_main`. Gleiche
+  Konvention wie Knoten im Logik-Graph (`seite/knoten`), damit Namensgleichheit zwischen
+  Seite und Include nie kollidiert.
+- **Koordinaten** bleiben unverändert: Ein Include ist eine Schicht im selben
+  Koordinatensystem, kein verschobener Container. Der Header liegt oben, weil seine
+  Elemente oben liegen.
+- **Ebene (Z-Index)** entscheidet global nach dem Zusammenführen. Ein Include liegt nicht
+  pauschal vorn oder hinten; es gilt, was an den Elementen steht.
+- **Popups** werden nicht hineingerechnet: Sie sind eigene Seiten, die zur Laufzeit über
+  der aufrufenden Seite liegen.
+
+### Aktion `umschalten` mit Wert
+
+`{art: umschalten}` kippt zwischen 0 und 1. Für Leuchten wird aber häufig zwischen 0 und
+einem **Wunschwert** gekippt (Dimmwert 20 statt 100 %), wobei der aktuelle Zustand aus
+einer anderen Adresse kommt als das Ziel:
+
+```yaml
+aktionen:
+  tippen: { art: umschalten, wert: 20 }
+bindungen:
+  set:    eg.licht_erker_weiss     # hierhin wird geschrieben
+  status: eg.licht_erker_gruen     # hieraus kommt der Zustand
+```
+
+`wert` ist optional (fehlt = 1), die getrennte Zustandsquelle steckt bereits in den
+Bindungsrollen aus R-8. Beides additiv und rückwärtskompatibel.
+
 ## Offene Fragen
 
 - F-2/F-3/F-4 sind durch R-8 (Bindungsrollen), R-9 (dynamische Darstellung), R-11 (Gruppen/
   Z-Index/Seitentypen) und den F-1-Katalog adressiert; Detail-Schemata folgen mit Phase 3.
-- F-5: Migrations-Mapping bestehender Elementparameter (Import-Assistent Phase 6) — offen.
+- F-5: **geschlossen** — Migrations-Mapping steht unten (Import Stufe 3, P5-9).
+
+## Migrations-Mapping des Referenzsystems (F-5, Stand 2026-07-20)
+
+Ermittelt an den Nutzdaten des Betreibers (149 Elemente, 10 Seiten) und gegen
+Editor-Screenshots verifiziert. **Clean Room:** hier steht ausschliesslich, wie sich das
+Quellsystem beobachtbar verhaelt — kein uebernommener Code, keine Grafiken, keine Schriften.
+
+### Kommunikationsobjekt-Rollen
+
+Die drei KO-Felder eines Quell-Elements haben feste Rollen:
+
+| Quelle | Rolle | Ziel |
+|---|---|---|
+| KO1 | Steuerung/Anzeige — der dargestellte Wert | `bindungen.display` bzw. `status` |
+| KO2 | Wert setzen | `bindungen.set` |
+| KO3 | Steuerung des **dynamischen Designs** | `bindungen.status` (nur Darstellung) |
+| Befehlsliste | **die tatsaechlichen Aktionen** | `aktionen` |
+
+**Fallstrick, teuer:** KO3 ist NICHT das Schaltziel. Es steuert nur das wertabhaengige
+Design. Wer daraus das Schaltziel ableitet, erzeugt eine Visu, in der Knoepfe die falsche
+Gruppenadresse schalten — in den Referenzdaten stimmten KO3 und Befehlsziel in 1 von 27
+Faellen zufaellig ueberein. Das Schaltziel steht immer in der Befehlsliste.
+
+### Befehle
+
+| Quelle | Bedeutung | Ziel |
+|---|---|---|
+| cmd 2 | Wert setzen | `{ setze: <wert> }` |
+| cmd 4 | zwischen 0 und Wert wechseln | `{ art: umschalten, wert: <wert> }` |
+| cmd 6 | wie cmd 4, Zustand aus separater Status-Adresse | `{ art: umschalten, wert: <wert> }` + `bindungen.status` |
+
+Ein Element kann **mehrere** Befehle tragen (Rollladen-auf schreibt auf zwei Adressen);
+`aktionen` ist entsprechend eine Sammlung.
+
+### Elementtypen
+
+| Quelle | Anteil | Ziel |
+|---|---|---|
+| Universalelement | 120 | Preset nach Rolle: `navigation` (Seitenziel gesetzt) · `taster`/`schalter` (Befehl vorhanden) · `wertanzeige` (KO1 + Format im Text) · `symbol` (Text ist Icon-Codepoint) · sonst `label` |
+| Gruppe | 21 | `gruppen` |
+| Schiebeschalter (eigenes Element) | 5 | `schalter` mit Design — der Schiebe-Effekt ist Gestaltung, kein eigener Typ |
+| Dimmer/RGB/HSV | 1 | `widget: dimmer` |
+| Farbauswahl | 1 | `widget: farbwahl` (Modi HSV/RGB/Dimmwert) |
+| Diagramm | 1 | `widget: diagramm` auf ein Archiv (SPEC-004) |
+
+### Text, Format und Icons
+
+- Der Text eines Elements traegt dreierlei: Klartext, Wertausdruck (`{#} °C`,
+  `{floor(#*100/255)} %`) oder einen **Icon-Codepoint** (`&#xeab9`).
+- Ausdruecke gehen in `format` (ADR-0011, Anhang A).
+- **Icons werden auf einen frei lizenzierten Satz abgebildet.** Die Quell-Schriften sind
+  Fremdeigentum und duerfen nicht mitgeliefert werden; ein Betreiber darf seine eigene
+  Schrift lokal weiterverwenden. Der Import notiert Original-Codepoint und Schriftnamen am
+  Element, damit die Zuordnung nachvollziehbar und umkehrbar bleibt.
+
+### Designs
+
+Das Quellsystem verlangt, jede Farbe und jede Vorlage einzeln anzulegen — Vordergrund,
+Hintergrund und Elementfarbe teils dreifach. Der Import fuehrt das zu **benannten Designs**
+in `visu/designs.yaml` zusammen; wertabhaengige Vorlagen werden zu `design_je_wert` (R-9).
+Der Import ist damit ausdruecklich **keine 1:1-Portierung**, sondern nutzt die Gelegenheit
+zur Vereinfachung.
+
+### Nicht Abgebildetes
+
+Jede nicht uebernommene Eigenschaft wird **gezaehlt und benannt** (Stub-Philosophie):
+Struktur vollstaendig, Luecken ehrlich. Der Report ist Teil des Importlaufs, nicht eine
+Fussnote danach.
 
 ## Nächster Schritt
 
 Elementtyp-Zielkatalog v1 steht (F-1). Detail-Schemata (Basiselement-Felder je Rolle,
-Widget-Parameter) entstehen mit Phase 3 am laufenden Code; Migrations-Mapping (F-5) mit dem
-Import-Assistenten in Phase 6.
+Widget-Parameter) entstehen mit Phase 3 am laufenden Code.
+
+Seitenmodell und Migrations-Mapping sind festgelegt (R-11 konkretisiert, F-5 geschlossen).
+Daraus folgen zwei **additive** Schema-Änderungen, die mit P5-9 umgesetzt werden:
+
+1. Seite bekommt `typ` (`seite`/`popup`/`include`) und `inkludiert: [<seite>, …]`.
+2. Aktion `umschalten` bekommt das optionale Feld `wert`.
+
+Beides ist rückwärtskompatibel: bestehende Gewerke ohne diese Felder verhalten sich
+unverändert.
 
 ## Anhang A: Ausdruck-Teilmenge für Format-Templates (ADR-0011 FMT-3)
 
