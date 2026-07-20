@@ -76,3 +76,5 @@ jobs:
         run: bash tools/e2e-archiv.sh
       - name: Schreibpfad (Token, protected, Beobachtungsmodus, Audit)
         run: bash tools/e2e-schreiben.sh
+      - name: Gewerk-Reload (Timer überlebt, kaputtes Gewerk wird abgelehnt)
+        run: bash tools/e2e-reload.sh

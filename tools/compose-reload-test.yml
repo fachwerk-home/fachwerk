@@ -1,0 +1,11 @@
+# Overlay fuer tools/e2e-reload.sh.
+#
+# Der normale Stack haengt examples/ absichtlich READ-ONLY ein — ein Gewerk ist
+# Betreiberdaten, kein Spielplatz. Der Reload-Test braucht aber ein Gewerk, das
+# die API auch beschreiben darf. Deshalb hier eine Wegwerf-Kopie unter tmp/
+# (gitignored), die der Test vorher befuellt.
+services:
+  fachwerk:
+    command: ["run", "/gewerk"]
+    volumes:
+      - ./tmp/e2e-gewerk:/gewerk
