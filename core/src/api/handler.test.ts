@@ -397,3 +397,116 @@ describe("POST /api/datenpunkte/<schluessel> (P5-8 Schreibpfad)", () => {
     expect(beantworte(ktx, "POST", "/api/status", q(), { wert: 1 }).status).toBe(405);
   });
 });
+
+describe("Gewerk-Dateien + Reload (P5-10a)", () => {
+  function mitDateien(): { ktx: ApiKontext; audit: AuditEintrag[]; ruf: string[] } {
+    const { ktx } = aufbau();
+    const audit: AuditEintrag[] = [];
+    const ruf: string[] = [];
+    ktx.schreibenAktiv = true;
+    ktx.audit = (e) => audit.push(e);
+    ktx.dateien = {
+      lies: (p) => {
+        ruf.push(`lies:${p}`);
+        return p === "logik/flur.yaml"
+          ? { ok: true, inhalt: "knoten: {}\n" }
+          : { ok: false, status: 404, grund: "nicht da" };
+      },
+      schreibe: (p, inhalt) => {
+        ruf.push(`schreibe:${p}:${inhalt.length}`);
+        return p.startsWith("logik/")
+          ? { ok: true, rel: p }
+          : { ok: false, status: 400, grund: "Ordner nicht erlaubt" };
+      },
+      aktiviere: () => {
+        ruf.push("aktiviere");
+        return ktx.gewerk.manifest.name === "kaputt"
+          ? { ok: false, fehler: ["logik/flur.yaml: Knoten fehlt"] }
+          : { ok: true, dauerMs: 42 };
+      },
+    };
+    return { ktx, audit, ruf };
+  }
+
+  it("schreibt eine Datei, aktiviert aber NICHT von selbst", () => {
+    const { ktx, audit, ruf } = mitDateien();
+    const a = beantworte(ktx, "POST", "/api/gewerk/dateien", q(), {
+      pfad: "logik/flur.yaml",
+      inhalt: "knoten: {}\n",
+    });
+    expect(a.status).toBe(200);
+    expect(a.koerper).toMatchObject({ angenommen: true, pfad: "logik/flur.yaml", aktiviert: false });
+    expect(ruf).toEqual(["schreibe:logik/flur.yaml:11"]);
+    // Im Audit steht die Groesse, nicht der Inhalt — sonst blaeht jede
+    // Visu-Datei das Protokoll um Kilobytes auf.
+    expect(audit[0]).toMatchObject({ schluessel: "gewerk:logik/flur.yaml", wert: "11 Zeichen" });
+  });
+
+  it("aktiviert auf Zuruf und meldet die Dauer", () => {
+    const { ktx, ruf } = mitDateien();
+    const a = beantworte(ktx, "POST", "/api/gewerk/aktivieren", q(), {});
+    expect(a.status).toBe(200);
+    expect(a.koerper).toMatchObject({ angenommen: true, dauerMs: 42 });
+    expect(ruf).toEqual(["aktiviere"]);
+  });
+
+  it("meldet ein kaputtes Gewerk als 422 samt Fehlerliste", () => {
+    const { ktx, audit } = mitDateien();
+    ktx.gewerk.manifest.name = "kaputt";
+    const a = beantworte(ktx, "POST", "/api/gewerk/aktivieren", q(), {});
+    expect(a.status).toBe(422);
+    expect(a.koerper).toMatchObject({ angenommen: false, fehler: ["logik/flur.yaml: Knoten fehlt"] });
+    expect(audit[0]!.angenommen).toBe(false);
+  });
+
+  it("liest eine Datei zurueck (Editor-Roundtrip) und 404 sonst", () => {
+    const { ktx } = mitDateien();
+    const a = beantworte(ktx, "GET", "/api/gewerk/dateien/logik%2Fflur.yaml", q());
+    expect(a.status).toBe(200);
+    expect(a.koerper).toEqual({ inhalt: "knoten: {}\n" });
+    expect(beantworte(ktx, "GET", "/api/gewerk/dateien/logik%2Fgibtsnicht.yaml", q()).status).toBe(404);
+  });
+
+  it("haengt am selben Schreibrecht-Tor wie die Datenpunkte", () => {
+    // Ohne Token-Konfiguration ist auch der Editor-Pfad zu.
+    const { ktx } = mitDateien();
+    ktx.schreibenAktiv = false;
+    expect(beantworte(ktx, "POST", "/api/gewerk/dateien", q(), { pfad: "logik/a.yaml", inhalt: "" }).status).toBe(403);
+    expect(beantworte(ktx, "POST", "/api/gewerk/aktivieren", q(), {}).status).toBe(403);
+
+    // Und am Rate-Limit.
+    const { ktx: k2 } = mitDateien();
+    k2.bremse = new Schreibbremse({ grenze: 1, jetzt: () => 0 });
+    expect(beantworte(k2, "POST", "/api/gewerk/aktivieren", q(), {}).status).toBe(200);
+    expect(beantworte(k2, "POST", "/api/gewerk/aktivieren", q(), {}).status).toBe(429);
+  });
+
+  it("reicht die Ablehnung des Datei-Dienstes durch und protokolliert sie", () => {
+    const { ktx, audit } = mitDateien();
+    const a = beantworte(ktx, "POST", "/api/gewerk/dateien", q(), {
+      pfad: "../../etc/passwd",
+      inhalt: "x",
+    });
+    expect(a.status).toBe(400);
+    expect(audit[0]).toMatchObject({ angenommen: false, grund: "Ordner nicht erlaubt" });
+  });
+
+  it("weist kaputte Bodies ab", () => {
+    const { ktx } = mitDateien();
+    expect(beantworte(ktx, "POST", "/api/gewerk/dateien", q(), { pfad: "logik/a.yaml" }).status).toBe(400);
+    expect(beantworte(ktx, "POST", "/api/gewerk/dateien", q(), { pfad: "logik/a.yaml", inhalt: 5 }).status).toBe(400);
+    expect(
+      beantworte(ktx, "POST", "/api/gewerk/dateien", q(), {
+        pfad: "logik/a.yaml",
+        inhalt: "x".repeat(1_000_001),
+      }).status,
+    ).toBe(413);
+  });
+
+  it("ohne Datei-Dienst bleibt der Editor-Pfad ausdruecklich abgeschaltet", () => {
+    const { ktx } = aufbau();
+    ktx.schreibenAktiv = true;
+    expect(beantworte(ktx, "POST", "/api/gewerk/aktivieren", q(), {}).status).toBe(501);
+    expect(beantworte(ktx, "GET", "/api/gewerk/dateien/logik%2Fa.yaml", q()).status).toBe(501);
+  });
+});

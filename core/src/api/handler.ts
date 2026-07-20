@@ -35,8 +35,12 @@ export interface ApiKontext {
   mqtt: () => TreiberStatus | null;
   /** Geladene Visu (P5-6); undefined = Gewerk ohne visu/. */
   visu?: { seiten: Map<string, VisuSeite>; designs: VisuDesigns };
-  /** Laufender Archiv-Dienst (P5-13b); undefined = Gewerk ohne Archive. */
-  archiv?: ArchivDienst;
+  /**
+   * Laufender Archiv-Dienst (P5-13b); undefined = Gewerk ohne Archive.
+   * Ausdruecklich auch `undefined` erlaubt: die Laufzeit reicht das Feld seit
+   * P5-10a als Getter durch, damit ein Reload den Dienst tauschen kann.
+   */
+  archiv?: ArchivDienst | undefined;
   jetzt?: () => number;
 
   // ---- Schreibpfad (P5-8) ---------------------------------------------------
@@ -50,6 +54,23 @@ export interface ApiKontext {
   bremse?: Schreibbremse;
   /** Jeder Versuch wird protokolliert — auch der abgelehnte. */
   audit?: (eintrag: AuditEintrag) => void;
+
+  /** Gewerk-Dateien lesen/schreiben + Reload (P5-10a); fehlt = Editor aus. */
+  dateien?: GewerkDateien;
+}
+
+/**
+ * Zugriff auf die deklarativen Dateien des laufenden Gewerks (P5-10a).
+ * Die Umsetzung liegt in der Laufzeit (cli), damit der Handler rein bleibt.
+ */
+export interface GewerkDateien {
+  lies(pfad: string): { ok: true; inhalt: string } | { ok: false; status: number; grund: string };
+  schreibe(
+    pfad: string,
+    inhalt: string,
+  ): { ok: true; rel: string } | { ok: false; status: number; grund: string };
+  /** Validiert das Gewerk und schaltet bei Erfolg atomar um. */
+  aktiviere(): { ok: true; dauerMs: number } | { ok: false; fehler: string[] };
 }
 
 export interface ApiAntwort {
@@ -126,15 +147,21 @@ function sendetNicht(ktx: ApiKontext, def: Datenpunkt): boolean {
  * die Treiber senden im Beobachtungsmodus ohnehin nie (dritte Schicht).
  * Jeder Versuch wird protokolliert, bevor er beantwortet wird.
  */
-function schreibe(ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAntwort {
+/**
+ * Gemeinsames Tor vor JEDEM schreibenden Zugriff (Datenpunkte wie Gewerk-
+ * Dateien): Token-Schalter und Rate-Limit. Liefert eine Antwort, wenn der
+ * Zugriff hier schon endet, sonst null. Jede Ablehnung steht im Audit.
+ */
+function pruefeSchreibrecht(
+  ktx: ApiKontext,
+  schluessel: string,
+  wert: unknown,
+): ApiAntwort | null {
   const jetzt = (ktx.jetzt ?? Date.now)();
-  const wertRoh = (koerper as { wert?: unknown } | null | undefined)?.wert;
-
   const ab = (status: number, grund: string): ApiAntwort => {
-    ktx.audit?.({ ts: jetzt, schluessel, wert: wertRoh ?? null, quelle: "api", angenommen: false, grund });
+    ktx.audit?.({ ts: jetzt, schluessel, wert, quelle: "api", angenommen: false, grund });
     return { status, koerper: { angenommen: false, fehler: grund } };
   };
-
   // 1. Schalter: ohne Token-Konfiguration existiert der Schreibpfad nicht.
   if (!ktx.schreibenAktiv) {
     return ab(403, "Schreibpfad ist aus: FACHWERK_API_TOKEN ist nicht gesetzt");
@@ -146,6 +173,20 @@ function schreibe(ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAnt
       `Rate-Limit erreicht: mehr als ${ktx.bremse.grenze} Schreibzugriffe in ${ktx.bremse.fensterS} s`,
     );
   }
+  return null;
+}
+
+function schreibe(ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAntwort {
+  const jetzt = (ktx.jetzt ?? Date.now)();
+  const wertRoh = (koerper as { wert?: unknown } | null | undefined)?.wert;
+
+  const ab = (status: number, grund: string): ApiAntwort => {
+    ktx.audit?.({ ts: jetzt, schluessel, wert: wertRoh ?? null, quelle: "api", angenommen: false, grund });
+    return { status, koerper: { angenommen: false, fehler: grund } };
+  };
+
+  const tor = pruefeSchreibrecht(ktx, schluessel, wertRoh ?? null);
+  if (tor) return tor;
   // 3. Body-Form.
   if (typeof koerper !== "object" || koerper === null || !("wert" in koerper)) {
     return ab(400, "Body muss ein JSON-Objekt mit dem Feld wert sein");
@@ -218,6 +259,77 @@ export function beantworte(
   if (methode === "POST" && pfad.startsWith("/api/datenpunkte/")) {
     return schreibe(ktx, decodeURIComponent(pfad.slice("/api/datenpunkte/".length)), koerper);
   }
+
+  // ---- Gewerk-Dateien + Reload (P5-10a) --------------------------------------
+  if (methode === "POST" && pfad === "/api/gewerk/dateien") {
+    if (!ktx.dateien) return { status: 501, koerper: { fehler: "Editor-Pfad nicht verfuegbar" } };
+    const roh = koerper as { pfad?: unknown; inhalt?: unknown } | null | undefined;
+    const zielPfad = typeof roh?.pfad === "string" ? roh.pfad : "";
+    const tor = pruefeSchreibrecht(ktx, `gewerk:${zielPfad}`, null);
+    if (tor) return tor;
+    if (typeof roh?.inhalt !== "string") {
+      return { status: 400, koerper: { angenommen: false, fehler: "inhalt muss Text sein" } };
+    }
+    if (roh.inhalt.length > 1_000_000) {
+      return { status: 413, koerper: { angenommen: false, fehler: "inhalt ist zu gross" } };
+    }
+    const erg = ktx.dateien.schreibe(zielPfad, roh.inhalt);
+    const jetzt = (ktx.jetzt ?? Date.now)();
+    if (!erg.ok) {
+      ktx.audit?.({
+        ts: jetzt,
+        schluessel: `gewerk:${zielPfad}`,
+        wert: null,
+        quelle: "api",
+        angenommen: false,
+        grund: erg.grund,
+      });
+      return { status: erg.status, koerper: { angenommen: false, fehler: erg.grund } };
+    }
+    // Was geschrieben wurde, steht im Audit — aber ohne den Inhalt: eine
+    // Visu-Datei blaeht das Protokoll sonst pro Speichern um Kilobytes auf.
+    ktx.audit?.({
+      ts: jetzt,
+      schluessel: `gewerk:${erg.rel}`,
+      wert: `${roh.inhalt.length} Zeichen`,
+      quelle: "api",
+      angenommen: true,
+    });
+    // Bewusst NICHT automatisch aktivieren: geschrieben ist nicht scharf.
+    // Erst /api/gewerk/aktivieren schaltet um — sonst reisst ein halb
+    // gespeicherter Editor-Stand die laufende Steuerung mit.
+    return { status: 200, koerper: { angenommen: true, pfad: erg.rel, aktiviert: false } };
+  }
+
+  if (methode === "POST" && pfad === "/api/gewerk/aktivieren") {
+    if (!ktx.dateien) return { status: 501, koerper: { fehler: "Editor-Pfad nicht verfuegbar" } };
+    const tor = pruefeSchreibrecht(ktx, "gewerk:aktivieren", null);
+    if (tor) return tor;
+    const jetzt = (ktx.jetzt ?? Date.now)();
+    const erg = ktx.dateien.aktiviere();
+    ktx.audit?.({
+      ts: jetzt,
+      schluessel: "gewerk:aktivieren",
+      wert: null,
+      quelle: "api",
+      angenommen: erg.ok,
+      ...(erg.ok ? {} : { grund: erg.fehler.join(" | ") }),
+    });
+    // 422: die Anfrage war in Ordnung, das Gewerk nicht. Die alte Logik laeuft
+    // unveraendert weiter — das ist der Sinn der Uebung.
+    return erg.ok
+      ? { status: 200, koerper: { angenommen: true, dauerMs: erg.dauerMs } }
+      : { status: 422, koerper: { angenommen: false, fehler: erg.fehler } };
+  }
+
+  if (methode === "GET" && pfad.startsWith("/api/gewerk/dateien/")) {
+    if (!ktx.dateien) return { status: 501, koerper: { fehler: "Editor-Pfad nicht verfuegbar" } };
+    const erg = ktx.dateien.lies(decodeURIComponent(pfad.slice("/api/gewerk/dateien/".length)));
+    return erg.ok
+      ? { status: 200, koerper: { inhalt: erg.inhalt } }
+      : { status: erg.status, koerper: { fehler: erg.grund } };
+  }
+
   if (methode !== "GET") {
     return { status: 405, koerper: { fehler: `Methode ${methode} nicht erlaubt auf ${pfad}` } };
   }

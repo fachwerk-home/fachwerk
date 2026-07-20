@@ -4,9 +4,15 @@
  * Traces gehen als JSONL nach stdout (E-5: Pflicht, nicht Option);
  * Statusmeldungen nach stderr. Konfiguration über Env (Container-first):
  * FACHWERK_KNX_HOST / FACHWERK_KNX_PORT / FACHWERK_DATEN_DIR (Persistenz).
+ *
+ * Seit P5-10a ist die Laufzeit zweigeteilt: Der KERN (Gewerk, Registry,
+ * Engine, Sandboxen, Visu, Archive) ist austauschbar, alles andere (Treiber-
+ * Verbindungen, HTTP/WS, Persistenz, Beobachtungsmodus) bleibt über einen
+ * Reload hinweg bestehen. Nur so kann ein Editor ein Gewerk aktivieren, ohne
+ * die KNX-Verbindung abzureißen.
  */
-import { existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import {
   ApiServer,
   ArchivDienst,
@@ -23,12 +29,16 @@ import {
   ladeArchive,
   ladeVisu,
   loadGewerk,
+  pruefeGewerkPfad,
   sandboxAlsBaustein,
   uhrDatenpunkte,
   type Baustein,
+  type Gewerk,
+  type GewerkDateien,
   type TreiberStatus,
   type Wert,
 } from "@fachwerk/core";
+import type { VisuDesigns, VisuSeite } from "@fachwerk/schema";
 import { KnxTreiber } from "@fachwerk/driver-knx";
 import { MqttTreiber, textZuWert, wertZuText } from "@fachwerk/driver-mqtt";
 
@@ -46,11 +56,25 @@ function rohText(bytes: Uint8Array): string {
   return `0x${hex} (${bytes.length} Byte)`;
 }
 
+/** Der beim Reload austauschbare Teil der Laufzeit (P5-10a). */
+interface Kern {
+  gewerk: Gewerk;
+  registry: DatenpunktRegistry;
+  engine: LogikEngine;
+  sandboxen: BausteinSandbox[];
+  uhrDienst: UhrDienst | null;
+  archiv: ArchivDienst | null;
+  archivTimer: ReturnType<typeof setInterval> | null;
+  visu: { seiten: Map<string, VisuSeite>; designs: VisuDesigns };
+}
+
 export async function run(dir: string): Promise<number> {
   // Ganz zuerst: Startbanner. Damit erzeugt JEDER Start sofort eine Zeile —
   // auch wenn gleich danach etwas scheitert (Diagnose im Container).
   const knxHost = process.env["FACHWERK_KNX_HOST"] ?? "127.0.0.1";
   const knxPort = Number(process.env["FACHWERK_KNX_PORT"] ?? 3671);
+  // Beobachtungsmodus: kommt aus der Umgebung und lebt AUSSERHALB des Kerns.
+  // Ein Reload kann ihn damit konstruktionsbedingt nicht aufheben (heilig).
   const beobachten = process.env["FACHWERK_KNX_MODUS"] === "beobachten";
   // Im Beobachtungsmodus auch ungemappte Telegramme zeigen (Default an).
   const rxAlle = process.env["FACHWERK_KNX_RX_ALLE"] !== "0";
@@ -58,28 +82,6 @@ export async function run(dir: string): Promise<number> {
     `fachwerk startet — Gewerk: ${dir} · KNX: ${knxHost}:${knxPort} · ` +
       `Modus: ${beobachten ? "beobachten (sendet nie)" : "normal (sendet)"}`,
   );
-
-  const { gewerk, fehler } = loadGewerk(dir);
-  if (fehler.length > 0 || !gewerk) {
-    for (const f of fehler) console.error(`FEHLER: ${f.datei} ${f.pfad}: ${f.meldung}`);
-    return 1;
-  }
-  // Eigene Bausteine in Sandboxen (P4-5): plain JS im Worker, Zeit-/Speicher-Limit.
-  const sandboxen: BausteinSandbox[] = [];
-  const eigene = new Map<string, Baustein>();
-  for (const [id, def] of gewerk.bausteine ?? []) {
-    const sandbox = new BausteinSandbox(def.jsPfad);
-    sandboxen.push(sandbox);
-    eigene.set(id, sandboxAlsBaustein(id, sandbox));
-  }
-  const resolver = (typ: string): Baustein | undefined => eigene.get(typ);
-
-  const analyse = analysiereLogik(gewerk, resolver);
-  for (const w of analyse.warnungen) console.error(`WARNUNG: ${w}`);
-  if (analyse.fehler.length > 0) {
-    for (const f of analyse.fehler) console.error(`FEHLER: ${f}`);
-    return 1;
-  }
 
   // Persistenz (ADR-0006): Zustand lebt auf einem Volume, nie im Image.
   const datenDir = process.env["FACHWERK_DATEN_DIR"] ?? "./daten";
@@ -95,162 +97,259 @@ export async function run(dir: string): Promise<number> {
   }
   const speicher = new Speicher(join(datenDir, "zustand.sqlite"));
 
-  const registry = new DatenpunktRegistry(gewerk);
-
-  // Remanente Werte VOR dem Engine-Start einspielen (keine Kaskaden dabei).
-  let wiederhergestellt = 0;
-  for (const [schluessel, wert] of speicher.ladeWerte()) {
-    if (registry.definition(schluessel)?.remanent) {
-      if (registry.schreibe(schluessel, wert, "system").angenommen) wiederhergestellt++;
-    }
-  }
-  if (wiederhergestellt > 0) {
-    console.error(`Persistenz: ${wiederhergestellt} remanente(r) Wert(e) wiederhergestellt`);
-  }
-  // Timer-Pumpwerk (E-8): setTimeout auf die früheste Fälligkeit, monotone Uhr.
+  // ---- Stabile Teile: ueberleben jeden Reload ---------------------------------
   const uhr = (): number => performance.now();
+  const traceModus = process.env["FACHWERK_TRACE"] ?? "kompakt";
+  const tracePuffer = new TracePuffer(Number(process.env["FACHWERK_TRACE_PUFFER"] ?? 500));
+  const ws = new WsServer();
+
+  // Diese Karten werden beim Reload BEFUELLT, nie ersetzt: der KNX-Treiber
+  // haelt eine Referenz auf `dpts` und darf sie nicht verlieren.
+  const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
+  const dpZuGa = new Map<string, string>();
+  const dpts = new Map<string, "1.001" | "5.001" | "9.001">();
+  const topicZuDp = new Map<string, { schluessel: string; typ: "bool" | "zahl" | "text" }>();
+  const dpZuTopic = new Map<string, string>();
+
   let timerHandle: ReturnType<typeof setTimeout> | null = null;
+  // Timer-Pumpwerk (E-8): setTimeout auf die früheste Fälligkeit, monotone Uhr.
+  // Liest die Engine ueber den Kern — nach einem Reload pumpt es die neue.
   const pumpe = (): void => {
     if (timerHandle) clearTimeout(timerHandle);
     timerHandle = null;
-    const naechste = engine.naechsteFaelligkeit();
+    const naechste = kern.engine.naechsteFaelligkeit();
     if (naechste === null) return;
     timerHandle = setTimeout(
       () => {
-        engine.verarbeiteFaellige(uhr());
+        kern.engine.verarbeiteFaellige(uhr());
         pumpe();
       },
       Math.max(0, naechste - uhr()),
     );
     timerHandle.unref?.();
   };
-  // Trace-Ausgabe: FACHWERK_TRACE = kompakt (Default) | voll | aus.
-  // „kompakt" unterdrückt leere Kaskaden (z. B. der sekündliche Uhr-Tick,
-  // wenn kein Baustein feuert) — sonst ist das Log nicht lesbar.
-  const traceModus = process.env["FACHWERK_TRACE"] ?? "kompakt";
-  // Ringpuffer + WS speisen die API/UI unabhängig vom stdout-Log (P5-2/P5-3).
-  const tracePuffer = new TracePuffer(Number(process.env["FACHWERK_TRACE_PUFFER"] ?? 500));
-  const ws = new WsServer();
-  const engine = new LogikEngine(gewerk, registry, {
-    onTrace: (t) => {
-      const leer = t.schritte.length === 0 && t.schreibvorgaenge.length === 0;
-      if (!leer) {
-        tracePuffer.hinzu(t);
-        if (ws.anzahl > 0) ws.sendeAllen(JSON.stringify({ art: "trace", trace: t }));
-      }
-      if (traceModus === "voll" || (traceModus !== "aus" && !leer)) {
-        console.log(JSON.stringify(t));
-      }
-      // Nach jeder Kaskade: Timer + Baustein-Zustände sichern (T-5/T-6).
-      speicher.sichereEngine(engine.momentaufnahme());
-    },
-    onWarnung: (w) => console.error(`WARNUNG: ${w}`),
-    bausteine: resolver,
-    uhr,
-    onTimerAenderung: () => pumpe(),
-  });
-  engine.start();
 
-  // Engine-Zustand (Timer/Baustein-Zustände) aus dem letzten Lauf fortsetzen;
-  // Überfälliges feuert einmal nach — kein hängender Ausgang (T-5).
-  const engineZustand = speicher.ladeEngine();
-  if (engineZustand) {
-    engine.stelleWiederHer(engineZustand);
-    if (engineZustand.timer.length > 0) {
-      console.error(`Persistenz: ${engineZustand.timer.length} Timer fortgesetzt/nachgeholt`);
+  /**
+   * Baut einen vollstaendigen Kern aus einem Gewerk-Verzeichnis — ohne ihn zu
+   * starten und ohne irgendetwas am laufenden System zu veraendern. Schlaegt
+   * das fehl, laeuft der alte Kern unbehelligt weiter.
+   */
+  function baueKern(zielDir: string): { kern?: Kern; fehler: string[] } {
+    const { gewerk, fehler } = loadGewerk(zielDir);
+    if (fehler.length > 0 || !gewerk) {
+      return { fehler: fehler.map((f) => `${f.datei} ${f.pfad}: ${f.meldung}`) };
+    }
+    // Eigene Bausteine in Sandboxen (P4-5): plain JS im Worker, Zeit-/Speicher-Limit.
+    const sandboxen: BausteinSandbox[] = [];
+    const eigene = new Map<string, Baustein>();
+    for (const [id, def] of gewerk.bausteine ?? []) {
+      const sandbox = new BausteinSandbox(def.jsPfad);
+      sandboxen.push(sandbox);
+      eigene.set(id, sandboxAlsBaustein(id, sandbox));
+    }
+    const resolver = (typ: string): Baustein | undefined => eigene.get(typ);
+
+    const analyse = analysiereLogik(gewerk, resolver);
+    for (const w of analyse.warnungen) console.error(`WARNUNG: ${w}`);
+    if (analyse.fehler.length > 0) {
+      // Sandboxen wieder einsammeln — ein gescheiterter Bau darf keine
+      // Worker-Threads zuruecklassen.
+      for (const s of sandboxen) s.beende();
+      return { fehler: analyse.fehler };
+    }
+
+    const registry = new DatenpunktRegistry(gewerk);
+    const engine = new LogikEngine(gewerk, registry, {
+      onTrace: (t) => {
+        const leer = t.schritte.length === 0 && t.schreibvorgaenge.length === 0;
+        if (!leer) {
+          tracePuffer.hinzu(t);
+          if (ws.anzahl > 0) ws.sendeAllen(JSON.stringify({ art: "trace", trace: t }));
+        }
+        if (traceModus === "voll" || (traceModus !== "aus" && !leer)) {
+          console.log(JSON.stringify(t));
+        }
+        // Nach jeder Kaskade: Timer + Baustein-Zustände sichern (T-5/T-6).
+        speicher.sichereEngine(engine.momentaufnahme());
+      },
+      onWarnung: (w) => console.error(`WARNUNG: ${w}`),
+      bausteine: resolver,
+      uhr,
+      onTimerAenderung: () => pumpe(),
+    });
+
+    // Uhr-Dienst: speist deklarierte System-Datenpunkte (zeit/datum/unix/wochentag).
+    const uhrZiele = uhrDatenpunkte(gewerk);
+    const uhrDienst = uhrZiele.size > 0 ? new UhrDienst(registry, uhrZiele) : null;
+
+    // Visu (P5-6) fuer den Client. Fehler sind hier Warnungen — validate ist
+    // das Gate; run soll mit dem gueltigen Teil weiterlaufen.
+    const visuGeladen = ladeVisu(zielDir, {
+      definition: (schluessel: string): unknown => {
+        const punkt = schluessel.indexOf(".");
+        if (punkt < 0) return undefined;
+        return gewerk.datenpunkte.get(schluessel.slice(0, punkt))?.[schluessel.slice(punkt + 1)];
+      },
+    });
+    for (const f of visuGeladen.fehler) {
+      console.warn(`WARNUNG Visu ${f.datei}${f.element ? ` [${f.element}]` : ""}: ${f.grund}`);
+    }
+
+    // Archive (P5-13a/13b) — ebenfalls Warnungen statt Startabbruch.
+    const archivLaden = ladeArchive(zielDir, gewerk.datenpunkte);
+    for (const f of archivLaden.fehler) {
+      console.error(`WARNUNG Archiv ${f.datei} ${f.pfad}: ${f.meldung}`);
+    }
+    const archiv =
+      archivLaden.archive.size > 0
+        ? new ArchivDienst({
+            pfad: join(datenDir, "archiv.sqlite"),
+            archive: archivLaden.archive,
+          })
+        : null;
+
+    return {
+      kern: {
+        gewerk,
+        registry,
+        engine,
+        sandboxen,
+        uhrDienst,
+        archiv,
+        archivTimer: null,
+        visu: { seiten: visuGeladen.seiten, designs: visuGeladen.designs },
+      },
+      fehler: [],
+    };
+  }
+
+  /** Treiber-Karten aus dem Gewerk neu befuellen (Instanzen bleiben). */
+  function fuelleKarten(gewerk: Gewerk): void {
+    gaZuDp.clear();
+    dpZuGa.clear();
+    dpts.clear();
+    topicZuDp.clear();
+    dpZuTopic.clear();
+    for (const [gruppe, datei] of gewerk.datenpunkte) {
+      for (const [key, def] of Object.entries(datei)) {
+        const schluessel = `${gruppe}.${key}`;
+        if (def.klasse !== "bus" || !def.adresse) continue;
+        if (def.treiber === "knx") {
+          gaZuDp.set(def.adresse, { schluessel, typ: def.typ });
+          dpZuGa.set(schluessel, def.adresse);
+          dpts.set(def.adresse, def.dpt ?? (def.typ === "bool" ? "1.001" : "9.001"));
+        } else if (def.treiber === "mqtt") {
+          topicZuDp.set(def.adresse, { schluessel, typ: def.typ });
+          dpZuTopic.set(schluessel, def.adresse);
+        }
+      }
     }
   }
 
-  // Remanente Werte fortlaufend sichern + Live-Push an die UI (P5-3).
-  registry.abonniere((e) => {
-    if (registry.definition(e.schluessel)?.remanent) {
-      speicher.sichereWert(e.schluessel, e.wert);
+  /** Registry-Abos eines Kerns aufbauen (Persistenz, WS, Treiber, Archive). */
+  function verdrahte(k: Kern): void {
+    // Remanente Werte fortlaufend sichern + Live-Push an die UI (P5-3).
+    k.registry.abonniere((e) => {
+      if (k.registry.definition(e.schluessel)?.remanent) {
+        speicher.sichereWert(e.schluessel, e.wert);
+      }
+      // JEDES angenommene Schreiben geht raus, auch das wertgleiche (E-4:
+      // on-receive, nicht nur on-change). Frueher filterte diese Stelle auf
+      // e.geaendert und verschluckte damit genau den Normalfall eines Tasters:
+      // zweimal true hintereinander. Ein Bediener sah dann „keine Rueckmeldung",
+      // obwohl Wert angenommen und Telegramm gesendet waren. `geaendert` steht
+      // jetzt als Feld in der Nachricht — die UI entscheidet selbst.
+      if (ws.anzahl > 0) {
+        ws.sendeAllen(
+          JSON.stringify({
+            art: "wert",
+            schluessel: e.schluessel,
+            wert: e.wert,
+            quelle: e.quelle,
+            geaendert: e.geaendert,
+            ts: k.registry.zeitstempel(e.schluessel) ?? Date.now(),
+          }),
+        );
+      }
+    });
+
+    // Engine-/System-Schreibvorgänge auf Bus-Datenpunkte gehen aufs KNX.
+    k.registry.abonniere((e) => {
+      if (e.quelle === "treiber") return; // kam vom Bus — kein Echo
+      const ga = dpZuGa.get(e.schluessel);
+      if (ga !== undefined && typeof e.wert !== "string") {
+        treiber.sende(ga, e.wert);
+      }
+    });
+
+    if (mqtt) {
+      k.registry.abonniere((e) => {
+        if (e.quelle === "treiber") return; // kam vom Broker — kein Echo
+        const topic = dpZuTopic.get(e.schluessel);
+        if (topic !== undefined) mqtt!.publiziere(topic, wertZuText(e.wert));
+      });
     }
-    // JEDES angenommene Schreiben geht raus, auch das wertgleiche (E-4:
-    // on-receive, nicht nur on-change). Frueher filterte diese Stelle auf
-    // e.geaendert und verschluckte damit genau den Normalfall eines Tasters:
-    // zweimal true hintereinander. Ein Bediener sah dann „keine Rueckmeldung",
-    // obwohl Wert angenommen und Telegramm gesendet waren. `geaendert` steht
-    // jetzt als Feld in der Nachricht — die UI entscheidet selbst.
-    if (ws.anzahl > 0) {
-      ws.sendeAllen(
-        JSON.stringify({
-          art: "wert",
-          schluessel: e.schluessel,
-          wert: e.wert,
-          quelle: e.quelle,
-          geaendert: e.geaendert,
-          ts: registry.zeitstempel(e.schluessel) ?? Date.now(),
-        }),
+
+    if (k.archiv) {
+      // Ein Datenpunkt kann mehrere Archive speisen: Quelle -> IDs einmal beim
+      // Bau bilden, damit im Wertstrom nur ein Map-Zugriff noetig ist.
+      const quelleZuArchive = new Map<string, string[]>();
+      for (const [id, def] of k.archiv.definitionen) {
+        const bisher = quelleZuArchive.get(def.quelle);
+        if (bisher) bisher.push(id);
+        else quelleZuArchive.set(def.quelle, [id]);
+      }
+      const dienst = k.archiv;
+      k.registry.abonniere((e) => {
+        if (!e.geaendert) return; // Archive zeichnen Aenderungen auf, kein Rauschen
+        const ids = quelleZuArchive.get(e.schluessel);
+        if (!ids) return;
+        const ts = k.registry.zeitstempel(e.schluessel) ?? Date.now();
+        for (const id of ids) dienst.erfasse(id, e.wert, ts);
+      });
+      // Aufbewahrung: einmal beim Start (der Prozess kann Tage gestanden haben)
+      // und danach alle 6 h. unref, damit der Timer den Prozess nie am Leben haelt.
+      const geloescht = dienst.raeumeAuf();
+      k.archivTimer = setInterval(() => dienst.raeumeAuf(), 6 * 60 * 60 * 1000);
+      k.archivTimer.unref?.();
+      console.error(
+        `Archive: ${dienst.definitionen.size} aktiv auf ${quelleZuArchive.size} Datenpunkt(en)` +
+          (geloescht > 0 ? ` — ${geloescht} abgelaufene(r) Punkt(e) aufgeraeumt` : ""),
       );
     }
-  });
-
-  // Uhr-Dienst: speist deklarierte System-Datenpunkte (zeit/datum/unix/wochentag).
-  const uhrZiele = uhrDatenpunkte(gewerk);
-  const uhr_dienst = new UhrDienst(registry, uhrZiele);
-  if (uhrZiele.size > 0) {
-    uhr_dienst.start();
-    console.error(`Uhr-Dienst: speist ${[...uhrZiele.keys()].join(", ")}`);
   }
 
-  // ---- Archive (P5-13a/13b) --------------------------------------------------
-  // Fehler in archiv/ sind Warnungen, nicht das Aus — wie bei der Visu ist
-  // validate das Gate; run laeuft mit dem gueltigen Teil weiter.
-  const archivLaden = ladeArchive(dir, gewerk.datenpunkte);
-  for (const f of archivLaden.fehler) {
-    console.error(`WARNUNG Archiv ${f.datei} ${f.pfad}: ${f.meldung}`);
-  }
-  let archiv: ArchivDienst | null = null;
-  let archivTimer: ReturnType<typeof setInterval> | null = null;
-  if (archivLaden.archive.size > 0) {
-    archiv = new ArchivDienst({
-      pfad: join(datenDir, "archiv.sqlite"),
-      archive: archivLaden.archive,
-    });
-    // Ein Datenpunkt kann mehrere Archive speisen: Quelle -> IDs einmal beim
-    // Start bauen, damit im Wertstrom nur ein Map-Zugriff noetig ist.
-    const quelleZuArchive = new Map<string, string[]>();
-    for (const [id, def] of archivLaden.archive) {
-      const bisher = quelleZuArchive.get(def.quelle);
-      if (bisher) bisher.push(id);
-      else quelleZuArchive.set(def.quelle, [id]);
-    }
-    const dienst = archiv;
-    registry.abonniere((e) => {
-      if (!e.geaendert) return; // Archive zeichnen Aenderungen auf, kein Rauschen
-      const ids = quelleZuArchive.get(e.schluessel);
-      if (!ids) return;
-      const ts = registry.zeitstempel(e.schluessel) ?? Date.now();
-      for (const id of ids) dienst.erfasse(id, e.wert, ts);
-    });
-    // Aufbewahrung: einmal beim Start (der Prozess kann Tage gestanden haben)
-    // und danach alle 6 h. unref, damit der Timer den Prozess nie am Leben haelt.
-    const geloescht = archiv.raeumeAuf();
-    archivTimer = setInterval(() => dienst.raeumeAuf(), 6 * 60 * 60 * 1000);
-    archivTimer.unref?.();
-    console.error(
-      `Archive: ${archivLaden.archive.size} aktiv auf ${quelleZuArchive.size} Datenpunkt(en)` +
-        (geloescht > 0 ? ` — ${geloescht} abgelaufene(r) Punkt(e) aufgeraeumt` : ""),
-    );
-  }
-
-
-  // KNX-Zuordnung: GA ↔ Datenpunkt + DPT-Karte (P4-4).
-  const gaZuDp = new Map<string, { schluessel: string; typ: string }>();
-  const dpZuGa = new Map<string, string>();
-  const dpts = new Map<string, "1.001" | "5.001" | "9.001">();
-  for (const [gruppe, datei] of gewerk.datenpunkte) {
-    for (const [key, def] of Object.entries(datei)) {
-      if (def.klasse === "bus" && def.treiber === "knx" && def.adresse) {
-        const schluessel = `${gruppe}.${key}`;
-        gaZuDp.set(def.adresse, { schluessel, typ: def.typ });
-        dpZuGa.set(schluessel, def.adresse);
-        dpts.set(def.adresse, def.dpt ?? (def.typ === "bool" ? "1.001" : "9.001"));
+  /** Remanente Werte einspielen (keine Kaskaden dabei — vor engine.start()). */
+  function spieleRemanenteEin(k: Kern): void {
+    let wiederhergestellt = 0;
+    for (const [schluessel, wert] of speicher.ladeWerte()) {
+      if (k.registry.definition(schluessel)?.remanent) {
+        if (k.registry.schreibe(schluessel, wert, "system").angenommen) wiederhergestellt++;
       }
     }
+    if (wiederhergestellt > 0) {
+      console.error(`Persistenz: ${wiederhergestellt} remanente(r) Wert(e) wiederhergestellt`);
+    }
   }
 
+  /** Einen Kern stilllegen: Engine, Uhr, Archiv-Timer, Sandboxen. */
+  function legeStill(k: Kern): void {
+    k.engine.stop();
+    k.uhrDienst?.stop();
+    if (k.archivTimer) clearInterval(k.archivTimer);
+    k.archiv?.schliesse();
+    for (const s of k.sandboxen) s.beende();
+  }
+
+  const erst = baueKern(dir);
+  if (!erst.kern) {
+    for (const f of erst.fehler) console.error(`FEHLER: ${f}`);
+    return 1;
+  }
+  let kern: Kern = erst.kern;
+  fuelleKarten(kern.gewerk);
+
+  // ---- Treiber: einmal gebaut, ueber Reloads hinweg verbunden ----------------
   const host = knxHost;
   const port = knxPort;
   const treiber = new KnxTreiber({
@@ -269,33 +368,14 @@ export async function run(dir: string): Promise<number> {
         else if (rxAlle) console.error(`RX  ${t.ga} = ${rohText(t.rohBytes)}  (nicht gemappt)`);
       }
       if (!dp || t.art !== "write") return;
-      const erg = registry.schreibe(dp.schluessel, t.wert as Wert, "treiber");
+      const erg = kern.registry.schreibe(dp.schluessel, t.wert as Wert, "treiber");
       if (!erg.angenommen) console.error(`WARNUNG: Bus→${dp.schluessel}: ${erg.grund}`);
     },
     onFehler: (m) => console.error(`KNX: ${m}`),
   });
 
-  // Engine-/System-Schreibvorgänge auf Bus-Datenpunkte gehen aufs KNX.
-  registry.abonniere((e) => {
-    if (e.quelle === "treiber") return; // kam vom Bus — kein Echo
-    const ga = dpZuGa.get(e.schluessel);
-    if (ga !== undefined && typeof e.wert !== "string") {
-      treiber.sende(ga, e.wert);
-    }
-  });
-
   // ---- MQTT (ADR-0007: Core-Treiber) ----------------------------------------
-  // Datenpunkte: klasse bus, treiber mqtt, adresse = Topic.
-  const topicZuDp = new Map<string, { schluessel: string; typ: "bool" | "zahl" | "text" }>();
-  const dpZuTopic = new Map<string, string>();
-  for (const [gruppe, datei] of gewerk.datenpunkte) {
-    for (const [key, def] of Object.entries(datei)) {
-      if (def.klasse === "bus" && def.treiber === "mqtt" && def.adresse) {
-        topicZuDp.set(def.adresse, { schluessel: `${gruppe}.${key}`, typ: def.typ });
-        dpZuTopic.set(`${gruppe}.${key}`, def.adresse);
-      }
-    }
-  }
+  const mqttBeobachten = process.env["FACHWERK_MQTT_MODUS"] === "beobachten";
   let mqtt: MqttTreiber | null = null;
   if (topicZuDp.size > 0 && !process.env["FACHWERK_MQTT_HOST"]) {
     // Kein Broker konfiguriert: MQTT-Datenpunkte bleiben stumm statt die
@@ -305,7 +385,6 @@ export async function run(dir: string): Promise<number> {
         "ist nicht gesetzt — MQTT bleibt deaktiviert.",
     );
   } else if (topicZuDp.size > 0) {
-    const mqttBeobachten = process.env["FACHWERK_MQTT_MODUS"] === "beobachten";
     mqtt = new MqttTreiber({
       host: process.env["FACHWERK_MQTT_HOST"]!,
       port: Number(process.env["FACHWERK_MQTT_PORT"] ?? 1883),
@@ -328,34 +407,113 @@ export async function run(dir: string): Promise<number> {
           return;
         }
         if (mqttBeobachten) console.error(`RX  mqtt ${n.topic} = ${n.text}  → ${dp.schluessel}`);
-        const erg = registry.schreibe(dp.schluessel, wert, "treiber");
+        const erg = kern.registry.schreibe(dp.schluessel, wert, "treiber");
         if (!erg.angenommen) console.error(`WARNUNG: MQTT→${dp.schluessel}: ${erg.grund}`);
       },
     });
-    registry.abonniere((e) => {
-      if (e.quelle === "treiber") return; // kam vom Broker — kein Echo
-      const topic = dpZuTopic.get(e.schluessel);
-      if (topic !== undefined) mqtt!.publiziere(topic, wertZuText(e.wert));
-    });
   }
+
+  // Ersten Kern scharf schalten.
+  verdrahte(kern);
+  spieleRemanenteEin(kern);
+  kern.engine.start();
+  kern.uhrDienst?.start();
+  if (kern.uhrDienst) {
+    console.error(`Uhr-Dienst: speist ${[...uhrDatenpunkte(kern.gewerk).keys()].join(", ")}`);
+  }
+
+  // Engine-Zustand (Timer/Baustein-Zustände) aus dem letzten Lauf fortsetzen;
+  // Überfälliges feuert einmal nach — kein hängender Ausgang (T-5).
+  const engineZustand = speicher.ladeEngine();
+  if (engineZustand) {
+    kern.engine.stelleWiederHer(engineZustand);
+    if (engineZustand.timer.length > 0) {
+      console.error(`Persistenz: ${engineZustand.timer.length} Timer fortgesetzt/nachgeholt`);
+    }
+  }
+
+  /**
+   * Reload (P5-10a): neues Gewerk bauen, und NUR wenn das komplett gelingt,
+   * den laufenden Kern ersetzen. Schlaegt der Bau fehl, passiert nichts —
+   * die alte Logik steuert unveraendert weiter.
+   */
+  function aktiviere(): { ok: true; dauerMs: number } | { ok: false; fehler: string[] } {
+    const start = performance.now();
+    const neu = baueKern(dir);
+    if (!neu.kern) {
+      console.error(`Reload abgelehnt (${neu.fehler.length} Fehler) — alte Logik laeuft weiter.`);
+      if (ws.anzahl > 0) {
+        ws.sendeAllen(JSON.stringify({ art: "gewerk", ereignis: "fehler", fehler: neu.fehler }));
+      }
+      return { ok: false, fehler: neu.fehler };
+    }
+    // Ab hier wird umgeschaltet. Zustand des alten Kerns sichern, bevor er geht.
+    const zustand = kern.engine.momentaufnahme();
+    const alt = kern;
+    legeStill(alt);
+
+    kern = neu.kern;
+    fuelleKarten(kern.gewerk);
+    verdrahte(kern);
+    spieleRemanenteEin(kern);
+    kern.engine.start();
+    kern.uhrDienst?.start();
+    // Laufende Timer und Baustein-Zustaende uebernehmen — ein Treppenlicht
+    // darf ueber einen Reload hinweg nicht haengen bleiben (T-5).
+    kern.engine.stelleWiederHer(zustand);
+    // Neue MQTT-Topics abonnieren (bestehende bleiben — doppelt schadet nicht).
+    if (mqtt) for (const topic of topicZuDp.keys()) mqtt.abonniere(topic);
+    pumpe();
+
+    const dauerMs = Math.round(performance.now() - start);
+    console.error(
+      `Gewerk neu aktiviert: „${kern.gewerk.manifest.name}" in ${dauerMs} ms ` +
+        `— ${gaZuDp.size} KNX-Zuordnung(en)` +
+        (beobachten ? " · Beobachtungsmodus unveraendert aktiv" : ""),
+    );
+    if (ws.anzahl > 0) {
+      ws.sendeAllen(
+        JSON.stringify({ art: "gewerk", ereignis: "aktiviert", name: kern.gewerk.manifest.name }),
+      );
+    }
+    return { ok: true, dauerMs };
+  }
+
+  /** Datei-Dienst fuer die Editor-API — Pfadpruefung liegt im Kern (core). */
+  const dateien: GewerkDateien = {
+    lies(pfad) {
+      const gepruft = pruefeGewerkPfad(pfad);
+      if (!gepruft.ok) return { ok: false, status: 400, grund: gepruft.grund };
+      try {
+        return { ok: true, inhalt: readFileSync(join(dir, gepruft.rel), "utf8") };
+      } catch {
+        return { ok: false, status: 404, grund: `Datei nicht lesbar: ${gepruft.rel}` };
+      }
+    },
+    schreibe(pfad, inhalt) {
+      const gepruft = pruefeGewerkPfad(pfad);
+      if (!gepruft.ok) return { ok: false, status: 400, grund: gepruft.grund };
+      const ziel = join(dir, gepruft.rel);
+      try {
+        mkdirSync(dirname(ziel), { recursive: true });
+        writeFileSync(ziel, inhalt, "utf8");
+        return { ok: true, rel: gepruft.rel };
+      } catch (e) {
+        return {
+          ok: false,
+          status: 500,
+          grund: `nicht schreibbar: ${e instanceof Error ? e.message : String(e)}`,
+        };
+      }
+    },
+    aktiviere,
+  };
 
   // ---- HTTP-API + WebSocket (P5-2/P5-3) --------------------------------------
   const httpPort = Number(process.env["FACHWERK_HTTP_PORT"] ?? 8300);
   let api: ApiServer | null = null;
   if (httpPort > 0) {
     const uiVerzeichnis = process.env["FACHWERK_UI_DIR"] ?? "/app/ui";
-    // Visu (P5-6) fuer den Client ausliefern. Fehler sind hier Warnungen —
-    // validate ist das Gate; run soll mit dem gueltigen Teil weiterlaufen.
-    const visu = ladeVisu(dir, {
-      definition: (schluessel: string): unknown => {
-        const punkt = schluessel.indexOf(".");
-        if (punkt < 0) return undefined;
-        return gewerk!.datenpunkte.get(schluessel.slice(0, punkt))?.[schluessel.slice(punkt + 1)];
-      },
-    });
-    for (const f of visu.fehler) {
-      console.warn(`WARNUNG Visu ${f.datei}${f.element ? ` [${f.element}]` : ""}: ${f.grund}`);
-    }
     // Schreibpfad (P5-8): NUR mit Token. Ohne Token bleibt die API lesend —
     // das ist der Schalter, nicht bloss eine Empfehlung.
     const apiToken = process.env["FACHWERK_API_TOKEN"];
@@ -365,10 +523,21 @@ export async function run(dir: string): Promise<number> {
     );
     api = new ApiServer(
       {
-        gewerk,
-        registry,
-        visu: { seiten: visu.seiten, designs: visu.designs },
-        ...(archiv ? { archiv } : {}),
+        // Getter statt fester Werte: nach einem Reload liefert die API den
+        // NEUEN Kern, ohne dass der Server neu gebaut werden muss.
+        get gewerk() {
+          return kern.gewerk;
+        },
+        get registry() {
+          return kern.registry;
+        },
+        get visu() {
+          return kern.visu;
+        },
+        get archiv() {
+          return kern.archiv ?? undefined;
+        },
+        dateien,
         schreibenAktiv: apiToken !== undefined && apiToken !== "",
         bremse: new Schreibbremse({ grenze: Number.isFinite(schreiblimit) ? schreiblimit : 30 }),
         audit: (e) => audit.schreibe(e),
@@ -394,9 +563,7 @@ export async function run(dir: string): Promise<number> {
       {
         port: httpPort,
         ...(existsSync(uiVerzeichnis) ? { uiVerzeichnis } : {}),
-        ...(process.env["FACHWERK_API_TOKEN"]
-          ? { token: process.env["FACHWERK_API_TOKEN"] }
-          : {}),
+        ...(apiToken ? { token: apiToken } : {}),
         onMeldung: (m) => console.error(`API: ${m}`),
       },
     );
@@ -448,7 +615,7 @@ export async function run(dir: string): Promise<number> {
     }
   }
   console.error(
-    `fachwerk läuft: „${gewerk.manifest.name}" — ${gaZuDp.size} KNX-Zuordnung(en), Endpunkt ${host}:${port}`,
+    `fachwerk läuft: „${kern.gewerk.manifest.name}" — ${gaZuDp.size} KNX-Zuordnung(en), Endpunkt ${host}:${port}`,
   );
   // Welchen Tunnel/welche Individualadresse hat uns der Router gegeben?
   console.error(
@@ -482,10 +649,10 @@ export async function run(dir: string): Promise<number> {
   // Systemstart-Signal NACH Treiber-Verbindung: system-Datenpunkte mit
   // Schlüssel `start` bekommen einmal true (Gegenstück zum Systemstart-KO) —
   // Startup-Kaskaden können so auch Bus-Datenpunkte erreichen.
-  for (const [gruppe, datei] of gewerk.datenpunkte) {
+  for (const [gruppe, datei] of kern.gewerk.datenpunkte) {
     for (const [key, def] of Object.entries(datei)) {
       if (def.klasse === "system" && key === "start" && def.typ === "bool") {
-        registry.schreibe(`${gruppe}.${key}`, true, "system");
+        kern.registry.schreibe(`${gruppe}.${key}`, true, "system");
       }
     }
   }
@@ -505,14 +672,10 @@ export async function run(dir: string): Promise<number> {
       ws.schliesseAlle();
       api?.stoppe();
       void treiber.trenne().then(() => {
-        engine.stop();
-        uhr_dienst.stop();
         if (timerHandle) clearTimeout(timerHandle);
-        if (archivTimer) clearInterval(archivTimer);
-        archiv?.schliesse();
-        speicher.sichereEngine(engine.momentaufnahme()); // letzter Stand (T-5)
+        speicher.sichereEngine(kern.engine.momentaufnahme()); // letzter Stand (T-5)
+        legeStill(kern);
         speicher.schliesse();
-        for (const s of sandboxen) s.beende();
         resolve();
       });
     };
