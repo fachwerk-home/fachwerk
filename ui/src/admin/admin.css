@@ -172,6 +172,210 @@ body { overflow: hidden; }
   min-height: 320px;
 }
 
+.visu-editor {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.editor-toolbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.editor-raster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fw-s1);
+  color: var(--fw-text-schwach);
+  font-size: 11px;
+}
+
+.editor-raster input {
+  width: 62px;
+}
+
+.editor-meldung {
+  margin-bottom: var(--fw-s2);
+  padding: var(--fw-s2) var(--fw-s3);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-s);
+  background: var(--fw-flaeche);
+}
+
+.editor-meldung.ok {
+  color: var(--fw-ok);
+  background: var(--fw-ok-ruhig);
+}
+
+.editor-meldung.warn {
+  color: var(--fw-warn);
+  background: var(--fw-warn-ruhig);
+}
+
+.editor-meldung.fehler {
+  color: var(--fw-fehler);
+  background: var(--fw-fehler-ruhig);
+}
+
+.editor-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr) 300px;
+  gap: var(--fw-s3);
+}
+
+.editor-panel {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--fw-s3);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche);
+  box-shadow: var(--fw-schatten-s);
+}
+
+.editor-panel h2 {
+  margin: 0 0 var(--fw-s3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fw-text-schwach);
+}
+
+.editor-palette {
+  display: grid;
+  align-content: start;
+  gap: var(--fw-s2);
+}
+
+.editor-palette button {
+  justify-content: start;
+  text-align: left;
+}
+
+.editor-canvas-huelle {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background-color: var(--fw-flaeche-2);
+  background-image: linear-gradient(var(--fw-rand) 1px, transparent 1px), linear-gradient(90deg, var(--fw-rand) 1px, transparent 1px);
+  background-size: 40px 40px;
+  box-shadow: var(--fw-schatten-s);
+}
+
+.editor-canvas {
+  position: relative;
+  margin: var(--fw-s4);
+  overflow: hidden;
+  border: 1px solid var(--fw-rand-stark);
+  background: var(--fw-flaeche);
+  box-shadow: var(--fw-schatten-m);
+  touch-action: none;
+}
+
+.editor-element {
+  position: absolute;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  overflow: hidden;
+  padding: var(--fw-s2);
+  border: 1px solid var(--fw-rand-stark);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche);
+  color: var(--fw-text);
+  text-align: center;
+  cursor: move;
+  user-select: none;
+}
+
+.editor-element.gewaehlt {
+  outline: 2px solid var(--fw-akzent);
+  outline-offset: 2px;
+  box-shadow: var(--fw-fokus);
+}
+
+.editor-element.geerbt {
+  opacity: 0.56;
+  border-style: dashed;
+}
+
+.editor-element.verborgen {
+  opacity: 0.32;
+}
+
+.editor-element-typ {
+  color: var(--fw-text-schwach);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.editor-element strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-griff {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  border-radius: var(--fw-radius-s) 0 0 0;
+  background: var(--fw-akzent);
+  cursor: nwse-resize;
+}
+
+.editor-auswahlrahmen {
+  position: absolute;
+  border: 1px solid var(--fw-info);
+  background: color-mix(in srgb, var(--fw-info) 18%, transparent);
+  pointer-events: none;
+}
+
+.editor-eigenschaften {
+  display: grid;
+  align-content: start;
+  gap: var(--fw-s2);
+}
+
+.editor-eigenschaften label {
+  display: grid;
+  gap: 3px;
+  color: var(--fw-text-schwach);
+  font-size: 11px;
+}
+
+.editor-eigenschaften input,
+.editor-eigenschaften select {
+  min-width: 0;
+  width: 100%;
+}
+
+.editor-check {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.editor-check input {
+  width: auto;
+}
+
+.editor-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--fw-s2);
+  margin-top: var(--fw-s2);
+}
+
 .trace-arbeitsflaeche { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--fw-s3); }
 .trace-arbeitsflaeche.mit-detail { grid-template-columns: minmax(340px, 1fr) minmax(360px, 0.72fr); }
 .trace-liste { min-height: 0; overflow: auto; border: 1px solid var(--fw-rand); border-radius: var(--fw-radius); background: var(--fw-flaeche); box-shadow: var(--fw-schatten-s); }
@@ -221,7 +425,7 @@ body { overflow: hidden; }
   .seitenleiste { position: fixed; z-index: 50; inset: auto 0 0; height: var(--fw-nav); flex-direction: row; justify-content: space-around; padding: 6px max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); border: 0; border-top: 1px solid var(--fw-rand); }
   .seitenleiste-marke, .seitenleiste .nav-unten { display: none; }
   .nav-gruppe { width: 100%; display: flex; justify-content: space-around; }
-  .seitenleiste button { width: min(88px, 24vw); height: 44px; grid-template-columns: auto auto; gap: 5px; }
+  .seitenleiste button { width: min(76px, 19vw); height: 44px; grid-template-columns: auto auto; gap: 5px; }
   .nav-label { display: inline; font-size: 11px; }
   .kopf { min-height: 48px; padding: 0 var(--fw-s3); }
   .produkt, .kopf-uptime, .kopf-status .status-chip:not(:last-of-type) { display: none; }
@@ -238,6 +442,9 @@ body { overflow: hidden; }
   .archiv-arbeitsflaeche { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
   .archiv-liste { max-height: 148px; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); overflow: auto hidden; }
   .diagramm-admin .diagramm-svg { min-height: 260px; }
+  .editor-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .editor-palette { grid-auto-flow: column; grid-auto-columns: minmax(120px, 1fr); overflow: auto hidden; }
+  .editor-eigenschaften { max-height: 260px; }
   .trace-arbeitsflaeche.mit-detail .trace-liste { display: none; }
   .trace-zeile { grid-template-columns: 50px 56px minmax(120px, 1fr); }
   .trace-zeit, .trace-meta { display: none; }

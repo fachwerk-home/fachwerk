@@ -18,9 +18,10 @@ import { Datenpunkte } from "./datenpunkte.tsx";
 import { Traces } from "./traces.tsx";
 import { Logik, type LetzterSchritt } from "./logik.tsx";
 import { Archive } from "./archive.tsx";
+import { VisuEditor } from "./visu-editor.tsx";
 
 const TRACE_LIMIT = 300;
-type Ansicht = "datenpunkte" | "traces" | "logik" | "archive";
+type Ansicht = "datenpunkte" | "traces" | "logik" | "archive" | "visu_editor";
 type WertNachricht = Extract<LiveNachricht, { art: "wert" }>;
 
 const thema = new URLSearchParams(location.search).get("theme");
@@ -72,6 +73,7 @@ const navigation: Array<{ id: Ansicht; icon: string; label: string; taste: strin
   { id: "traces", icon: "⌁", label: "Traces", taste: "2" },
   { id: "logik", icon: "◇", label: "Logik", taste: "3" },
   { id: "archive", icon: "▤", label: "Archive", taste: "4" },
+  { id: "visu_editor", icon: "▧", label: "Visu-Editor", taste: "5" },
 ];
 
 function Navigation({ ansicht, wechseln, wartend }: { ansicht: Ansicht; wechseln: (ansicht: Ansicht) => void; wartend: number }) {
@@ -185,6 +187,7 @@ function App() {
       if (event.key === "2") setAnsicht("traces");
       if (event.key === "3") setAnsicht("logik");
       if (event.key === "4") setAnsicht("archive");
+      if (event.key === "5") setAnsicht("visu_editor");
     };
     window.addEventListener("keydown", tastatur);
     return () => window.removeEventListener("keydown", tastatur);
@@ -211,6 +214,7 @@ function App() {
           <section hidden={ansicht !== "traces"} aria-label="Traces"><Traces traces={traces} pausiert={pausiert} wartend={wartend} setzePause={setzePause} escSignal={escSignal} /></section>
           <section hidden={ansicht !== "logik"} aria-label="Logik"><Logik gewerk={gewerk} dps={dps} schritte={schritte} escSignal={escSignal} /></section>
           <section hidden={ansicht !== "archive"} aria-label="Archive"><Archive archive={archive} liveNachricht={liveNachricht} /></section>
+          <section hidden={ansicht !== "visu_editor"} aria-label="Visu-Editor"><VisuEditor dps={dps} /></section>
         </main>
       </div>
     </div>

@@ -2,6 +2,8 @@
  * API-Client (ADR-0009 A-1: die UI benutzt exakt die öffentliche API).
  * Gemeinsam für Admin-UI und Visu-Client.
  */
+import type { WertFormat } from "../../../schema/src/visu.ts";
+
 export interface TreiberStatus {
   verbunden: boolean;
   modus: "normal" | "beobachten";
@@ -36,6 +38,7 @@ export interface DatenpunktSicht {
   dpt?: string;
   protected?: boolean;
   remanent?: boolean;
+  format?: WertFormat;
   wert: Wert | null;
   ts: number | null;
 }
@@ -50,7 +53,7 @@ export interface SchreibAntwort {
 }
 
 export interface ApiFehlerDetails {
-  fehler?: string;
+  fehler?: string | string[];
   angenommen?: boolean;
 }
 
@@ -59,7 +62,9 @@ export class ApiFehler extends Error {
   readonly koerper: ApiFehlerDetails;
 
   constructor(status: number, statusText: string, pfad: string, koerper: ApiFehlerDetails) {
-    super(koerper.fehler ?? `${status} ${statusText} bei ${pfad}`);
+    super(Array.isArray(koerper.fehler)
+      ? koerper.fehler.join(" | ")
+      : koerper.fehler ?? `${status} ${statusText} bei ${pfad}`);
     this.name = "ApiFehler";
     this.status = status;
     this.koerper = koerper;
@@ -93,6 +98,23 @@ export interface ArchivSerie {
   aggregation: "mittel" | "min" | "max" | "letzter";
   anzahl: number;
   punkte: ArchivPunkt[];
+}
+
+export interface GewerkDateiAntwort {
+  inhalt: string;
+}
+
+export interface GewerkSchreibAntwort {
+  angenommen: boolean;
+  pfad?: string;
+  aktiviert?: boolean;
+  fehler?: string;
+}
+
+export interface GewerkAktivierenAntwort {
+  angenommen: boolean;
+  dauerMs?: number;
+  fehler?: string[];
 }
 
 export interface TraceSchritt {
@@ -143,6 +165,11 @@ export interface GewerkStruktur {
   }>;
 }
 
+export interface VisuAntwort {
+  seiten: Record<string, unknown>;
+  designs: Record<string, unknown>;
+}
+
 /** Token aus ?token= oder localStorage (DEV-Niveau, ADR-0009; P5-12 löst es ab). */
 function token(): string | null {
   const ausUrl = new URLSearchParams(location.search).get("token");
@@ -186,8 +213,14 @@ export const api = {
     ),
   traces: (n = 100) => hole<{ traces: Trace[] }>(`/api/traces?n=${n}`),
   gewerk: () => hole<GewerkStruktur>("/api/gewerk"),
+  visu: <T = VisuAntwort>() => hole<T>("/api/visu"),
   setzeDatenpunkt: (schluessel: string, wert: Wert) =>
     sende<SchreibAntwort>(`/api/datenpunkte/${encodeURIComponent(schluessel)}`, { wert }),
+  gewerkDatei: (pfad: string) =>
+    hole<GewerkDateiAntwort>(`/api/gewerk/dateien/${encodeURIComponent(pfad)}`),
+  schreibeGewerkDatei: (pfad: string, inhalt: string) =>
+    sende<GewerkSchreibAntwort>("/api/gewerk/dateien", { pfad, inhalt }),
+  aktiviereGewerk: () => sende<GewerkAktivierenAntwort>("/api/gewerk/aktivieren", {}),
   archive: () => hole<{ anzahl: number; archive: ArchivEintrag[] }>("/api/archive"),
   archivSerie: (
     id: string,
