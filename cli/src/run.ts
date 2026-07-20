@@ -17,6 +17,10 @@ import {
   ApiServer,
   ArchivDienst,
   AuditProtokoll,
+  AuthDienst,
+  IpBremse,
+  SqliteSitzungen,
+  istScope,
   BausteinSandbox,
   DatenpunktRegistry,
   LogikEngine,
@@ -37,6 +41,7 @@ import {
   type Baustein,
   type Gewerk,
   type GewerkDateien,
+  type Scope,
   type TreiberStatus,
   type Wert,
 } from "@fachwerk/core";
@@ -528,12 +533,39 @@ export async function run(dir: string): Promise<number> {
   // ---- HTTP-API + WebSocket (P5-2/P5-3) --------------------------------------
   const httpPort = Number(process.env["FACHWERK_HTTP_PORT"] ?? 8300);
   let api: ApiServer | null = null;
+  let sitzungen: SqliteSitzungen | null = null;
   if (httpPort > 0) {
     const uiVerzeichnis = process.env["FACHWERK_UI_DIR"] ?? "/app/ui";
-    // Schreibpfad (P5-8): NUR mit Token. Ohne Token bleibt die API lesend —
-    // das ist der Schalter, nicht bloss eine Empfehlung.
+    // Schreibpfad (P5-8): NUR mit konfigurierter Auth. Ohne Token UND ohne
+    // angelegten Nutzer bleibt die API lesend — das ist der Schalter, nicht
+    // bloss eine Empfehlung.
     const apiToken = process.env["FACHWERK_API_TOKEN"];
     const schreiblimit = Number(process.env["FACHWERK_API_SCHREIBLIMIT"] ?? 30);
+
+    // ---- Auth & Scopes (P5-12) ------------------------------------------------
+    // Scopes des statischen Tokens sind konfigurierbar; der Default ist
+    // absichtlich knapp (lesen + bedienen). Wer per Token das Gewerk aendern
+    // oder aktivieren will, sagt das ausdruecklich.
+    const rohScopes = (process.env["FACHWERK_API_TOKEN_SCOPES"] ?? "read,operate")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "");
+    const statischeScopes: Scope[] = [];
+    for (const s of rohScopes) {
+      if (istScope(s)) statischeScopes.push(s);
+      else console.error(`WARNUNG: FACHWERK_API_TOKEN_SCOPES: unbekannter Scope „${s}" ignoriert`);
+    }
+    sitzungen = new SqliteSitzungen(join(datenDir, "sitzungen.sqlite"));
+    const authDienst = new AuthDienst({
+      nutzerPfad: join(datenDir, "nutzer.yaml"),
+      sitzungen,
+      statischesToken: apiToken,
+      statischeScopes,
+      loginBremse: new IpBremse({
+        grenze: Number(process.env["FACHWERK_LOGIN_LIMIT"] ?? 5),
+      }),
+      onMeldung: (m) => console.error(`WARNUNG: ${m}`),
+    });
     const audit = new AuditProtokoll(join(datenDir, "audit.jsonl"), (m) =>
       console.error(`WARNUNG: ${m}`),
     );
@@ -554,7 +586,8 @@ export async function run(dir: string): Promise<number> {
           return kern.archiv ?? undefined;
         },
         dateien,
-        schreibenAktiv: apiToken !== undefined && apiToken !== "",
+        auth: authDienst,
+        schreibenAktiv: authDienst.aktiv,
         bremse: new Schreibbremse({ grenze: Number.isFinite(schreiblimit) ? schreiblimit : 30 }),
         audit: (e) => audit.schreibe(e),
         traces: tracePuffer,
@@ -580,6 +613,8 @@ export async function run(dir: string): Promise<number> {
         port: httpPort,
         ...(existsSync(uiVerzeichnis) ? { uiVerzeichnis } : {}),
         ...(apiToken ? { token: apiToken } : {}),
+        auth: authDienst,
+        cookieSecure: process.env["FACHWERK_COOKIE_SECURE"] === "1",
         onMeldung: (m) => console.error(`API: ${m}`),
       },
     );
@@ -592,9 +627,11 @@ export async function run(dir: string): Promise<number> {
       console.error(
         `API/UI: http://0.0.0.0:${httpPort}` +
           (existsSync(uiVerzeichnis) ? "" : " (nur /api — UI nicht gebaut)") +
-          (apiToken
-            ? ` [Token-Pflicht · Schreibpfad aktiv, max. ${schreiblimit}/10 s]`
-            : " [ohne Token — nur lesend]"),
+          (authDienst.aktiv
+            ? ` [Auth aktiv: ${authDienst.anzahlNutzer} Nutzer` +
+              (apiToken ? ` + Token (${statischeScopes.join(",") || "keine Scopes"})` : "") +
+              ` · Schreibpfad aktiv, max. ${schreiblimit}/10 s]`
+            : " [ohne Auth — nur lesend; fachwerk nutzer anlegen <name>]"),
       );
     } catch (e) {
       console.error(`API: Start auf Port ${httpPort} fehlgeschlagen: ${
@@ -692,6 +729,7 @@ export async function run(dir: string): Promise<number> {
         speicher.sichereEngine(kern.engine.momentaufnahme()); // letzter Stand (T-5)
         legeStill(kern);
         speicher.schliesse();
+        sitzungen?.schliesse();
         resolve();
       });
     };

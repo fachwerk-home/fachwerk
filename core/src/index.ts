@@ -45,8 +45,31 @@ export type {
   DatenpunktSicht,
   TreiberStatus,
 } from "./api/handler.ts";
-export { ApiServer } from "./api/server.ts";
-export type { ServerOptionen } from "./api/server.ts";
+export { ApiServer, SITZUNGS_COOKIE } from "./api/server.ts";
+export type { ServerOptionen, ServerAuth } from "./api/server.ts";
+export {
+  ALLE_SCOPES,
+  ANONYM,
+  AuthDienst,
+  IpBremse,
+  hashePasswort,
+  hatScope,
+  istScope,
+  ladeNutzer,
+  pruefePasswort,
+  schreibeNutzer,
+  tokenHash,
+} from "./api/auth.ts";
+export type {
+  AnmeldeErgebnis,
+  AuthDienstOptionen,
+  Identitaet,
+  NutzerEintrag,
+  Scope,
+  SitzungsSpeicher,
+} from "./api/auth.ts";
+export { SqliteSitzungen } from "./api/sitzungen.ts";
+export type { Anfrager, AuthTor } from "./api/handler.ts";
 export { WsServer } from "./api/websocket.ts";
 export type { WsVerbindung } from "./api/websocket.ts";
 export { ladeVisu } from "./visu/laden.ts";

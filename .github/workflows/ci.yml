@@ -78,3 +78,5 @@ jobs:
         run: bash tools/e2e-schreiben.sh
       - name: Gewerk-Reload (Timer überlebt, kaputtes Gewerk wird abgelehnt)
         run: bash tools/e2e-reload.sh
+      - name: Auth & Scopes (Login, Cookie, Scope-Grenzen, Rate-Limit, Audit)
+        run: bash tools/e2e-auth.sh

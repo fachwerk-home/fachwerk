@@ -8,6 +8,7 @@
 import type { Datenpunkt, VisuDesigns, VisuSeite, WertFormat } from "@fachwerk/schema";
 import type { Aggregation, ArchivDienst } from "../archiv/dienst.ts";
 import type { DatenpunktRegistry, Wert } from "../datenpunkte/registry.ts";
+import { hatScope, type AnmeldeErgebnis, type Identitaet, type Scope } from "./auth.ts";
 import type { AuditEintrag } from "./audit.ts";
 import type { Schreibbremse } from "./schreibbremse.ts";
 import type { Gewerk } from "../gewerk/loader.ts";
@@ -57,6 +58,25 @@ export interface ApiKontext {
 
   /** Gewerk-Dateien lesen/schreiben + Reload (P5-10a); fehlt = Editor aus. */
   dateien?: GewerkDateien;
+
+  /** Anmeldung (P5-12); fehlt sie, gibt es /api/login schlicht nicht. */
+  auth?: AuthTor;
+}
+
+/**
+ * Was der Handler von der Anmeldung braucht — mehr nicht. Die Umsetzung
+ * (scrypt, Sitzungen, Rate-Limit) liegt in auth.ts; der Handler bleibt so
+ * frei von node:crypto und SQLite und damit ohne Aufbau testbar.
+ */
+export interface AuthTor {
+  anmelden(name: unknown, passwort: unknown, ip: string): AnmeldeErgebnis;
+  abmelden(token: string): void;
+}
+
+/** Wer fragt an — Identitaet plus Absender-IP fuer das Login-Rate-Limit. */
+export interface Anfrager {
+  identitaet: Identitaet;
+  ip?: string;
 }
 
 /**
@@ -154,19 +174,33 @@ function sendetNicht(ktx: ApiKontext, def: Datenpunkt): boolean {
  */
 function pruefeSchreibrecht(
   ktx: ApiKontext,
+  anfrager: Anfrager | undefined,
+  scope: Scope,
   schluessel: string,
   wert: unknown,
 ): ApiAntwort | null {
   const jetzt = (ktx.jetzt ?? Date.now)();
   const ab = (status: number, grund: string): ApiAntwort => {
-    ktx.audit?.({ ts: jetzt, schluessel, wert, quelle: "api", angenommen: false, grund });
+    ktx.audit?.({
+      ts: jetzt,
+      schluessel,
+      wert,
+      quelle: "api",
+      angenommen: false,
+      grund,
+      ...auditWer(anfrager, scope),
+    });
     return { status, koerper: { angenommen: false, fehler: grund } };
   };
-  // 1. Schalter: ohne Token-Konfiguration existiert der Schreibpfad nicht.
+  // 1. Schalter: ohne konfigurierte Auth existiert der Schreibpfad nicht.
   if (!ktx.schreibenAktiv) {
-    return ab(403, "Schreibpfad ist aus: FACHWERK_API_TOKEN ist nicht gesetzt");
+    return ab(403, "Schreibpfad ist aus: weder FACHWERK_API_TOKEN noch ein Nutzer konfiguriert");
   }
-  // 2. Rate-Limit vor allem Fachlichen — auch Raten auf Schluesseln kostet.
+  // 2. Scope (P5-12): Wer darf, steht in der Identitaet — nicht im Endpunkt.
+  if (anfrager && !hatScope(anfrager.identitaet, scope)) {
+    return ab(403, `fehlender Scope: ${scope}`);
+  }
+  // 3. Rate-Limit vor allem Fachlichen — auch Raten auf Schluesseln kostet.
   if (ktx.bremse && !ktx.bremse.versuche()) {
     return ab(
       429,
@@ -176,16 +210,37 @@ function pruefeSchreibrecht(
   return null;
 }
 
-function schreibe(ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAntwort {
+/** Wer war es, mit welchem Recht — steht seit P5-12 in jedem Audit-Eintrag. */
+function auditWer(
+  anfrager: Anfrager | undefined,
+  scope: Scope,
+): { nutzer?: string; scope?: Scope } {
+  return anfrager ? { nutzer: anfrager.identitaet.name, scope } : { scope };
+}
+
+function schreibe(
+  ktx: ApiKontext,
+  anfrager: Anfrager | undefined,
+  schluessel: string,
+  koerper: unknown,
+): ApiAntwort {
   const jetzt = (ktx.jetzt ?? Date.now)();
   const wertRoh = (koerper as { wert?: unknown } | null | undefined)?.wert;
 
   const ab = (status: number, grund: string): ApiAntwort => {
-    ktx.audit?.({ ts: jetzt, schluessel, wert: wertRoh ?? null, quelle: "api", angenommen: false, grund });
+    ktx.audit?.({
+      ts: jetzt,
+      schluessel,
+      wert: wertRoh ?? null,
+      quelle: "api",
+      angenommen: false,
+      grund,
+      ...auditWer(anfrager, "operate"),
+    });
     return { status, koerper: { angenommen: false, fehler: grund } };
   };
 
-  const tor = pruefeSchreibrecht(ktx, schluessel, wertRoh ?? null);
+  const tor = pruefeSchreibrecht(ktx, anfrager, "operate", schluessel, wertRoh ?? null);
   if (tor) return tor;
   // 3. Body-Form.
   if (typeof koerper !== "object" || koerper === null || !("wert" in koerper)) {
@@ -215,7 +270,14 @@ function schreibe(ktx: ApiKontext, schluessel: string, koerper: unknown): ApiAnt
   if (!erg.angenommen) return ab(403, erg.grund);
 
   const hinweis = sendetNicht(ktx, def) ? "beobachten: nicht auf den Bus gesendet" : undefined;
-  ktx.audit?.({ ts: jetzt, schluessel, wert: wertRoh, quelle: "api", angenommen: true });
+  ktx.audit?.({
+    ts: jetzt,
+    schluessel,
+    wert: wertRoh,
+    quelle: "api",
+    angenommen: true,
+    ...auditWer(anfrager, "operate"),
+  });
   return {
     status: 200,
     koerper: {
@@ -255,9 +317,59 @@ export function beantworte(
   pfad: string,
   query: URLSearchParams,
   koerper?: unknown,
+  anfrager?: Anfrager,
 ): ApiAntwort {
+  /**
+   * Lesescope. `anfrager` fehlt nur in Aufrufen ohne Auth-Schicht (Tests):
+   * dann wird nichts erzwungen. Der Server reicht IMMER eine Identitaet
+   * durch — notfalls die anonyme, die genau `read` kann.
+   */
+  const darf = (scope: Scope): boolean => !anfrager || hatScope(anfrager.identitaet, scope);
+  const verweigert = (scope: Scope): ApiAntwort => ({
+    status: 403,
+    koerper: { fehler: `fehlender Scope: ${scope}` },
+  });
+
+  // ---- Anmeldung (P5-12) ------------------------------------------------------
+  // Bewusst ohne Scope-Pruefung: hier holt man sich ja erst eine Identitaet.
+  if (methode === "POST" && pfad === "/api/login") {
+    if (!ktx.auth) return { status: 501, koerper: { fehler: "Anmeldung nicht konfiguriert" } };
+    const roh = koerper as { name?: unknown; passwort?: unknown } | null | undefined;
+    const erg = ktx.auth.anmelden(roh?.name, roh?.passwort, anfrager?.ip ?? "unbekannt");
+    if (!erg.ok) return { status: erg.status, koerper: { fehler: erg.grund } };
+    // Das Token steht im Koerper (fuer Agenten) UND wird vom Server als
+    // HttpOnly-Cookie gesetzt (fuer den Browser, der es nie sehen soll).
+    return {
+      status: 200,
+      koerper: { token: erg.token, ablauf: erg.ablauf, nutzer: erg.nutzer, scopes: erg.scopes },
+    };
+  }
+
+  if (methode === "POST" && pfad === "/api/logout") {
+    if (anfrager?.identitaet.token) ktx.auth?.abmelden(anfrager.identitaet.token);
+    return { status: 200, koerper: { abgemeldet: true } };
+  }
+
+  // Wer bin ich, und was darf ich? Die UI baut ihre Bedienelemente danach.
+  if (methode === "GET" && pfad === "/api/ich") {
+    const id = anfrager?.identitaet;
+    return {
+      status: 200,
+      koerper: {
+        name: id?.name ?? "unbekannt",
+        art: id?.art ?? "anonym",
+        scopes: id?.scopes ?? [],
+      },
+    };
+  }
+
   if (methode === "POST" && pfad.startsWith("/api/datenpunkte/")) {
-    return schreibe(ktx, decodeURIComponent(pfad.slice("/api/datenpunkte/".length)), koerper);
+    return schreibe(
+      ktx,
+      anfrager,
+      decodeURIComponent(pfad.slice("/api/datenpunkte/".length)),
+      koerper,
+    );
   }
 
   // ---- Gewerk-Dateien + Reload (P5-10a) --------------------------------------
@@ -265,7 +377,7 @@ export function beantworte(
     if (!ktx.dateien) return { status: 501, koerper: { fehler: "Editor-Pfad nicht verfuegbar" } };
     const roh = koerper as { pfad?: unknown; inhalt?: unknown } | null | undefined;
     const zielPfad = typeof roh?.pfad === "string" ? roh.pfad : "";
-    const tor = pruefeSchreibrecht(ktx, `gewerk:${zielPfad}`, null);
+    const tor = pruefeSchreibrecht(ktx, anfrager, "write:gewerk", `gewerk:${zielPfad}`, null);
     if (tor) return tor;
     if (typeof roh?.inhalt !== "string") {
       return { status: 400, koerper: { angenommen: false, fehler: "inhalt muss Text sein" } };
@@ -283,6 +395,7 @@ export function beantworte(
         quelle: "api",
         angenommen: false,
         grund: erg.grund,
+        ...auditWer(anfrager, "write:gewerk"),
       });
       return { status: erg.status, koerper: { angenommen: false, fehler: erg.grund } };
     }
@@ -294,6 +407,7 @@ export function beantworte(
       wert: `${roh.inhalt.length} Zeichen`,
       quelle: "api",
       angenommen: true,
+      ...auditWer(anfrager, "write:gewerk"),
     });
     // Bewusst NICHT automatisch aktivieren: geschrieben ist nicht scharf.
     // Erst /api/gewerk/aktivieren schaltet um — sonst reisst ein halb
@@ -303,7 +417,7 @@ export function beantworte(
 
   if (methode === "POST" && pfad === "/api/gewerk/aktivieren") {
     if (!ktx.dateien) return { status: 501, koerper: { fehler: "Editor-Pfad nicht verfuegbar" } };
-    const tor = pruefeSchreibrecht(ktx, "gewerk:aktivieren", null);
+    const tor = pruefeSchreibrecht(ktx, anfrager, "activate:dev", "gewerk:aktivieren", null);
     if (tor) return tor;
     const jetzt = (ktx.jetzt ?? Date.now)();
     const erg = ktx.dateien.aktiviere();
@@ -314,6 +428,7 @@ export function beantworte(
       quelle: "api",
       angenommen: erg.ok,
       ...(erg.ok ? {} : { grund: erg.fehler.join(" | ") }),
+      ...auditWer(anfrager, "activate:dev"),
     });
     // 422: die Anfrage war in Ordnung, das Gewerk nicht. Die alte Logik laeuft
     // unveraendert weiter — das ist der Sinn der Uebung.
@@ -323,6 +438,7 @@ export function beantworte(
   }
 
   if (methode === "GET" && pfad.startsWith("/api/gewerk/dateien/")) {
+    if (!darf("read")) return verweigert("read");
     if (!ktx.dateien) return { status: 501, koerper: { fehler: "Editor-Pfad nicht verfuegbar" } };
     const erg = ktx.dateien.lies(decodeURIComponent(pfad.slice("/api/gewerk/dateien/".length)));
     return erg.ok
@@ -333,6 +449,11 @@ export function beantworte(
   if (methode !== "GET") {
     return { status: 405, koerper: { fehler: `Methode ${methode} nicht erlaubt auf ${pfad}` } };
   }
+
+  // Ab hier ist alles lesend — ein Tor fuer alle statt eines je Endpunkt.
+  // Neue GET-Routen sind damit automatisch geschuetzt, nicht erst nach
+  // Erinnerung an eine Zeile weiter unten.
+  if (!darf("read")) return verweigert("read");
 
   if (pfad === "/api/status") {
     const jetzt = (ktx.jetzt ?? Date.now)();

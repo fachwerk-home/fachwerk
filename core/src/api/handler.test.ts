@@ -314,8 +314,16 @@ describe("POST /api/datenpunkte/<schluessel> (P5-8 Schreibpfad)", () => {
     expect(a.status).toBe(200);
     expect(a.koerper).toMatchObject({ angenommen: true, schluessel: "flur.licht", wert: false });
     expect(ktx.registry.get("flur.licht")).toBe(false);
+    // scope steht seit P5-12 in jedem Eintrag — auch ohne Auth-Schicht.
     expect(audit).toEqual([
-      { ts: 61_000, schluessel: "flur.licht", wert: false, quelle: "api", angenommen: true },
+      {
+        ts: 61_000,
+        schluessel: "flur.licht",
+        wert: false,
+        quelle: "api",
+        angenommen: true,
+        scope: "operate",
+      },
     ]);
   });
 

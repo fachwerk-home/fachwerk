@@ -110,6 +110,12 @@ switch (cmd) {
     break;
   }
 
+  case "nutzer": {
+    const { nutzer } = await import("./nutzer.ts");
+    process.exit(await nutzer(args));
+    break;
+  }
+
   case "baustein": {
     if (args[0] !== "test" || !args[1]) {
       console.error("Aufruf: fachwerk baustein test <gewerk-verzeichnis>");
@@ -123,7 +129,8 @@ switch (cmd) {
   default:
     console.error(`Unbekanntes Kommando: ${cmd}`);
     console.error(
-      "Verfügbar: version · validate <verzeichnis> · run <verzeichnis> · baustein test <verzeichnis>",
+      "Verfügbar: version · validate <verzeichnis> · run <verzeichnis> · " +
+        "baustein test <verzeichnis> · nutzer anlegen|entfernen|liste",
     );
     process.exit(1);
 }

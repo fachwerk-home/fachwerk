@@ -76,11 +76,15 @@ done
 # Regression: frueher filterte run.ts den Live-Push auf geaenderte Werte. Damit
 # verschwand der Normalfall eines Tasters (zweimal true), und die Visu meldete
 # „keine Rueckmeldung", obwohl Wert angenommen und Telegramm gesendet waren.
+# Seit P5-12 ist der Live-Kanal ein Leseweg wie jeder andere: ohne Nachweis
+# gibt es kein Upgrade. Der Test-Client weist sich per Bearer aus (ein Browser
+# nimmt an dieser Stelle das Sitzungs-Cookie — er kann keine Header setzen).
 docker compose exec -T -d fachwerk node -e '
 const {randomBytes}=require("node:crypto"), net=require("node:net");
 const key=randomBytes(16).toString("base64");
 const s=net.connect(8300,"127.0.0.1",()=>s.write(
  "GET /api/ws HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"+
+ "Authorization: Bearer "+process.env.FACHWERK_API_TOKEN+"\r\n"+
  "Sec-WebSocket-Key: "+key+"\r\nSec-WebSocket-Version: 13\r\n\r\n"));
 const fs=require("node:fs"); let kopf=false, puf=Buffer.alloc(0);
 s.on("data",c=>{ puf=Buffer.concat([puf,c]);

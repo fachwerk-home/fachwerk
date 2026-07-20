@@ -236,12 +236,28 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 - **Akzeptanz:** Licht-Status-Seite im Editor nachbauen → identisches
   Verhalten am Simulator; Zyklus einbauen → Validierung zeigt ihn mit Ort.
 
-### P5-12: Auth & Scopes (DEV-Niveau) + Härtung
-- **Ziel:** ADR-0009 A-3/A-4 real: Login (Argon2-Hash, Session-Cookie ODER
-  Token), Scopes read/operate/write:gewerk/activate:dev durchgesetzt,
-  protected doppelt (API + Engine — Engine-Seite existiert), CORS/Headers,
-  Rate-Limits. PROD-Freigabe-Workflow bleibt Phase 6.
+### P5-12: Auth & Scopes (DEV-Niveau) + Härtung ✅ (erledigt 20.07.2026, Spur 1)
+- **Ziel:** ADR-0009 A-3/A-4 real: Login (Session-Cookie ODER Token), Scopes
+  read/operate/write:gewerk/activate:dev durchgesetzt, protected doppelt
+  (API + Engine — Engine-Seite existiert), CORS/Headers, Rate-Limits.
+  PROD-Freigabe-Workflow bleibt Phase 6.
 - **Akzeptanz:** Ohne Auth kein Schreiben; Scope-Matrix als Test.
+- **Umgesetzt:** `nutzer.yaml` im Daten-Verzeichnis + `fachwerk nutzer
+  anlegen|entfernen|liste` (Passwort nur über stdin); **scrypt statt Argon2** —
+  Argon2 wäre ein natives Paket und damit ein Bruch der Null-Dependency-Linie;
+  `node:crypto` reicht für DEV-Niveau. `POST /api/login|logout`, `GET /api/ich`;
+  Sitzungen in `sitzungen.sqlite`, nur als SHA-256 des Tokens; Cookie
+  HttpOnly+SameSite=Lax **und** Bearer (Agent-first). Statisches Token bekommt
+  Scopes über `FACHWERK_API_TOKEN_SCOPES` (Default knapp: `read,operate`).
+  Härtung: Security-Header + CSP, CORS aus, Origin-Riegel gegen CSRF,
+  Login-Rate-Limit 5/min/IP, zeitkonstante Vergleiche, Audit um
+  `nutzer`/`scope` erweitert, WebSocket verlangt `read`.
+  Doku: `docs/AUTH-UND-SCOPES.md` + SECURITY.md. Tests:
+  `core/src/api/scope-matrix.test.ts` (jede Route × jeder Scope × anonym),
+  `auth.test.ts`, `server.test.ts`, E2E `tools/e2e-auth.sh` als CI-Job.
+- **Offen (bewusst, nicht Spur 1):** Login-Formular in der Admin-UI —
+  `ui/**` gehört ab Runde 3 Codex; Auftrag liegt als
+  `docs/auftraege/AUFTRAG-P5-UI-LOGIN.md` bereit.
 
 ---
 

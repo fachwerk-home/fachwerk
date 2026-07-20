@@ -18,6 +18,10 @@ export interface AuditEintrag {
   quelle: "api";
   angenommen: boolean;
   grund?: string;
+  /** Wer es war (P5-12): Nutzername, „token" oder „anonym". */
+  nutzer?: string;
+  /** Welches Recht dafuer noetig war — auch wenn es gefehlt hat. */
+  scope?: string;
 }
 
 export class AuditProtokoll {

@@ -21,6 +21,9 @@ services:
       # Schreibpfad (P5-8): leer = API bleibt lesend. Nie ein echtes Token
       # hier eintragen — immer vom Host durchreichen.
       FACHWERK_API_TOKEN: ${FACHWERK_API_TOKEN:-}
+      # Scopes des statischen Tokens (P5-12). Default bewusst knapp:
+      # read,operate — Gewerk aendern/aktivieren muss man ausdruecklich geben.
+      FACHWERK_API_TOKEN_SCOPES: ${FACHWERK_API_TOKEN_SCOPES:-read,operate}
       FACHWERK_API_SCHREIBLIMIT: ${FACHWERK_API_SCHREIBLIMIT:-30}
     ports:
       # API + UI (P5-2/P5-3) auf dem Host erreichbar.

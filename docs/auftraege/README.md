@@ -71,6 +71,7 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-P5-8.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
 | AUFTRAG-P5-9.md | Spur 1 (Opus, mit Betreiber-Rückfragen) | offen |
 | AUFTRAG-P5-10a.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
-| AUFTRAG-P5-10.md | Codex | offen |
-| AUFTRAG-P5-11.md | Codex | offen |
-| AUFTRAG-P5-12.md | Spur 1 (Opus) | offen |
+| AUFTRAG-P5-10.md | Codex | ✅ gemergt |
+| AUFTRAG-P5-11.md | Codex | ✅ gemergt |
+| AUFTRAG-P5-12.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
+| AUFTRAG-P5-UI-LOGIN.md | Codex | offen (Folge von P5-12) |

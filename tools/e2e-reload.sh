@@ -10,6 +10,10 @@ cd "$(dirname "$0")/.."
 
 export MSYS_NO_PATHCONV=1
 export FACHWERK_API_TOKEN=e2e-reload-token
+# Editor-Rechte muss man ausdruecklich vergeben (P5-12): der Default des
+# statischen Tokens ist read,operate — damit kaeme dieser Test korrekt nicht
+# durch. Genau das prueft tools/e2e-auth.sh von der anderen Seite.
+export FACHWERK_API_TOKEN_SCOPES=read,operate,write:gewerk,activate:dev
 BASIS="http://localhost:8300"
 AUTH="Authorization: Bearer $FACHWERK_API_TOKEN"
 COMPOSE="docker compose -f docker-compose.yml -f tools/compose-reload-test.yml"
