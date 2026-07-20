@@ -62,3 +62,6 @@ export { Schreibbremse } from "./api/schreibbremse.ts";
 export type { SchreibbremseOptionen } from "./api/schreibbremse.ts";
 export { AuditProtokoll } from "./api/audit.ts";
 export type { AuditEintrag } from "./api/audit.ts";
+export { pruefeGewerkPfad } from "./gewerk/dateien.ts";
+export type { PfadPruefung } from "./gewerk/dateien.ts";
+export type { GewerkDateien } from "./api/handler.ts";
