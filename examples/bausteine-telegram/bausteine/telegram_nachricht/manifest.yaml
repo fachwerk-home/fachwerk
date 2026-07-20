@@ -1,7 +1,7 @@
 id: telegram_nachricht
 name: Telegram Nachricht
 version: 1
-beschreibung: "Sendet eine Nachricht an einen Telegram-Chat."
+beschreibung: "Sendet eine Nachricht an einen Telegram-Chat. WICHTIG: Die Ausgänge 'gesendet' und 'fehler' laufen dem eigentlichen Versand um eine Auslösung nach, da der Netzwerkaufruf asynchron im Hintergrund (fire-and-forget) ausgeführt wird."
 eingaenge: [ausloeser, wert]
 ausgaenge: [gesendet, fehler]
 parameter:
@@ -13,7 +13,8 @@ parameter:
 tests:
   - eingaenge: { ausloeser: true, wert: "Test" }
     parameter: { text: "Nachricht: {wert}" }
-    erwartet: { gesendet: true, fehler: "" }
+    # Beim ersten Aufruf liefert der Baustein den initialen Modul-Zustand zurück.
+    erwartet: { gesendet: false, fehler: "" }
   - eingaenge: { ausloeser: true, wert: false }
     parameter: { nur_bei: true }
     erwartet: null
