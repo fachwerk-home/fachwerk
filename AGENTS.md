@@ -52,6 +52,15 @@ fassen nie dieselben Dateien an. Die aktuelle Spurbelegung steht in
   `tools/`. Führt Reviews und Merges der anderen Spuren durch und verdrahtet
   deren Module. Rollenübernahme + Merge-Ritual: `docs/auftraege/README.md`.
   Ab Runde 3 gehört `ui/**` komplett Spur 2 (Codex).
+  - **Der Merge ist ausschließlich Spur-1-Recht und passiert NIE automatisch.**
+    Jeder Merge nach `main` durchläuft das volle Ritual: alle 4 Gates in einem
+    frischen Worktree neu gefahren (nicht dem PR geglaubt), Dateibesitz geprüft,
+    inhaltliches Review gegen die Abnahme-Liste, und — wo es eine bedienbare
+    Oberfläche gibt — die **Handprobe am laufenden System** (Browser/echter
+    Stack). Grüne Gates sind KEIN Merge-Freibrief: sie haben mehrfach Falsches
+    durchgewinkt (ein Baustein, der Erfolg meldete ohne zu senden; ein Editor,
+    der eine neue Seite speichert, die dann still verschwindet). Was kein Auge
+    am laufenden System gesehen hat, wird nicht gemergt.
 - **Spur 2, 3, … = Auftrags-Agenten (Codex, Gemini, …).** Arbeiten NUR den
   ihnen zugewiesenen Auftrag aus `docs/auftraege/` ab, NUR in den dort
   genannten Dateien/Verzeichnissen, NUR auf ihrem Branch.
@@ -67,6 +76,14 @@ Regeln für Auftrags-Agenten:
    Verzeichnis einer anderen Spur. Zwei Agenten in einem Checkout vermischen
    ihre uncommitteten Dateien — das ist bereits passiert.
 3. **Nie auf `main` pushen. Nie force-pushen. Nie fremde Branches anfassen.**
+   **Und nie den eigenen PR mergen** — auch nicht, wenn die eigenen Gates grün
+   sind, auch nicht per `gh pr merge`, auch nicht über ein Konto mit
+   Merge-Rechten. Dein Auftrag endet mit einem offenen PR, der die Abnahme
+   nachweist (Gates, Handprobe, Screenshots) und offene Fragen/Integrations-
+   wünsche benennt. Ob und wann gemergt wird, entscheidet allein Spur 1 nach
+   ihrem Review-Ritual. „War doch grün" ist kein Grund, selbst zu mergen: die
+   Handprobe am laufenden System, die Spur 1 fährt, hat schon Fehler gefunden,
+   die jede grüne Gate-Ampel überlebt hatten.
 4. Dateien außerhalb des im Auftrag definierten Besitzes werden NICHT
    geändert — auch nicht „nur kurz aufgeräumt". Brauchst du eine Änderung
    dort: im PR-Text als „Integrationswunsch" beschreiben, Spur 1 erledigt das.
