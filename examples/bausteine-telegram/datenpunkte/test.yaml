@@ -1,0 +1,10 @@
+ausloeser_dp:
+  name: Telegram Auslöser
+  klasse: intern
+  typ: bool
+  initial: false
+wert_dp:
+  name: Telegram Wert
+  klasse: intern
+  typ: text
+  initial: "Hallo Welt"

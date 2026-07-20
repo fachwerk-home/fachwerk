@@ -1,0 +1,13 @@
+notizen: "Telegram Test"
+knoten:
+  msg:
+    baustein: telegram_nachricht
+    parameter:
+      bot_token: "DEIN_BOT_TOKEN"
+      chat_id: "12345678"
+      text: "Alarm: {wert}"
+kanten:
+  - von: dp:test.ausloeser_dp
+    nach: msg.ausloeser
+  - von: dp:test.wert_dp
+    nach: msg.wert
