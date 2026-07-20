@@ -6,6 +6,7 @@ import {
   api,
   verbindeLive,
   type DatenpunktSicht,
+  type ArchivEintrag,
   type GewerkStruktur,
   type LiveNachricht,
   type Status,
@@ -16,9 +17,10 @@ import { dauer } from "./format.ts";
 import { Datenpunkte } from "./datenpunkte.tsx";
 import { Traces } from "./traces.tsx";
 import { Logik, type LetzterSchritt } from "./logik.tsx";
+import { Archive } from "./archive.tsx";
 
 const TRACE_LIMIT = 300;
-type Ansicht = "datenpunkte" | "traces" | "logik";
+type Ansicht = "datenpunkte" | "traces" | "logik" | "archive";
 type WertNachricht = Extract<LiveNachricht, { art: "wert" }>;
 
 const thema = new URLSearchParams(location.search).get("theme");
@@ -69,6 +71,7 @@ const navigation: Array<{ id: Ansicht; icon: string; label: string; taste: strin
   { id: "datenpunkte", icon: "▦", label: "Datenpunkte", taste: "1" },
   { id: "traces", icon: "⌁", label: "Traces", taste: "2" },
   { id: "logik", icon: "◇", label: "Logik", taste: "3" },
+  { id: "archive", icon: "▤", label: "Archive", taste: "4" },
 ];
 
 function Navigation({ ansicht, wechseln, wartend }: { ansicht: Ansicht; wechseln: (ansicht: Ansicht) => void; wartend: number }) {
@@ -84,7 +87,6 @@ function Navigation({ ansicht, wechseln, wartend }: { ansicht: Ansicht; wechseln
         ))}
       </div>
       <div class="nav-gruppe nav-unten">
-        <button disabled title="Archiv – folgt in einer späteren Ausbaustufe"><span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">Archiv</span></button>
         <button disabled title="Einstellungen – folgt in einer späteren Ausbaustufe"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Einstellungen</span></button>
       </div>
     </nav>
@@ -99,6 +101,8 @@ function App() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [ansicht, setAnsicht] = useState<Ansicht>("datenpunkte");
   const [gewerk, setGewerk] = useState<GewerkStruktur | null>(null);
+  const [archive, setArchive] = useState<ArchivEintrag[]>([]);
+  const [liveNachricht, setLiveNachricht] = useState<WertNachricht | null>(null);
   const [schritte, setSchritte] = useState<Record<string, LetzterSchritt>>({});
   const [traces, setTraces] = useState<Trace[]>([]);
   const [pausiert, setPausiert] = useState(false);
@@ -112,13 +116,14 @@ function App() {
     let aktiv = true;
     const laden = async (): Promise<void> => {
       try {
-        const [s, d, t, g] = await Promise.all([api.status(), api.datenpunkte(), api.traces(100), api.gewerk()]);
+        const [s, d, t, g, a] = await Promise.all([api.status(), api.datenpunkte(), api.traces(100), api.gewerk(), api.archive()]);
         if (!aktiv) return;
         setStatus(s);
         setDps(d.datenpunkte);
         setTraces([...t.traces].sort((a, b) => b.nr - a.nr));
         setSchritte((alt) => schritteAus(t.traces, alt));
         setGewerk(g);
+        setArchive(a.archive);
         setFehler(null);
       } catch (error) {
         if (aktiv) setFehler(error instanceof Error ? error.message : String(error));
@@ -149,6 +154,7 @@ function App() {
     };
     const trennen = verbindeLive((nachricht) => {
       if (nachricht.art === "wert") {
+        setLiveNachricht(nachricht);
         wertPuffer.schreibe(nachricht.schluessel, nachricht);
         if (bild === null) bild = requestAnimationFrame(anwenden);
         return;
@@ -178,6 +184,7 @@ function App() {
       if (event.key === "1") setAnsicht("datenpunkte");
       if (event.key === "2") setAnsicht("traces");
       if (event.key === "3") setAnsicht("logik");
+      if (event.key === "4") setAnsicht("archive");
     };
     window.addEventListener("keydown", tastatur);
     return () => window.removeEventListener("keydown", tastatur);
@@ -203,6 +210,7 @@ function App() {
           <section hidden={ansicht !== "datenpunkte"} aria-label="Datenpunkte"><Datenpunkte dps={dps} geaendert={geaendert} sucheRef={sucheRef} /></section>
           <section hidden={ansicht !== "traces"} aria-label="Traces"><Traces traces={traces} pausiert={pausiert} wartend={wartend} setzePause={setzePause} escSignal={escSignal} /></section>
           <section hidden={ansicht !== "logik"} aria-label="Logik"><Logik gewerk={gewerk} dps={dps} schritte={schritte} escSignal={escSignal} /></section>
+          <section hidden={ansicht !== "archive"} aria-label="Archive"><Archive archive={archive} liveNachricht={liveNachricht} /></section>
         </main>
       </div>
     </div>

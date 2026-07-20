@@ -146,6 +146,142 @@ input[type="search"], input[type="text"], select {
 .warn { color: var(--fw-warn); }
 .fehler { color: var(--fw-fehler); }
 
+.segment {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-s);
+  background: var(--fw-flaeche-2);
+}
+
+.segment button {
+  min-height: 26px;
+  padding-inline: var(--fw-s2);
+  border: 0;
+  background: transparent;
+}
+
+.diagramm {
+  position: relative;
+  min-width: 0;
+  min-height: 230px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--fw-s2);
+  padding: var(--fw-s3);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche);
+  box-shadow: var(--fw-schatten-s);
+}
+
+.diagramm-kopf {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fw-s3);
+}
+
+.diagramm-kopf > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.diagramm-kopf strong,
+.diagramm-kopf span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagramm-kopf span {
+  color: var(--fw-text-schwach);
+  font-size: 11px;
+}
+
+.diagramm-svg {
+  width: 100%;
+  min-height: 230px;
+  display: block;
+  overflow: visible;
+  touch-action: none;
+}
+
+.diagramm-achse,
+.diagramm-gitter {
+  stroke: var(--fw-rand);
+  stroke-width: 1;
+}
+
+.diagramm-gitter {
+  opacity: 0.72;
+}
+
+.diagramm-linie {
+  fill: none;
+  stroke: var(--fw-akzent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.diagramm-tick,
+.diagramm-y {
+  fill: var(--fw-text-schwach);
+  font-size: 10px;
+  font-family: var(--fw-mono);
+}
+
+.diagramm-tick {
+  text-anchor: middle;
+}
+
+.diagramm-y {
+  text-anchor: end;
+}
+
+.diagramm-cursor {
+  stroke: var(--fw-info);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.diagramm-punkt {
+  fill: var(--fw-flaeche);
+  stroke: var(--fw-info);
+  stroke-width: 2;
+}
+
+.diagramm-tooltip {
+  position: absolute;
+  right: var(--fw-s3);
+  bottom: var(--fw-s3);
+  max-width: calc(100% - var(--fw-s5));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: var(--fw-s1) var(--fw-s2);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-s);
+  background: color-mix(in srgb, var(--fw-flaeche) 92%, transparent);
+  color: var(--fw-text);
+  font-family: var(--fw-mono);
+  font-size: 11px;
+  box-shadow: var(--fw-schatten-s);
+}
+
+.diagramm-hinweis {
+  position: absolute;
+  inset: 50% var(--fw-s4) auto;
+  translate: 0 -50%;
+  color: var(--fw-text-schwach);
+  text-align: center;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
