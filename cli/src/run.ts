@@ -166,13 +166,20 @@ export async function run(dir: string): Promise<number> {
     if (registry.definition(e.schluessel)?.remanent) {
       speicher.sichereWert(e.schluessel, e.wert);
     }
-    if (e.geaendert && ws.anzahl > 0) {
+    // JEDES angenommene Schreiben geht raus, auch das wertgleiche (E-4:
+    // on-receive, nicht nur on-change). Frueher filterte diese Stelle auf
+    // e.geaendert und verschluckte damit genau den Normalfall eines Tasters:
+    // zweimal true hintereinander. Ein Bediener sah dann „keine Rueckmeldung",
+    // obwohl Wert angenommen und Telegramm gesendet waren. `geaendert` steht
+    // jetzt als Feld in der Nachricht — die UI entscheidet selbst.
+    if (ws.anzahl > 0) {
       ws.sendeAllen(
         JSON.stringify({
           art: "wert",
           schluessel: e.schluessel,
           wert: e.wert,
           quelle: e.quelle,
+          geaendert: e.geaendert,
           ts: registry.zeitstempel(e.schluessel) ?? Date.now(),
         }),
       );

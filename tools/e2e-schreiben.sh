@@ -72,6 +72,47 @@ for i in $(seq 1 20); do
   sleep 0.5
 done
 
+# --- 2b) Wertgleiches Schreiben MUSS trotzdem ueber den WS gemeldet werden -----
+# Regression: frueher filterte run.ts den Live-Push auf geaenderte Werte. Damit
+# verschwand der Normalfall eines Tasters (zweimal true), und die Visu meldete
+# „keine Rueckmeldung", obwohl Wert angenommen und Telegramm gesendet waren.
+docker compose exec -T -d fachwerk node -e '
+const {randomBytes}=require("node:crypto"), net=require("node:net");
+const key=randomBytes(16).toString("base64");
+const s=net.connect(8300,"127.0.0.1",()=>s.write(
+ "GET /api/ws HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"+
+ "Sec-WebSocket-Key: "+key+"\r\nSec-WebSocket-Version: 13\r\n\r\n"));
+const fs=require("node:fs"); let kopf=false, puf=Buffer.alloc(0);
+s.on("data",c=>{ puf=Buffer.concat([puf,c]);
+  if(!kopf){const i=puf.indexOf("\r\n\r\n"); if(i<0)return; kopf=true; puf=puf.subarray(i+4);}
+  while(puf.length>=2){let len=puf[1]&0x7f,off=2;
+    if(len===126){len=puf.readUInt16BE(2);off=4;} else if(len===127){len=Number(puf.readBigUInt64BE(2));off=10;}
+    if(puf.length<off+len)return;
+    fs.appendFileSync("/tmp/ws-gleich.log",puf.subarray(off,off+len).toString()+"\n");
+    puf=puf.subarray(off+len);}});
+' 2>/dev/null || true
+sleep 2
+
+for n in 1 2; do
+  curl -s -X POST -H "$AUTH" -H "content-type: application/json" -d '{"wert":true}' \
+    "$BASIS/api/datenpunkte/wohnen.licht" >/dev/null
+  sleep 1
+done
+
+gleich=$(docker compose exec -T fachwerk sh -c \
+  'grep -c "\"schluessel\":\"wohnen.licht\"" /tmp/ws-gleich.log 2>/dev/null || echo 0' | tr -d '[:space:]')
+[ "${gleich:-0}" -ge 2 ] || {
+  echo "FAIL: wertgleiches Schreiben wurde nicht live gemeldet ($gleich von 2)"
+  docker compose exec -T fachwerk cat /tmp/ws-gleich.log 2>/dev/null || true
+  exit 1
+}
+docker compose exec -T fachwerk grep -q '"geaendert":false' /tmp/ws-gleich.log || {
+  echo "FAIL: der Live-Nachricht fehlt das Feld geaendert"
+  docker compose exec -T fachwerk cat /tmp/ws-gleich.log 2>/dev/null || true
+  exit 1
+}
+echo "OK: auch wertgleiches Schreiben kommt live an (mit geaendert-Feld)."
+
 # --- 3) protected bleibt zu ----------------------------------------------------
 pcode=$(code -X POST -H "$AUTH" -H "content-type: application/json" -d '{"wert":true}' \
   "$BASIS/api/datenpunkte/wohnen.tuer")
