@@ -153,16 +153,19 @@ export interface GewerkSeite {
   kanten: Array<{ von: string; nach: string; trigger?: string }>;
 }
 
+export interface GewerkBaustein {
+  id: string;
+  name: string;
+  eingaenge: string[];
+  ausgaenge: string[];
+  beschreibung: string | null;
+  parameter?: Record<string, unknown>;
+}
+
 export interface GewerkStruktur {
   name: string;
   seiten: GewerkSeite[];
-  bausteine: Array<{
-    id: string;
-    name: string;
-    eingaenge: string[];
-    ausgaenge: string[];
-    beschreibung: string | null;
-  }>;
+  bausteine: GewerkBaustein[];
 }
 
 export interface VisuAntwort {

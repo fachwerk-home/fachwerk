@@ -417,6 +417,210 @@ body { overflow: hidden; }
 .logik-svg .kante { fill: none; stroke: var(--fw-rand-stark); stroke-width: 1.4; }
 .logik-svg .kante-an { stroke: var(--fw-akzent); stroke-width: 2; }
 
+.logik-editor {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.logik-probleme {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fw-s2);
+  margin-bottom: var(--fw-s2);
+}
+
+.logik-probleme span {
+  padding: 3px 7px;
+  border-radius: var(--fw-radius-s);
+  font-size: 11px;
+}
+
+.logik-probleme .fehler {
+  color: var(--fw-fehler);
+  background: var(--fw-fehler-ruhig);
+}
+
+.logik-probleme .warn {
+  color: var(--fw-warn);
+  background: var(--fw-warn-ruhig);
+}
+
+.logik-editor-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 340px;
+  gap: var(--fw-s3);
+}
+
+.logik-palette {
+  display: grid;
+  align-content: start;
+  gap: var(--fw-s2);
+}
+
+.logik-palette button,
+.logik-dp-liste button {
+  height: auto;
+  justify-content: start;
+  display: grid;
+  gap: 2px;
+  padding: var(--fw-s2);
+  text-align: left;
+}
+
+.logik-palette button span,
+.logik-palette button small,
+.logik-dp-liste button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fw-text-schwach);
+  font-size: 11px;
+}
+
+.logik-dp-liste {
+  max-height: 220px;
+  overflow: auto;
+  display: grid;
+  gap: var(--fw-s1);
+}
+
+.logik-editor-canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background-color: var(--fw-flaeche);
+  background-image: radial-gradient(var(--fw-rand) 0.7px, transparent 0.7px);
+  background-size: 16px 16px;
+  box-shadow: var(--fw-schatten-s);
+  touch-action: none;
+}
+
+.logik-editor-flaeche {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.logik-editor-kanten {
+  position: absolute;
+  inset: 0 auto auto 0;
+  pointer-events: none;
+}
+
+.logik-editor-knoten {
+  position: absolute;
+  display: grid;
+  gap: var(--fw-s1);
+  padding: var(--fw-s2);
+  border: 1px solid var(--fw-rand-stark);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche-2);
+  box-shadow: var(--fw-schatten-s);
+  cursor: move;
+  user-select: none;
+}
+
+.logik-editor-knoten.dp {
+  align-content: center;
+  border-color: var(--fw-akzent);
+  border-radius: 999px;
+  background: var(--fw-flaeche);
+}
+
+.logik-editor-knoten.gewaehlt {
+  outline: 2px solid var(--fw-akzent);
+  outline-offset: 2px;
+  box-shadow: var(--fw-fokus);
+}
+
+.logik-editor-knoten.stub {
+  border-color: var(--fw-warn);
+  border-style: dashed;
+}
+
+.logik-port-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--fw-s2);
+}
+
+.logik-port-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+}
+
+.logik-port-zeile {
+  display: flex;
+  justify-content: center;
+}
+
+.logik-port {
+  min-height: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font: 10px var(--fw-mono);
+}
+
+.logik-port.aktiv {
+  border-color: var(--fw-akzent);
+  background: var(--fw-akzent-ruhig);
+  color: var(--fw-akzent);
+}
+
+.logik-eigenschaften {
+  display: grid;
+  align-content: start;
+  gap: var(--fw-s2);
+}
+
+.logik-eigenschaften label,
+.logik-parameter label {
+  display: grid;
+  gap: 3px;
+  color: var(--fw-text-schwach);
+  font-size: 11px;
+}
+
+.logik-parameter {
+  display: grid;
+  gap: var(--fw-s2);
+}
+
+.logik-parameter textarea {
+  resize: vertical;
+  font-family: var(--fw-mono);
+  font-size: 11px;
+}
+
+.logik-kantenliste {
+  display: grid;
+  gap: var(--fw-s2);
+}
+
+.logik-kantenliste > div {
+  display: grid;
+  gap: var(--fw-s1);
+  padding: var(--fw-s2);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-s);
+  background: var(--fw-flaeche-2);
+}
+
+.logik-kantenliste code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fw-text-schwach);
+}
+
 @media (max-width: 820px) {
   :root { --fw-nav: 58px; }
   body { overflow: hidden; }
@@ -445,6 +649,9 @@ body { overflow: hidden; }
   .editor-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
   .editor-palette { grid-auto-flow: column; grid-auto-columns: minmax(120px, 1fr); overflow: auto hidden; }
   .editor-eigenschaften { max-height: 260px; }
+  .logik-editor-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .logik-palette { max-height: 180px; grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr); overflow: auto hidden; }
+  .logik-eigenschaften { max-height: 280px; }
   .trace-arbeitsflaeche.mit-detail .trace-liste { display: none; }
   .trace-zeile { grid-template-columns: 50px 56px minmax(120px, 1fr); }
   .trace-zeit, .trace-meta { display: none; }
