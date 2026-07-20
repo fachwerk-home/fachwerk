@@ -11,3 +11,9 @@ kanten:
     nach: msg.ausloeser
   - von: dp:test.wert_dp
     nach: msg.wert
+  # Das Ergebnis des Versands kommt als eigene Kaskade zurueck (ADR-0014 V-2)
+  # und landet hier — sichtbar in Monitor und Visu.
+  - von: msg.gesendet
+    nach: dp:test.gesendet_dp
+  - von: msg.fehler
+    nach: dp:test.fehler_dp

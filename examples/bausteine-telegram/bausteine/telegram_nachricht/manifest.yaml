@@ -1,7 +1,7 @@
 id: telegram_nachricht
 name: Telegram Nachricht
 version: 1
-beschreibung: "Sendet eine Nachricht an einen Telegram-Chat. WICHTIG: Die Ausgänge 'gesendet' und 'fehler' laufen dem eigentlichen Versand um eine Auslösung nach, da der Netzwerkaufruf asynchron im Hintergrund (fire-and-forget) ausgeführt wird."
+beschreibung: "Sendet eine Nachricht an einen Telegram-Chat über ctx.netz.hole (ADR-0014 V-2). Die Ausgänge gesendet/fehler werden gesetzt, sobald die Antwort des Dienstes eintrifft — als eigene Kaskade, nicht im selben Durchlauf."
 eingaenge: [ausloeser, wert]
 ausgaenge: [gesendet, fehler]
 parameter:
@@ -10,11 +10,19 @@ parameter:
   text: "{wert}"
   nur_bei: null
   api_basis: "https://api.telegram.org"
+capabilities:
+  netz:
+    hosts: [api.telegram.org]
 tests:
+  # Ohne Token/Chat-ID kommt der Baustein gar nicht bis zum Versand — das ist
+  # der einzige Pfad, der ohne Netz deterministisch prüfbar ist.
   - eingaenge: { ausloeser: true, wert: "Test" }
     parameter: { text: "Nachricht: {wert}" }
-    # Beim ersten Aufruf liefert der Baustein den initialen Modul-Zustand zurück.
-    erwartet: { gesendet: false, fehler: "" }
+    erwartet: { gesendet: false, fehler: "Token oder Chat-ID fehlt" }
+  # nur_bei filtert: Wert passt nicht, also keine Ausgabe.
   - eingaenge: { ausloeser: true, wert: false }
     parameter: { nur_bei: true }
+    erwartet: null
+  # Auslöser false ⇒ nichts tun.
+  - eingaenge: { ausloeser: false, wert: "egal" }
     erwartet: null

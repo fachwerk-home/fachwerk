@@ -68,47 +68,72 @@ fachwerk validate <gewerk-verzeichnis>        # prüft Manifest + Verdrahtung
 ```
 
 Beispiel zum Abschauen: `examples/minimal/bausteine/flankenzaehler/`.
+## Faehigkeiten: was ein Baustein darf (ADR-0014 V-1)
 
-## Beispiel: Telegram
+Ein Baustein aus fremder Hand laeuft im Prozess, der das Haus steuert. Was er
+darf, steht deshalb im Manifest — nicht im Code, wo es sich jeder selbst geben
+koennte:
 
-`examples/bausteine-telegram` zeigt Templates (`{wert}`), Filter (`nur_bei`) und —
-wichtiger — wie ein Baustein **Netzwerk** benutzt, obwohl die Sandbox synchron rechnet.
+```yaml
+capabilities:
+  netz:
+    hosts: [api.telegram.org]   # exakt diese Hosts, nur https
+  zustand: true                 # ctx.zustand (Default true)
+  timer: true                   # ctx.planeTimer/brichAb (Default true)
+```
 
-**Die Regel:** `rechne` darf **nie** ein Promise zurückgeben. Der Aufruf läuft synchron
-über einen `SharedArrayBuffer`; ein Promise als Rückgabewert erzeugt einen
-`DataCloneError` und reißt den Baustein mit. Auch `ctx.zustand` hilft nicht weiter:
-was dort **nach** dem Rücksprung hineingeschrieben wird, überträgt niemand mehr.
+**Ohne `netz`-Block gibt es keinen Netzzugriff.** Fehlt der `capabilities`-Block
+ganz, laeuft der Baustein weiter (Bestandsschutz) — aber ebenfalls ohne Netz.
+Netz ist nie implizit.
 
-**Das Muster** (fire-and-forget mit nachlaufendem Ergebnis):
+`fachwerk validate` und der Monitor zeigen die Faehigkeiten an, bevor jemand den
+Baustein benutzt. Das ist der halbe Schutz: sichtbar machen, wer ins Netz will
+und wohin.
+
+## Netzzugriff: nur ueber ctx.netz (ADR-0014 V-2)
+
+Bausteine bekommen **kein `fetch`**. Sie sagen der Engine, was sie wollen; die
+prueft gegen die Allowlist und fuehrt es aus. Der Aufruf kehrt sofort zurueck —
+die Graph-Auswertung bleibt synchron. Die Antwort kommt als **eigene Kaskade**
+mit dem Auslöser `netz` zurueck, genau wie ein Timer:
 
 ```js
-let letzterErfolg = false;          // Modul-Zustand — überlebt zwischen Aufrufen
-let letzterFehler = "";
-
 export default function rechne(eingaenge, ctx) {
-  const ausgabe = { gesendet: letzterErfolg, fehler: letzterFehler };  // Stand VOR diesem Aufruf
-  fetch(url, { signal: AbortSignal.timeout(10_000) })
-    .then((r) => { letzterErfolg = r.ok; letzterFehler = r.ok ? "" : `HTTP ${r.status}`; })
-    .catch((e) => { letzterErfolg = false; letzterFehler = e.message; });
-  return ausgabe;                    // synchron zurück; der Versand läuft im Hintergrund weiter
+  // Antwort auf einen frueheren Auftrag?
+  if (ctx.ausloeser.art === "netz") {
+    return { gesendet: ctx.ausloeser.ok, fehler: ctx.ausloeser.fehler ?? "" };
+  }
+  if (eingaenge.ausloeser !== true) return null;
+
+  ctx.netz.hole("sende-1", "https://api.telegram.org/bot<token>/sendMessage", {
+    methode: "POST",
+    kopfzeilen: { "content-type": "application/json" },
+    koerper: JSON.stringify({ chat_id: "4711", text: "Alarm" }),
+  });
+  return null;   // Ergebnis kommt oben an, nicht hier
 }
 ```
 
-Der Worker-Event-Loop führt das `fetch` nach dem Rücksprung zu Ende, und **Variablen auf
-Modulebene überleben zwischen Aufrufen** (dafür also nicht `ctx.zustand` nehmen). Das
-Ergebnis landet deshalb erst bei der **nächsten Auslösung** auf den Ausgängen.
+Der Auslöser `netz` traegt `id` (deine Kennung), `ok`, `status`, `text` und bei
+Transportfehlern `fehler`. Die Engine erzwingt Timeout (10 s), Groessenlimit
+(256 KB) und lehnt Umleitungen ab — eine Umleitung koennte aus der Allowlist
+herausfuehren.
 
-**Drei Konsequenzen, die man kennen muss:**
+Vollstaendiges Beispiel: `examples/bausteine-telegram/`.
 
-- Die Ausgänge laufen dem Versand um eine Auslösung nach. Schreib das in die
-  `beschreibung` des Manifests — wer `gesendet` liest, muss wissen, worauf es sich bezieht.
-- **Nie synchron Erfolg behaupten.** Ein `gesendet: true`, ohne dass etwas gesendet wurde,
-  ist schlimmer als gar kein Baustein: bei einer Alarmmeldung quittiert es eine
-  Zustellung, die nie stattfand.
-- Der Netzwerkpfad ist mit Manifest-Testvektoren **nicht deterministisch prüfbar**, weil
-  das Ergebnis erst im Folgeaufruf ankommt. Decke mit Vektoren die reine Logik ab und
-  prüfe den Versand von Hand — statt einen Vektor zu bauen, der zufällig grün ist.
+## Was gesperrt ist — und wie ehrlich der Schutz ist
 
-Fire-and-forget umgeht das Zeitlimit der Sandbox (100 ms je Aufruf): der Aufruf kehrt
-sofort zurück, die Netzwerkarbeit läuft ungebremst weiter. Ob Bausteine aus fremder Hand
-das dürfen, ist eine offene Policy-Frage zu ADR-0008.
+Beim Laden abgelehnt (statischer Check): `fetch(`, `import`/`require`,
+`node:`-Module, `process`, `globalThis`, `eval`, `Function(`. Zusaetzlich sind
+`fetch`, `WebSocket`, `XMLHttpRequest` und `EventSource` im Baustein-Scope zur
+Laufzeit gesperrt — wer am statischen Check vorbeikommt, scheitert dort.
+
+**Die Grenze ehrlich benannt:** Das faengt Unfaelle und triviale Bosheit. Es ist
+KEIN Schutz gegen einen entschlossenen Angreifer — ein Node-Worker ist keine
+Sicherheitsgrenze. Die harte Isolation (eigener Prozess mit Permission-Model
+oder WASM) ist ADR-0014 V-4 und aendert an diesem SDK nichts: weil I/O
+ausschliesslich ueber ctx-Dienste laeuft, ist der Unterbau austauschbar, ohne
+ein Manifest oder eine Zeile Baustein-Code anzufassen.
+
+Wer Bausteine aus fremder Quelle einsetzt, sollte sie lesen — so wie man ein
+Shell-Skript aus dem Internet liest, bevor man es ausfuehrt.

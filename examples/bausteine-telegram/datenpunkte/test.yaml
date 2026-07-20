@@ -3,6 +3,16 @@ ausloeser_dp:
   klasse: intern
   typ: bool
   initial: false
+fehler_dp:
+  name: Telegram Fehlertext
+  klasse: intern
+  typ: text
+  initial: ""
+gesendet_dp:
+  name: Telegram gesendet
+  klasse: intern
+  typ: bool
+  initial: false
 wert_dp:
   name: Telegram Wert
   klasse: intern

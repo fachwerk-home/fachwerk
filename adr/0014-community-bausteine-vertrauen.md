@@ -1,6 +1,7 @@
 # ADR-0014: Vertrauensmodell für Community-Bausteine
 
-- **Status:** ENTWURF (zur Entscheidung durch den Betreiber)
+- **Status:** AKZEPTIERT (Betreiber, 2026-07-20) — V-1 und V-2 umgesetzt;
+  V-3 und V-4 bleiben terminiert, nicht implementiert.
 - **Datum:** 2026-07-19
 - **Kontext-Auslöser:** Review des Telegram-Bausteins; Frage des Betreibers,
   wie mit Community-Bausteinen sicher umzugehen ist.
@@ -67,3 +68,31 @@ Manifest oder eine Zeile Baustein-Code zu ändern. Trigger für Stufe 2:
   Netz zu X") und Unfallschutz.
 - Die Blackbox-Idee des Betreibers ist damit nicht abgelehnt, sondern
   terminiert (V-4) — und der Weg dorthin verbaut nichts.
+
+## Umsetzungsstand (2026-07-20)
+
+**V-1 und V-2 sind umgesetzt und gemessen**, nicht nur behauptet:
+
+- `capabilities` im Baustein-Manifest (Schema + Typ); `netz` mit exakter
+  Host-Allowlist, `zustand`, `timer`. Ohne Block: Bestandsschutz, aber nie Netz.
+  `fachwerk run` protokolliert beim Start, welcher Baustein wohin darf.
+- `ctx.netz.hole(id, url, optionen)` als einziger Weg nach draussen. Die
+  Allowlist-Prüfung liegt in der Engine, nicht im Baustein. Timeout 10 s,
+  Größenlimit 256 KB, Umleitungen werden abgelehnt (sie könnten aus der
+  Allowlist herausführen). Die Antwort kommt als eigene Kaskade mit Auslöser
+  `netz` — die Graph-Auswertung bleibt synchron (ADR-0008 S-2 unangetastet).
+- Statischer Check beim Laden lehnt `fetch(`, `import`/`require`, `node:`,
+  `process`, `globalThis`, `eval`, `Function(` ab. Nachgemessen an einem
+  bösartigen Baustein: alle drei Angriffswege (Datei lesen, `process.env`-Token
+  stehlen, exfiltrieren) werden beim Laden abgewiesen.
+- Laufzeit-Härtung im Worker sperrt zusätzlich `fetch`, `WebSocket`,
+  `XMLHttpRequest`, `EventSource`. Nachgemessen: ein Baustein, der den
+  statischen Check mit `const heimlich = fetch;` umgeht, scheitert zur Laufzeit
+  mit klarer Meldung statt still zu exfiltrieren.
+- **Telegram-Baustein als Pilot migriert**: kein eigenes `fetch` mehr, Ausgänge
+  `gesendet`/`fehler` werden aus der Antwort-Kaskade gesetzt statt dem Versand
+  um eine Auslösung nachzulaufen.
+
+Nicht umgesetzt (bewusst): **V-3** (Hash-Pinning, Herkunftsstufen und die harte
+Regel „`netz`-Baustein schreibt nie `protected`") und **V-4** (harte Isolation).
+Die Regel aus V-3 ist billig nachzurüsten und der nächste sinnvolle Schritt.
