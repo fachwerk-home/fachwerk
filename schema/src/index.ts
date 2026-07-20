@@ -69,6 +69,16 @@ export interface BausteinTest {
   erwartet?: Record<string, unknown> | null;
 }
 
+/**
+ * Was ein Baustein darf (ADR-0014 V-1). Fehlt der Block, gilt Bestandsschutz:
+ * Zustand und Timer bleiben erlaubt, Netz gibt es nie ohne Deklaration.
+ */
+export interface BausteinFaehigkeiten {
+  netz?: { hosts: string[] };
+  zustand?: boolean;
+  timer?: boolean;
+}
+
 export interface BausteinManifest {
   id: string;
   name: string;
@@ -77,6 +87,7 @@ export interface BausteinManifest {
   eingaenge: string[];
   ausgaenge: string[];
   parameter?: Record<string, unknown>;
+  capabilities?: BausteinFaehigkeiten;
   tests?: BausteinTest[];
 }
 

@@ -65,3 +65,7 @@ export type { AuditEintrag } from "./api/audit.ts";
 export { pruefeGewerkPfad } from "./gewerk/dateien.ts";
 export type { PfadPruefung } from "./gewerk/dateien.ts";
 export type { GewerkDateien } from "./api/handler.ts";
+export { loeseFaehigkeitenAuf, netzZielErlaubt, pruefeBausteinCode } from "./logik/faehigkeiten.ts";
+export type { Faehigkeiten, AufgeloesteFaehigkeiten, NetzFaehigkeit } from "./logik/faehigkeiten.ts";
+export { holeMitGrenzen } from "./logik/netz.ts";
+export type { NetzAuftrag, NetzAntwort, NetzGrenzen, NetzAusfuehrer } from "./logik/netz.ts";

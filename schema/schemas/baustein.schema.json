@@ -27,6 +27,34 @@
       "description": "Default-Parameter (im Gewerk je Knoten überschreibbar).",
       "type": "object"
     },
+    "capabilities": {
+      "description": "Was der Baustein darf (ADR-0014 V-1). Fehlt der Block, gibt es KEIN Netz; Zustand und Timer bleiben aus Bestandsschutz erlaubt. Editor und CLI zeigen diese Angaben vor der Nutzung — wie App-Berechtigungen.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "netz": {
+          "description": "Ausgehende Netzzugriffe über ctx.netz.hole. Nur exakt diese Hosts, nur https (Ausnahme 127.0.0.1/localhost für Tests).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hosts"],
+          "properties": {
+            "hosts": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "zustand": {
+          "description": "Knoten-lokaler Zustand über ctx.zustand (Default true).",
+          "type": "boolean"
+        },
+        "timer": {
+          "description": "Timer über ctx.planeTimer/ctx.brichAb (Default true).",
+          "type": "boolean"
+        }
+      }
+    },
     "tests": {
       "description": "Testvektoren — `fachwerk baustein test` führt sie in der Sandbox aus.",
       "type": "array",
