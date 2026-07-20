@@ -111,6 +111,67 @@ body { overflow: hidden; }
 .leerzustand { min-height: 180px; display: grid; place-content: center; gap: var(--fw-s1); padding: var(--fw-s5); text-align: center; color: var(--fw-text-schwach); }
 .leerzustand strong { color: var(--fw-text); }
 
+.archiv-arbeitsflaeche {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: var(--fw-s3);
+}
+
+.archiv-liste {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--fw-s2);
+  padding: var(--fw-s2);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius);
+  background: var(--fw-flaeche);
+  box-shadow: var(--fw-schatten-s);
+}
+
+.archiv-liste button {
+  min-width: 0;
+  height: auto;
+  display: grid;
+  gap: 2px;
+  padding: var(--fw-s2);
+  text-align: left;
+}
+
+.archiv-liste strong,
+.archiv-liste span,
+.archiv-liste small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archiv-liste span {
+  color: var(--fw-text-schwach);
+  font-size: 11px;
+}
+
+.archiv-liste small {
+  color: var(--fw-text-schwach);
+}
+
+.archiv-detail {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+}
+
+.diagramm-admin {
+  min-height: 0;
+}
+
+.diagramm-admin .diagramm-svg {
+  min-height: 320px;
+}
+
 .trace-arbeitsflaeche { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--fw-s3); }
 .trace-arbeitsflaeche.mit-detail { grid-template-columns: minmax(340px, 1fr) minmax(360px, 0.72fr); }
 .trace-liste { min-height: 0; overflow: auto; border: 1px solid var(--fw-rand); border-radius: var(--fw-radius); background: var(--fw-flaeche); box-shadow: var(--fw-schatten-s); }
@@ -160,7 +221,7 @@ body { overflow: hidden; }
   .seitenleiste { position: fixed; z-index: 50; inset: auto 0 0; height: var(--fw-nav); flex-direction: row; justify-content: space-around; padding: 6px max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); border: 0; border-top: 1px solid var(--fw-rand); }
   .seitenleiste-marke, .seitenleiste .nav-unten { display: none; }
   .nav-gruppe { width: 100%; display: flex; justify-content: space-around; }
-  .seitenleiste button { width: min(104px, 30vw); height: 44px; grid-template-columns: auto auto; gap: 6px; }
+  .seitenleiste button { width: min(88px, 24vw); height: 44px; grid-template-columns: auto auto; gap: 5px; }
   .nav-label { display: inline; font-size: 11px; }
   .kopf { min-height: 48px; padding: 0 var(--fw-s3); }
   .produkt, .kopf-uptime, .kopf-status .status-chip:not(:last-of-type) { display: none; }
@@ -174,6 +235,9 @@ body { overflow: hidden; }
   section[aria-label="Datenpunkte"] select { max-width: 108px; }
   .logik-notiz { display: none; }
   .trace-arbeitsflaeche.mit-detail { grid-template-columns: 1fr; }
+  .archiv-arbeitsflaeche { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .archiv-liste { max-height: 148px; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); overflow: auto hidden; }
+  .diagramm-admin .diagramm-svg { min-height: 260px; }
   .trace-arbeitsflaeche.mit-detail .trace-liste { display: none; }
   .trace-zeile { grid-template-columns: 50px 56px minmax(120px, 1fr); }
   .trace-zeit, .trace-meta { display: none; }

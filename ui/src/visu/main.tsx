@@ -1,5 +1,5 @@
 import { render, type ComponentChildren, type JSX } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type {
   VisuAktion,
   VisuDesign,
@@ -10,7 +10,9 @@ import type {
 } from "../../../schema/src/visu.ts";
 import "../lib/stil.css";
 import "./visu.css";
-import { verbindeLive, type LiveNachricht } from "../lib/api.ts";
+import { ApiFehler, api, verbindeLive, type DatenpunktSicht, type LiveNachricht, type Wert } from "../lib/api.ts";
+import { Diagramm } from "../lib/diagramm.tsx";
+import { wertAusAktion, wertPasstZumDatenpunkt } from "./bedienen.ts";
 import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
 import {
   designFuer,
@@ -23,6 +25,24 @@ import {
 } from "./modell.ts";
 
 type LiveStatus = "verbindet" | "verbunden" | "getrennt";
+type LiveWert = Extract<LiveNachricht, { art: "wert" }>;
+type ToastTon = "info" | "warn" | "fehler";
+
+interface Toast {
+  id: number;
+  text: string;
+  ton: ToastTon;
+}
+
+interface BedienKontext {
+  datenpunkte: ReadonlyMap<string, DatenpunktSicht>;
+  gesperrt: ReadonlyMap<string, string>;
+  pending: ReadonlySet<string>;
+  slider: ReadonlyMap<string, number>;
+  liveNachricht: LiveWert | null;
+  setzeSlider: (schluessel: string, wert: number | null) => void;
+  bediene: (elementKey: string, element: VisuElement, wert?: Wert) => void;
+}
 
 const thema = new URLSearchParams(location.search).get("theme");
 if (thema === "light" || thema === "dark") document.documentElement.dataset.theme = thema;
@@ -60,18 +80,30 @@ function navigationsAktion(element: VisuElement): VisuAktion | undefined {
   );
 }
 
+function diagrammArchiv(element: VisuElement): string | undefined {
+  const archiv = element.parameter?.["archiv"];
+  return typeof archiv === "string" && archiv.length > 0 ? archiv : element.bindungen?.["display"];
+}
+
+function diagrammStunden(element: VisuElement): number {
+  const stunden = element.parameter?.["stunden"];
+  return typeof stunden === "number" && Number.isFinite(stunden) && stunden > 0 ? stunden : 24;
+}
+
 function ElementInhalt({
   elementKey,
   element,
   placement,
   werte,
   design,
+  bedien,
 }: {
   elementKey: string;
   element: VisuElement;
   placement: VisuPlacement;
   werte: ReadonlyMap<string, WertEintrag>;
   design: VisuDesign;
+  bedien: BedienKontext;
 }): ComponentChildren {
   const displayKey = element.bindungen?.["display"];
   const statusKey = element.bindungen?.["status"];
@@ -84,15 +116,54 @@ function ElementInhalt({
   const name = lesbarerName(elementKey);
 
   if (element.widget === "slider") {
+    const setKey = element.bindungen?.["set"];
     const min = typeof element.parameter?.["min"] === "number" ? element.parameter["min"] : 0;
     const max = typeof element.parameter?.["max"] === "number" ? element.parameter["max"] : 100;
-    const zahl = typeof rohwert === "number" ? rohwert : min;
+    const entwurf = setKey ? bedien.slider.get(setKey) : undefined;
+    const zahl = entwurf ?? (typeof rohwert === "number" ? rohwert : min);
+    const gesperrt = setKey ? bedien.gesperrt.get(setKey) : undefined;
+    const deaktiviert = !setKey || gesperrt !== undefined;
     return (
       <div class="slider-inhalt">
         <span>{name}</span>
-        <input aria-label={name} type="range" min={min} max={max} value={zahl} disabled />
+        <input
+          aria-label={name}
+          type="range"
+          min={min}
+          max={max}
+          value={zahl}
+          disabled={deaktiviert}
+          title={gesperrt}
+          onInput={(event) => {
+            if (!setKey) return;
+            bedien.setzeSlider(setKey, Number((event.target as HTMLInputElement).value));
+          }}
+          onPointerUp={(event) => {
+            if (!setKey) return;
+            const zielwert = Number((event.target as HTMLInputElement).value);
+            bedien.setzeSlider(setKey, null);
+            bedien.bediene(elementKey, element, zielwert);
+          }}
+          onKeyUp={(event) => {
+            if (!setKey || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+            const zielwert = Number((event.target as HTMLInputElement).value);
+            bedien.setzeSlider(setKey, null);
+            bedien.bediene(elementKey, element, zielwert);
+          }}
+        />
         <strong>{anzeigeText}</strong>
       </div>
+    );
+  }
+
+  if (element.widget === "diagramm") {
+    return (
+      <Diagramm
+        archivId={diagrammArchiv(element)}
+        startStunden={diagrammStunden(element)}
+        liveNachricht={bedien.liveNachricht}
+        klasse="diagramm-visu"
+      />
     );
   }
 
@@ -123,6 +194,7 @@ function VisuElementAnsicht({
   designs,
   werte,
   onAktion,
+  bedien,
   zIndex,
 }: {
   elementKey: string;
@@ -131,13 +203,17 @@ function VisuElementAnsicht({
   designs: VisuDesigns;
   werte: ReadonlyMap<string, WertEintrag>;
   onAktion: (aktion: VisuAktion) => void;
+  bedien: BedienKontext;
   zIndex: number;
 }) {
   const statusKey = element.bindungen?.["status"];
   const status = statusKey ? werte.get(statusKey)?.wert : undefined;
   const design = designFuer(element, designs, status);
   const aktion = navigationsAktion(element);
-  const hatSet = element.bindungen?.["set"] !== undefined;
+  const setKey = element.bindungen?.["set"];
+  const sperrgrund = setKey ? bedien.gesperrt.get(setKey) : undefined;
+  const pending = setKey ? bedien.pending.has(setKey) : false;
+  const hatSet = setKey !== undefined;
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
     top: placement.y ?? 0,
@@ -153,20 +229,46 @@ function VisuElementAnsicht({
       placement={placement}
       werte={werte}
       design={design}
+      bedien={bedien}
     />
   );
-  const klassen = `visu-element ${hatSet ? "visu-element-deaktiviert" : ""}`;
-  const titel = hatSet ? "Bedienen kommt mit P5-8" : undefined;
+  const klassen = [
+    "visu-element",
+    sperrgrund ? "visu-element-deaktiviert" : "",
+    pending ? "visu-element-gedrueckt" : "",
+  ].filter(Boolean).join(" ");
+  const titel = sperrgrund;
+
+  if (element.widget === "diagramm" || element.widget === "slider") {
+    return (
+      <div
+        class={klassen}
+        style={stil}
+        title={titel}
+        data-preset={element.preset ?? element.widget}
+        data-pending={pending ? "true" : "false"}
+      >
+        {inhalt}
+      </div>
+    );
+  }
 
   if (aktion || hatSet) {
     return (
       <button
         class={klassen}
         style={stil}
-        disabled={hatSet}
+        disabled={sperrgrund !== undefined}
         title={titel}
         data-preset={element.preset ?? element.widget}
-        onClick={() => { if (aktion) onAktion(aktion); }}
+        data-pending={pending ? "true" : "false"}
+        onClick={() => {
+          if (setKey) {
+            bedien.bediene(elementKey, element);
+            return;
+          }
+          if (aktion) onAktion(aktion);
+        }}
       >
         {inhalt}
       </button>
@@ -184,12 +286,14 @@ function SeitenCanvas({
   designs,
   werte,
   onAktion,
+  bedien,
   popup = false,
 }: {
   seite: VisuSeite;
   designs: VisuDesigns;
   werte: ReadonlyMap<string, WertEintrag>;
   onAktion: (aktion: VisuAktion) => void;
+  bedien: BedienKontext;
   popup?: boolean;
 }) {
   const fenster = useViewport();
@@ -221,6 +325,7 @@ function SeitenCanvas({
               designs={designs}
               werte={werte}
               onAktion={onAktion}
+              bedien={bedien}
               zIndex={gruppenEbene + (element.ebene ?? 0)}
             />
           );
@@ -233,10 +338,18 @@ function SeitenCanvas({
 function App() {
   const [visu, setVisu] = useState<VisuAntwort | null>(null);
   const [werte, setWerte] = useState<Map<string, WertEintrag>>(new Map());
+  const [datenpunkte, setDatenpunkte] = useState<Map<string, DatenpunktSicht>>(new Map());
+  const [gesperrt, setGesperrt] = useState<Map<string, string>>(new Map());
+  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [slider, setSlider] = useState<Map<string, number>>(new Map());
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [seiteKey, setSeiteKey] = useState<string | null>(null);
   const [popupKey, setPopupKey] = useState<string | null>(null);
   const [live, setLive] = useState<LiveStatus>("verbindet");
+  const [liveNachricht, setLiveNachricht] = useState<LiveWert | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const pendingRef = useRef(new Map<string, { wert: Wert; timer: ReturnType<typeof setTimeout> }>());
+  const toastIdRef = useRef(0);
 
   useEffect(() => {
     let aktiv = true;
@@ -244,6 +357,7 @@ function App() {
       .then(({ visu: geladen, datenpunkte }) => {
         if (!aktiv) return;
         setVisu(geladen);
+        setDatenpunkte(new Map(datenpunkte.map((dp) => [dp.schluessel, dp])));
         setWerte(new Map(datenpunkte.map((dp) => [
           dp.schluessel,
           { wert: dp.wert, ...(dp.format ? { format: dp.format } : {}) },
@@ -260,11 +374,106 @@ function App() {
     return () => { aktiv = false; };
   }, []);
 
+  useEffect(() => () => {
+    for (const eintrag of pendingRef.current.values()) clearTimeout(eintrag.timer);
+    pendingRef.current.clear();
+  }, []);
+
+  const zeigeToast = (text: string, ton: ToastTon = "info"): void => {
+    const id = ++toastIdRef.current;
+    setToasts((alt) => [...alt.slice(-3), { id, text, ton }]);
+    setTimeout(() => setToasts((alt) => alt.filter((toast) => toast.id !== id)), 4_000);
+  };
+
+  const markierePending = (schluessel: string, wert: Wert): void => {
+    const alt = pendingRef.current.get(schluessel);
+    if (alt) clearTimeout(alt.timer);
+    const timer = setTimeout(() => {
+      pendingRef.current.delete(schluessel);
+      setPending((bisher) => {
+        const neu = new Set(bisher);
+        neu.delete(schluessel);
+        return neu;
+      });
+      zeigeToast(`Keine Rückmeldung für ${schluessel}`, "warn");
+    }, 3_000);
+    pendingRef.current.set(schluessel, { wert, timer });
+    setPending((bisher) => new Set(bisher).add(schluessel));
+  };
+
+  const entfernePending = (schluessel: string): void => {
+    const alt = pendingRef.current.get(schluessel);
+    if (alt) clearTimeout(alt.timer);
+    pendingRef.current.delete(schluessel);
+    setPending((bisher) => {
+      const neu = new Set(bisher);
+      neu.delete(schluessel);
+      return neu;
+    });
+  };
+
+  const setzeSlider = (schluessel: string, wert: number | null): void => {
+    setSlider((alt) => {
+      const neu = new Map(alt);
+      if (wert === null) neu.delete(schluessel);
+      else neu.set(schluessel, wert);
+      return neu;
+    });
+  };
+
+  const bediene = (elementKey: string, element: VisuElement, direkterWert?: Wert): void => {
+    const setKey = element.bindungen?.["set"];
+    if (!setKey) return;
+    const sperrgrund = gesperrt.get(setKey);
+    if (sperrgrund) {
+      zeigeToast(sperrgrund, "warn");
+      return;
+    }
+    const dp = datenpunkte.get(setKey);
+    const statusKey = element.bindungen?.["status"] ?? element.bindungen?.["display"] ?? setKey;
+    const statusWert = werte.get(statusKey)?.wert;
+    const aktion = direkterWert === undefined
+      ? wertAusAktion(element, dp, statusWert)
+      : (dp ? { art: "setzen" as const, wert: direkterWert } : { art: "nicht_moeglich" as const, grund: "Datenpunkt nicht geladen" });
+    if (aktion.art === "nicht_moeglich") {
+      if (dp?.protected) setGesperrt((alt) => new Map(alt).set(setKey, aktion.grund));
+      zeigeToast(`${lesbarerName(elementKey)}: ${aktion.grund}`, "warn");
+      return;
+    }
+    if (!dp || !wertPasstZumDatenpunkt(aktion.wert, dp)) {
+      zeigeToast(`${lesbarerName(elementKey)}: Wert passt nicht zu ${dp?.typ ?? "Datenpunkt"}`, "warn");
+      return;
+    }
+    markierePending(setKey, aktion.wert);
+    void api.setzeDatenpunkt(setKey, aktion.wert)
+      .then((antwort) => {
+        if (antwort.hinweis) zeigeToast(antwort.hinweis, "info");
+      })
+      .catch((error: unknown) => {
+        entfernePending(setKey);
+        const grund = error instanceof ApiFehler ? error.message : error instanceof Error ? error.message : String(error);
+        if (error instanceof ApiFehler && (error.status === 401 || error.status === 403)) {
+          setGesperrt((alt) => new Map(alt).set(setKey, grund));
+        }
+        zeigeToast(`${lesbarerName(elementKey)}: ${grund}`, "fehler");
+      });
+  };
+
   useEffect(() => verbindeLive((nachricht: LiveNachricht) => {
     if (nachricht.art !== "wert") return;
+    setLiveNachricht(nachricht);
+    const offen = pendingRef.current.get(nachricht.schluessel);
+    if (offen && Object.is(offen.wert, nachricht.wert)) entfernePending(nachricht.schluessel);
     setWerte((alt) => {
       const neu = new Map(alt);
       neu.set(nachricht.schluessel, { ...alt.get(nachricht.schluessel), wert: nachricht.wert });
+      return neu;
+    });
+    setDatenpunkte((alt) => {
+      const dp = alt.get(nachricht.schluessel);
+      if (!dp) return alt;
+      const neu = new Map(alt);
+      neu.set(nachricht.schluessel, { ...dp, wert: nachricht.wert, ts: nachricht.ts });
       return neu;
     });
   }, (verbunden) => setLive(verbunden ? "verbunden" : "getrennt")), []);
@@ -299,6 +508,16 @@ function App() {
     history.replaceState(null, "", url);
   };
 
+  const bedien = useMemo<BedienKontext>(() => ({
+    datenpunkte,
+    gesperrt,
+    pending,
+    slider,
+    liveNachricht,
+    setzeSlider,
+    bediene,
+  }), [datenpunkte, gesperrt, pending, slider, liveNachricht, werte]);
+
   if (fehler) return <main class="visu-meldung fehler"><h1>Fachwerk Visu</h1><p>{fehler}</p></main>;
   if (!visu) return <main class="visu-meldung"><h1>Fachwerk Visu</h1><p>Visualisierung wird geladen …</p></main>;
   if (!seiteKey || !visu.seiten[seiteKey]) {
@@ -317,7 +536,7 @@ function App() {
         </span>
       </header>
       <section class="visu-flaeche" aria-label={seite.name}>
-        <SeitenCanvas seite={seite} designs={visu.designs} werte={werte} onAktion={aktiviere} />
+        <SeitenCanvas seite={seite} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} />
       </section>
       {popup && (
         <div class="popup-hintergrund" role="presentation" onClick={() => setPopupKey(null)}>
@@ -329,13 +548,16 @@ function App() {
             onClick={(event) => event.stopPropagation()}
           >
             <button class="popup-schliessen" aria-label="Popup schließen" onClick={() => setPopupKey(null)}>×</button>
-            <SeitenCanvas seite={popup} designs={visu.designs} werte={werte} onAktion={aktiviere} popup />
+            <SeitenCanvas seite={popup} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} popup />
           </section>
         </div>
       )}
       {live === "getrennt" && (
         <div class="verbindung-verloren" role="status">Verbindung verloren – neuer Versuch läuft …</div>
       )}
+      <div class="toast-region" aria-live="polite" aria-atomic="false">
+        {toasts.map((toast) => <div key={toast.id} class={`toast toast-${toast.ton}`}>{toast.text}</div>)}
+      </div>
     </main>
   );
 }

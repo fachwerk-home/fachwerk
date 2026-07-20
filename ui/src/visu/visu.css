@@ -30,7 +30,8 @@ button.visu-element { width: auto; cursor: pointer; }
 button.visu-element:not(:disabled):hover { translate: 0 -1px; border-color: var(--fw-akzent); box-shadow: var(--fw-schatten-m); filter: none; }
 button.visu-element:not(:disabled):active { translate: 0 0; background: var(--fw-akzent-ruhig); }
 .visu-element-deaktiviert, .visu-element-deaktiviert:disabled { cursor: not-allowed; filter: saturate(0.6); }
-.visu-element-deaktiviert::after { content: "Nur Anzeige"; position: absolute; right: 5px; bottom: 4px; padding: 1px 5px; border-radius: 999px; background: color-mix(in srgb, var(--fw-flaeche-3) 88%, transparent); color: currentColor; font-size: 9px; line-height: 1.5; opacity: 0.82; }
+.visu-element-deaktiviert::after { content: "Gesperrt"; position: absolute; right: 5px; bottom: 4px; padding: 1px 5px; border-radius: 999px; background: color-mix(in srgb, var(--fw-flaeche-3) 88%, transparent); color: currentColor; font-size: 9px; line-height: 1.5; opacity: 0.82; }
+.visu-element-gedrueckt { border-color: var(--fw-akzent); background: var(--fw-akzent-ruhig); box-shadow: var(--fw-fokus); }
 .element-name, .element-wert { display: block; }
 .element-name { font-size: 0.78em; opacity: 0.72; }
 .element-wert { font-size: 1.4em; }
@@ -38,11 +39,21 @@ button.visu-element:not(:disabled):active { translate: 0 0; background: var(--fw
 .symbol { font-size: 2.4em; line-height: 1; }
 .slider-inhalt { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--fw-s3); }
 .slider-inhalt input { width: 100%; }
+.diagramm-visu { width: 100%; height: 100%; min-height: 0; padding: var(--fw-s2); box-shadow: none; }
+.diagramm-visu .diagramm-kopf { align-items: start; }
+.diagramm-visu .diagramm-svg { min-height: 0; height: 100%; }
+.diagramm-visu .diagramm-kopf span { display: none; }
+.diagramm-visu .segment button { min-height: 22px; padding-inline: 6px; font-size: 10px; }
 
 .popup-hintergrund { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: var(--fw-s5); background: rgb(5 10 15 / 62%); backdrop-filter: blur(8px); }
 .popup { position: relative; max-width: 100%; max-height: 100%; overflow: hidden; border: 1px solid var(--fw-rand-stark); border-radius: 18px; background: var(--fw-flaeche); box-shadow: 0 24px 80px rgb(0 0 0 / 42%); }
 .popup-schliessen { position: absolute; z-index: 1001; top: var(--fw-s2); right: var(--fw-s2); width: 34px; height: 34px; padding: 0; border-radius: 50%; background: color-mix(in srgb, var(--fw-flaeche) 84%, transparent); color: var(--fw-text); font-size: 20px; }
 .verbindung-verloren { position: fixed; z-index: 2000; inset: auto 50% max(var(--fw-s4), env(safe-area-inset-bottom)) auto; translate: 50% 0; padding: var(--fw-s2) var(--fw-s3); border: 1px solid var(--fw-warn); border-radius: 999px; background: var(--fw-warn-ruhig); color: var(--fw-warn); box-shadow: var(--fw-schatten-m); }
+.toast-region { position: fixed; z-index: 2100; right: max(var(--fw-s4), env(safe-area-inset-right)); bottom: max(var(--fw-s4), env(safe-area-inset-bottom)); display: grid; gap: var(--fw-s2); width: min(380px, calc(100vw - var(--fw-s5))); pointer-events: none; }
+.toast { padding: var(--fw-s2) var(--fw-s3); border: 1px solid var(--fw-rand); border-radius: var(--fw-radius); background: color-mix(in srgb, var(--fw-flaeche) 94%, transparent); color: var(--fw-text); box-shadow: var(--fw-schatten-m); font-size: 12px; }
+.toast-info { border-color: color-mix(in srgb, var(--fw-info) 38%, var(--fw-rand)); color: var(--fw-info); }
+.toast-warn { border-color: color-mix(in srgb, var(--fw-warn) 42%, var(--fw-rand)); color: var(--fw-warn); }
+.toast-fehler { border-color: color-mix(in srgb, var(--fw-fehler) 42%, var(--fw-rand)); color: var(--fw-fehler); }
 .visu-meldung, .visu-leer { max-width: 38rem; margin: 0 auto; padding: var(--fw-s5); }
 
 @media (max-width: 520px) {
@@ -50,4 +61,5 @@ button.visu-element:not(:disabled):active { translate: 0 0; background: var(--fw
   .visu-kopf { grid-template-columns: 1fr auto; padding-inline: var(--fw-s3); font-size: 12px; }
   .visu-kopf > :first-child { display: none; }
   .popup-hintergrund { padding: var(--fw-s2); }
+  .toast-region { right: var(--fw-s2); bottom: max(var(--fw-s2), env(safe-area-inset-bottom)); }
 }
