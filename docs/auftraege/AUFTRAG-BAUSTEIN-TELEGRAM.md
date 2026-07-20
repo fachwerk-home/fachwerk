@@ -1,5 +1,12 @@
 # AUFTRAG BAUSTEIN-TELEGRAM: Telegram-Versand statt Stub (Gemini)
 
+> **Hinweis (19.07.2026, ADR-0014-Entwurf):** Sobald ADR-0014 akzeptiert
+> ist, laufen Baustein-Netzzugriffe über `ctx.netz.hole` (Host-Allowlist
+> aus einer `capabilities:`-Deklaration im Manifest) statt über direktes
+> `fetch`, und Spur 1 liefert diesen ctx-Dienst VOR diesem Auftrag.
+> Falls `ctx.netz` beim Start dieses Auftrags noch nicht existiert:
+> nachfragen, nicht mit fetch vorpreschen. Dieser Baustein ist der Pilot.
+
 - **Spur:** 3 (Gemini) · **Branch:** `auftrag/baustein-telegram`
 - **Arbeitsablauf:** EXAKT wie in AUFTRAG-P5-13c.md § Arbeitsablauf
   (Worktree, Branch von origin/main, PATH-Prüfung, Gates BLOCKIEREND,

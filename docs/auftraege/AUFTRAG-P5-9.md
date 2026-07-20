@@ -24,8 +24,13 @@ für die Rollen).
 1. **Mapping-Referenz aufbauen:** `controltyp`-Nummern und var-Slots sind
    nicht dokumentiert. Weg: Werte-Verteilung im Export analysieren
    (welche controltyp-Nummern kommen vor, welche vars sind je Typ belegt)
-   und mit dem Betreiber abgleichen — er hat eine DEV-Referenzbox und
-   liefert auf Nachfrage Screenshots („Was ist Element X auf Seite Y?").
+   und mit dem Betreiber abgleichen.
+   **WICHTIG — Scope der Rückfragen:** Der Export enthält zwar 13
+   editVisu-Einträge, aber real existieren nur ~3 Visus und NUR EINE ist
+   produktiv aktiv (das LCD-Panel). Erst beim Betreiber erfragen, WELCHE
+   das ist (Name/visuid), dann: Abnahme + Screenshot-Rückfragen NUR für
+   deren Seiten; alle übrigen Visus best-effort konvertieren, Lücken
+   landen kommentarlos im Report. Keine Screenshot-Listen über alles.
    NICHT raten: unklare Typen → als `label` mit Notiz importieren + Report.
 2. **Konverter `importer/src/visu.ts`** (+ Test mit synthetischem Fixture):
    Seiten → `visu/seiten/<slug>.yaml` (Größe aus xsize/ysize als einziger
