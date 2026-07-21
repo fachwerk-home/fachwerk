@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { VisuSeite } from "../../../schema/src/visu.ts";
-import { dupliziereElemente, fuegeElementEin, rastere, verschiebeElemente } from "./visu-editor-modell.ts";
+import { dupliziereElemente, fuegeElementEin, mussVorAktivierenSpeichern, rastere, verschiebeElemente } from "./visu-editor-modell.ts";
 
 const SEITE: VisuSeite = {
   typ: "seite",
@@ -41,5 +41,10 @@ describe("Visu-Editor-Modell", () => {
     const { seite, keys } = dupliziereElemente(SEITE, ["licht"], "tablet", 10);
     expect(keys).toEqual(["licht_kopie"]);
     expect(seite.elemente.licht_kopie?.placements?.tablet?.x).toBe(60);
+  });
+
+  it("fordert vor Aktivieren einen Save, wenn der Visu-Editor dirty ist", () => {
+    expect(mussVorAktivierenSpeichern(true)).toBe(true);
+    expect(mussVorAktivierenSpeichern(false)).toBe(false);
   });
 });

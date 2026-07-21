@@ -10,6 +10,10 @@ export function rastere(wert: number, raster: number): number {
   return Math.round(wert / raster) * raster;
 }
 
+export function mussVorAktivierenSpeichern(dirty: boolean): boolean {
+  return dirty;
+}
+
 export function freierKey(seite: VisuSeite, basis: string): string {
   const roh = basis.toLowerCase().replaceAll(/[^a-z0-9_]/g, "_").replaceAll(/_+/g, "_").replace(/^_+/, "") || "element";
   const start = /^[a-z]/.test(roh) ? roh : `e_${roh}`;

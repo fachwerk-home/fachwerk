@@ -1,6 +1,8 @@
 import type { LogikKante, LogikSeite } from "../../../schema/src/index.ts";
 import type { GewerkBaustein } from "../lib/api.ts";
 
+export type LogikRef = { art: "dp"; ref: string } | { art: "port"; ref: string; richtung: "ein" | "aus" };
+
 export interface BausteinPaletteEintrag {
   id: string;
   name: string;
@@ -10,6 +12,7 @@ export interface BausteinPaletteEintrag {
   parameter?: Record<string, unknown>;
   stub?: boolean;
   konfigVariabel?: boolean;
+  entkoppelt?: boolean;
 }
 
 export interface LogikProblem {
@@ -29,7 +32,7 @@ const STDLIB: BausteinPaletteEintrag[] = [
   { id: "VERGLEICH", name: "Vergleich", eingaenge: ["a", "b"], ausgaenge: ["out"], parameter: { op: ">=", wert: 0 } },
   { id: "HYSTERESE", name: "Hysterese", eingaenge: ["in"], ausgaenge: ["out"], parameter: { ein: 1, aus: 0 } },
   { id: "SPERRE", name: "Sperre", eingaenge: ["in", "sperre"], ausgaenge: ["out"], parameter: { nachreichen: true } },
-  { id: "VERZOEGERUNG", name: "Verzögerung", eingaenge: ["in"], ausgaenge: ["out"], parameter: { ms: 1000 } },
+  { id: "VERZOEGERUNG", name: "Verzögerung", eingaenge: ["in"], ausgaenge: ["out"], parameter: { ms: 1000 }, entkoppelt: true },
   { id: "TREPPENLICHT", name: "Treppenlicht", eingaenge: ["in"], ausgaenge: ["out"], parameter: { ms: 60000 } },
   { id: "WERTAUSLOESER", name: "Wertauslöser", eingaenge: ["trigger", "wert"], ausgaenge: ["out"], parameter: { wert: true } },
   { id: "IMPULS", name: "Impuls", eingaenge: ["trigger", "dauer"], ausgaenge: ["out"], parameter: { ms: 1000 } },
@@ -115,6 +118,45 @@ export function portsFuer(eintrag: BausteinPaletteEintrag | undefined, parameter
   return { eingaenge: eintrag.eingaenge, ausgaenge: eintrag.ausgaenge };
 }
 
+export function parameterWertAusText(text: string, vorlage: unknown): unknown {
+  if (typeof vorlage === "string") return text;
+  const roh = text.trim();
+  if (typeof vorlage === "boolean") return roh === "true";
+  if (typeof vorlage === "number") {
+    const zahl = Number(roh);
+    return Number.isFinite(zahl) ? zahl : vorlage;
+  }
+  if (roh === "true") return true;
+  if (roh === "false") return false;
+  if (roh === "null") return null;
+  if (roh !== "" && Number.isFinite(Number(roh))) return Number(roh);
+  try {
+    return JSON.parse(roh);
+  } catch {
+    return text;
+  }
+}
+
+export function mussVorAktivierenSpeichern(dirty: boolean): boolean {
+  return dirty;
+}
+
+export function baueKanteAusRefs(a: LogikRef, b: LogikRef): LogikKante | null {
+  if (a.ref === b.ref) return null;
+  if (a.art === "dp" && b.art === "dp") return null;
+  if (a.art === "port" && b.art === "port") {
+    if (a.richtung === b.richtung) return null;
+    return a.richtung === "aus" ? { von: a.ref, nach: b.ref } : { von: b.ref, nach: a.ref };
+  }
+  if (a.art === "dp" && b.art === "port") {
+    return b.richtung === "ein" ? { von: a.ref, nach: b.ref } : { von: b.ref, nach: a.ref };
+  }
+  if (a.art === "port" && b.art === "dp") {
+    return a.richtung === "aus" ? { von: a.ref, nach: b.ref } : { von: b.ref, nach: a.ref };
+  }
+  return null;
+}
+
 export function fuegeKnotenEin(seite: LogikSeite, eintrag: BausteinPaletteEintrag): { seite: LogikSeite; key: string } {
   const neu = structuredClone(seite);
   const key = freierKnotenKey(neu, eintrag.id.toLowerCase());
@@ -135,7 +177,7 @@ export function loescheKnoten(seite: LogikSeite, key: string): LogikSeite {
 export function setzeOderErsetzeKante(seite: LogikSeite, kante: LogikKante): LogikSeite {
   const neu = structuredClone(seite);
   const i = neu.kanten.findIndex((alt) => alt.von === kante.von && alt.nach === kante.nach);
-  if (i >= 0) neu.kanten[i] = kante;
+  if (i >= 0) neu.kanten[i] = { ...neu.kanten[i], ...kante };
   else neu.kanten.push(kante);
   return neu;
 }
@@ -151,11 +193,26 @@ function knotenVonRef(ref: string): string | null {
   return ref.split(".", 1)[0] ?? null;
 }
 
-export function validiereLogik(seite: LogikSeite): LogikProblem[] {
+function portVonRef(ref: string): string | null {
+  if (ref.startsWith("dp:")) return null;
+  return ref.split(".", 2)[1] ?? null;
+}
+
+export function validiereLogik(seite: LogikSeite, palette: readonly BausteinPaletteEintrag[] = paletteAusGewerk()): LogikProblem[] {
   const probleme: LogikProblem[] = [];
+  const paletteMap = new Map(palette.map((p) => [p.id, p]));
   const kanten = seite.kanten;
+  if (Object.keys(seite.knoten).length === 0) {
+    probleme.push({ art: "fehler", ort: "knoten", text: "Mindestens ein Knoten ist erforderlich" });
+  }
+  if (kanten.length === 0) {
+    probleme.push({ art: "fehler", ort: "kanten", text: "Mindestens eine Kante ist erforderlich" });
+  }
   const schreibt = new Map<string, string[]>();
   kanten.forEach((kante, index) => {
+    if (kante.von.startsWith("dp:") && kante.nach.startsWith("dp:")) {
+      probleme.push({ art: "fehler", ort: `Kante ${index + 1}`, text: "Datenpunkt→Datenpunkt ist nicht erlaubt" });
+    }
     if (kante.nach.startsWith("dp:")) {
       const liste = schreibt.get(kante.nach) ?? [];
       liste.push(`Kante ${index + 1}`);
@@ -165,6 +222,21 @@ export function validiereLogik(seite: LogikSeite): LogikProblem[] {
       const knoten = knotenVonRef(ref);
       if (knoten && !seite.knoten[knoten]) {
         probleme.push({ art: "fehler", ort: `Kante ${index + 1}/${feld}`, text: `Unbekannter Knoten ${knoten}` });
+        continue;
+      }
+      if (knoten) {
+        const port = portVonRef(ref);
+        const def = seite.knoten[knoten];
+        const eintrag = def ? paletteMap.get(def.baustein) : undefined;
+        const ports = portsFuer(eintrag, def?.parameter ?? {});
+        const erlaubt = feld === "von" ? ports.ausgaenge : ports.eingaenge;
+        if (!port || !erlaubt.includes(port)) {
+          probleme.push({
+            art: "fehler",
+            ort: `Kante ${index + 1}/${feld}`,
+            text: `Port ${ref} ist kein ${feld === "von" ? "Ausgang" : "Eingang"} von ${def?.baustein ?? knoten}`,
+          });
+        }
       }
     }
   });
@@ -173,11 +245,25 @@ export function validiereLogik(seite: LogikSeite): LogikProblem[] {
   }
 
   const graph = new Map<string, string[]>();
+  const dpLeser = new Map<string, string[]>();
   for (const key of Object.keys(seite.knoten)) graph.set(key, []);
   for (const kante of kanten) {
-    const von = knotenVonRef(kante.von);
     const nach = knotenVonRef(kante.nach);
-    if (von && nach && graph.has(von)) graph.get(von)!.push(nach);
+    if (kante.von.startsWith("dp:") && nach) {
+      const liste = dpLeser.get(kante.von) ?? [];
+      liste.push(nach);
+      dpLeser.set(kante.von, liste);
+    }
+  }
+  for (const kante of kanten) {
+    const von = knotenVonRef(kante.von);
+    if (!von || !graph.has(von)) continue;
+    const def = seite.knoten[von];
+    const eintrag = def ? paletteMap.get(def.baustein) : undefined;
+    if (eintrag?.entkoppelt) continue;
+    const nach = knotenVonRef(kante.nach);
+    if (nach) graph.get(von)!.push(nach);
+    else if (kante.nach.startsWith("dp:")) graph.get(von)!.push(...(dpLeser.get(kante.nach) ?? []));
   }
   const zustand = new Map<string, "besucht" | "aktiv">();
   const pfad: string[] = [];

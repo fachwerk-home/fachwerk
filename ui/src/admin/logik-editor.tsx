@@ -2,18 +2,22 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { LogikSeite, LogikKnoten, TriggerSemantik } from "../../../schema/src/index.ts";
 import { ApiFehler, api, type DatenpunktSicht, type GewerkSeite, type GewerkStruktur } from "../lib/api.ts";
 import {
+  baueKanteAusRefs,
   entferneKante,
   fuegeKnotenEin,
   loescheKnoten,
+  mussVorAktivierenSpeichern,
   paletteAusGewerk,
+  parameterWertAusText,
   portsFuer,
   setzeOderErsetzeKante,
   validiereLogik,
   type BausteinPaletteEintrag,
+  type LogikRef,
 } from "./logik-editor-modell.ts";
 import { inhaltZumSpeichern } from "./logik-yaml.ts";
 
-type RefTyp = { art: "dp"; ref: string } | { art: "port"; ref: string; richtung: "ein" | "aus" };
+type RefTyp = LogikRef;
 type Meldung = { ton: "ok" | "warn" | "fehler"; text: string };
 type Positionen = Record<string, { x: number; y: number }>;
 
@@ -58,23 +62,6 @@ function dateiPfad(seiteKey: string): string {
 
 function refId(ref: string): string {
   return ref.startsWith("dp:") ? ref.slice(3) : ref.split(".", 1)[0] ?? ref;
-}
-
-function istEingang(ref: RefTyp): boolean {
-  return ref.art === "dp" || ref.richtung === "ein";
-}
-
-function skalarAusText(text: string): unknown {
-  const roh = text.trim();
-  if (roh === "true") return true;
-  if (roh === "false") return false;
-  if (roh === "null") return null;
-  if (roh !== "" && Number.isFinite(Number(roh))) return Number(roh);
-  try {
-    return JSON.parse(roh);
-  } catch {
-    return text;
-  }
 }
 
 function parameterText(wert: unknown): string {
@@ -195,12 +182,12 @@ function ParameterForm({
               <textarea
                 rows={4}
                 value={JSON.stringify(wert, null, 2)}
-                onInput={(event) => aendere({ ...parameter, [key]: skalarAusText((event.target as HTMLTextAreaElement).value) })}
+                onInput={(event) => aendere({ ...parameter, [key]: parameterWertAusText((event.target as HTMLTextAreaElement).value, wert) })}
               />
             ) : (
               <input
                 value={parameterText(wert)}
-                onInput={(event) => aendere({ ...parameter, [key]: skalarAusText((event.target as HTMLInputElement).value) })}
+                onInput={(event) => aendere({ ...parameter, [key]: parameterWertAusText((event.target as HTMLInputElement).value, wert) })}
               />
             )}
           </label>
@@ -238,7 +225,7 @@ export function LogikEditor({
 
   const palette = useMemo(() => paletteAusGewerk(gewerk.bausteine), [gewerk.bausteine]);
   const paletteMap = useMemo(() => new Map(palette.map((b) => [b.id, b])), [palette]);
-  const probleme = useMemo(() => validiereLogik(seite), [seite]);
+  const probleme = useMemo(() => validiereLogik(seite, palette), [seite, palette]);
   const layout = useMemo(() => layoutFuer(seite, palette, positionen[seiteKey] ?? {}), [seite, palette, positionen, seiteKey]);
   const knotenMap = useMemo(() => new Map(layout.knoten.map((k) => [k.id, k])), [layout.knoten]);
   const gefiltertePalette = palette.filter((b) => `${b.id} ${b.name}`.toLowerCase().includes(filter.toLowerCase())).slice(0, 60);
@@ -287,18 +274,25 @@ export function LogikEditor({
     setSeite(naechste);
     setDirty(true);
   };
-  const save = async (): Promise<void> => {
-    if (readonlyGrund) return;
+  const save = async (): Promise<boolean> => {
+    if (readonlyGrund) return false;
+    const fehler = probleme.filter((p) => p.art === "fehler");
+    if (fehler.length > 0) {
+      setMeldung({ ton: "fehler", text: `Speichern blockiert: ${fehler.map((p) => `${p.ort}: ${p.text}`).join(" | ")}` });
+      return false;
+    }
     const inhalt = inhaltZumSpeichern(seite, raw, dirty);
     try {
       const antwort = await api.schreibeGewerkDatei(dateiPfad(seiteKey), inhalt);
       setRaw(inhalt);
       setDirty(false);
       setMeldung({ ton: "ok", text: `Gespeichert: ${antwort.pfad ?? dateiPfad(seiteKey)}` });
+      return true;
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       if (error instanceof ApiFehler && (error.status === 401 || error.status === 403)) setReadonlyGrund(text);
       setMeldung({ ton: "fehler", text });
+      return false;
     }
   };
   const aktivieren = async (): Promise<void> => {
@@ -307,6 +301,7 @@ export function LogikEditor({
       setMeldung({ ton: "fehler", text: `Aktivieren blockiert: ${fehler.map((p) => `${p.ort}: ${p.text}`).join(" | ")}` });
       return;
     }
+    if (mussVorAktivierenSpeichern(dirty) && !(await save())) return;
     try {
       const antwort = await api.aktiviereGewerk();
       setMeldung({ ton: "ok", text: `Aktiviert in ${antwort.dauerMs ?? 0} ms` });
@@ -323,13 +318,12 @@ export function LogikEditor({
       setVerbindung(ref);
       return;
     }
-    if (verbindung.ref === ref.ref || istEingang(verbindung) === istEingang(ref)) {
+    const kante = baueKanteAusRefs(verbindung, ref);
+    if (!kante) {
       setVerbindung(ref);
       return;
     }
-    const von = istEingang(verbindung) ? ref.ref : verbindung.ref;
-    const nach = istEingang(verbindung) ? verbindung.ref : ref.ref;
-    setze(setzeOderErsetzeKante(seite, { von, nach }), auswahl);
+    setze(setzeOderErsetzeKante(seite, kante), auswahl);
     setVerbindung(null);
   };
   const ausgewaehlt = auswahl ? seite.knoten[auswahl] : undefined;
