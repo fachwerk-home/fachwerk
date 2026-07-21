@@ -10,6 +10,8 @@ import {
   type GewerkManifest,
   type DatenpunktDatei,
   type LogikSeite,
+  type VisuDesigns,
+  type VisuSeite,
 } from "@fachwerk/schema";
 
 const YAML_OPTS = { indent: 2, lineWidth: 100 } as const;
@@ -48,6 +50,27 @@ export function archiveZuYaml(datei: ArchivDatei): string {
   const reihenfolge = ["name", "quelle", "aufbewahrung_tage", "mindestabstand_s", "notizen"];
   for (const key of Object.keys(datei).sort()) {
     out[key] = ordne(datei[key] as unknown as Record<string, unknown>, reihenfolge);
+  }
+  return stringify(out, YAML_OPTS);
+}
+
+export function visuSeiteZuYaml(seite: VisuSeite): string {
+  const elemente: Record<string, unknown> = {};
+  for (const key of Object.keys(seite.elemente).sort()) {
+    elemente[key] = ordne(
+      seite.elemente[key] as unknown as Record<string, unknown>,
+      KEY_ORDER.visuElement,
+    );
+  }
+  const out = ordne({ ...seite, elemente } as unknown as Record<string, unknown>, KEY_ORDER.visuSeite);
+  return stringify(out, YAML_OPTS);
+}
+
+export function visuDesignsZuYaml(designs: VisuDesigns): string {
+  const out: Record<string, unknown> = {};
+  const reihenfolge = ["hintergrund", "text", "icon", "schriftgroesse", "deckkraft", "rand"];
+  for (const key of Object.keys(designs).sort()) {
+    out[key] = ordne(designs[key] as unknown as Record<string, unknown>, reihenfolge);
   }
   return stringify(out, YAML_OPTS);
 }

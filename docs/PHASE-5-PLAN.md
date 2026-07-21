@@ -193,7 +193,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
   `tools/e2e-schreiben.sh` in CI; UI-Vertrag in `docs/BEOBACHTUNGSMODUS.md`.
   Offen bleibt die UI-Seite (Codex, P5-UI-B).
 
-### P5-9: Visu-Import (Stufe 3) — Referenz-Visu übernehmen
+### P5-9: Visu-Import (Stufe 3) — Referenz-Visu übernehmen ✅ (erledigt 21.07.2026, Spur 1)
 - **Ziel:** `exportVisu.json` (Userscript-Export; liegt als Nutzdaten vor)
   → `visu/`-Dateien. WICHTIG: reine Nutzdaten-Konvertierung (Clean-Room wie
   Stufe 1/2 — Tabellenstruktur editVisu*, keine Programmlogik).
@@ -205,6 +205,22 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
   benannt).
 - **Akzeptanz:** Die LCD-Panel-Visu des Betreibers rendert erkennbar; Report
   listet nicht Abbildbares.
+- **Umgesetzt:** `importer/src/visu.ts` (reine, getestete Funktion
+  `konvertiereVisu`, synthetisches Fixture — KEINE Betreiberdaten im Repo);
+  `fachwerk import <dump> <ziel> --visu <exportVisu.json>` schreibt
+  `visu/seiten/<slug>.yaml` + `visu/designs.yaml` (kanonisch,
+  `visuSeiteZuYaml`/`visuDesignsZuYaml` in core), Selbstprüfung via `ladeVisu`.
+  Auflösung gaid→editKo.ga→Datenpunkt über GA-Index. controltyp-Mapping:
+  1→statusanzeige/label, 1004→schalter, 0→label(Grafik), gotopageid→navigation,
+  cmd 2→setze; Unbekanntes→label+Report. Realer Lauf am Betreiber-Export:
+  **10 Seiten / 149 Elemente, validate + ladeVisu grün, im Visu-Client live
+  gerendert** (Startseite, Lichtsteuerung mit An/Aus-Schaltern, Navigation).
+- **Ehrliche Lücken (im Report gezählt, Betreiber-Bestätigung offen):**
+  48 statische Texte ohne Zielfeld (**Schema-Lücke: Presets haben kein
+  Textfeld** → Backlog B-8), 21 Grafik/Hintergrund-Elemente (controltyp 0)
+  als leeres label, 7 interne KOs ohne GA nicht aufgelöst, cmd 4/6 + 3 exotische
+  controltypen nicht abgebildet, Design-Slot-Matrix bewusst nicht dekodiert
+  (Farben am Screenshot bestätigen — NICHT geraten).
 
 ---
 

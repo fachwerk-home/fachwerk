@@ -15,6 +15,8 @@ export {
   datenpunkteZuYaml,
   logikZuYaml,
   archiveZuYaml,
+  visuSeiteZuYaml,
+  visuDesignsZuYaml,
 } from "./gewerk/canonical.ts";
 export { DatenpunktRegistry } from "./datenpunkte/registry.ts";
 export type {

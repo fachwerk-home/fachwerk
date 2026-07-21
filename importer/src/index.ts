@@ -31,3 +31,10 @@ export type {
   SeitenKonvertierung,
   StubInfo,
 } from "./logik.ts";
+export { konvertiereVisu } from "./visu.ts";
+export type {
+  VisuExport,
+  GaAufloesung,
+  VisuKonvertierErgebnis,
+  VisuBericht,
+} from "./visu.ts";

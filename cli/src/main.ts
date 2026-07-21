@@ -100,13 +100,30 @@ switch (cmd) {
   }
 
   case "import": {
-    const [dump, ziel] = [args[0], args[1]];
+    // Positionsargumente von der Option --visu <datei> trennen.
+    const positional: string[] = [];
+    let visuPfad: string | undefined;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--visu") {
+        visuPfad = args[++i];
+        if (visuPfad === undefined) {
+          console.error("Aufruf: fachwerk import ... --visu braucht einen Dateipfad");
+          process.exit(2);
+        }
+      } else {
+        positional.push(args[i]!);
+      }
+    }
+    const [dump, ziel] = [positional[0], positional[1]];
     if (!dump || !ziel) {
-      console.error("Aufruf: fachwerk import <projekt-dump.sql> <ziel-verzeichnis>");
+      console.error(
+        "Aufruf: fachwerk import <projekt-dump.sql> <ziel-verzeichnis> [--visu <exportVisu.json>]",
+      );
       process.exit(2);
     }
     const { importiere } = await import("./import.ts");
-    process.exit(importiere(dump, ziel));
+    // --visu ist optional: ohne sie laeuft nur Stufe 1+2 wie bisher.
+    process.exit(importiere(dump, ziel, visuPfad));
     break;
   }
 

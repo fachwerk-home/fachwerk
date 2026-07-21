@@ -9,11 +9,14 @@ import { join } from "node:path";
 import {
   archiveZuYaml,
   datenpunkteZuYaml,
+  ladeVisu,
   logikZuYaml,
   manifestZuYaml,
   loadGewerk,
+  visuDesignsZuYaml,
+  visuSeiteZuYaml,
 } from "@fachwerk/core";
-import type { ArchivDefinition } from "@fachwerk/schema";
+import type { ArchivDefinition, Datenpunkt } from "@fachwerk/schema";
 import {
   BEKANNTE_LUECKEN,
   befehlsStatistik,
@@ -22,11 +25,13 @@ import {
   extrahiereStruktur,
   konvertiere,
   konvertiereSeite,
+  konvertiereVisu,
   parseDump,
   type StubInfo,
+  type VisuExport,
 } from "@fachwerk/importer";
 
-export function importiere(dumpPfad: string, ziel: string): number {
+export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): number {
   const sql = readFileSync(dumpPfad, "utf8");
   const tabellen = parseDump(sql);
   if (!tabellen.has("editKo")) {
@@ -142,6 +147,36 @@ export function importiere(dumpPfad: string, ziel: string): number {
     );
   }
 
+  // ---- Stufe 3: Visu (P5-9) — optional, nur mit --visu ----------------------
+  let visuBericht: ReturnType<typeof konvertiereVisu>["bericht"] | null = null;
+  if (visuPfad !== undefined) {
+    let visuExport: VisuExport;
+    try {
+      visuExport = JSON.parse(readFileSync(visuPfad, "utf8")) as VisuExport;
+    } catch (e) {
+      console.error(`FEHLER: Visu-Export nicht lesbar: ${e instanceof Error ? e.message : e}`);
+      return 1;
+    }
+    // GA -> Datenpunkt-Schluessel aus den bereits erzeugten Datenpunkten
+    // (Auftrag F-1: Aufloesung ueber die GA der Bus-Datenpunkte).
+    const gaIndex = new Map<string, string>();
+    for (const [gruppe, datei] of datenpunkte) {
+      for (const [key, def] of Object.entries(datei)) {
+        const adresse = (def as Datenpunkt).adresse;
+        if (adresse) gaIndex.set(adresse, `${gruppe}.${key}`);
+      }
+    }
+    const visu = konvertiereVisu(visuExport, (ga) => gaIndex.get(ga));
+    if (visu.seiten.size > 0) {
+      mkdirSync(join(ziel, "visu", "seiten"), { recursive: true });
+      writeFileSync(join(ziel, "visu", "designs.yaml"), visuDesignsZuYaml(visu.designs), "utf8");
+      for (const [slug, seite] of visu.seiten) {
+        writeFileSync(join(ziel, "visu", "seiten", `${slug}.yaml`), visuSeiteZuYaml(seite), "utf8");
+      }
+    }
+    visuBericht = visu.bericht;
+  }
+
   // Selbstprüfung: das erzeugte Gewerk muss unser eigenes validate bestehen.
   const kontrolle = loadGewerk(ziel);
   if (kontrolle.fehler.length > 0) {
@@ -150,6 +185,26 @@ export function importiere(dumpPfad: string, ziel: string): number {
       console.error(`  ${f.datei} ${f.pfad}: ${f.meldung}`);
     }
     return 1;
+  }
+
+  // Visu-Selbstprüfung: das geschriebene visu/ muss fehlerfrei laden — inkl.
+  // Querbezug der Bindungen gegen die Datenpunkt-Definitionen (Auftrag Stufe 4).
+  if (visuBericht !== null) {
+    const visuKontrolle = ladeVisu(ziel, {
+      definition: (schluessel: string): unknown => {
+        const punkt = schluessel.indexOf(".");
+        if (punkt < 0) return undefined;
+        const g = kontrolle.gewerk?.datenpunkte.get(schluessel.slice(0, punkt));
+        return g?.[schluessel.slice(punkt + 1)];
+      },
+    });
+    if (visuKontrolle.fehler.length > 0) {
+      console.error("FEHLER: erzeugte Visu lädt nicht fehlerfrei (Importer-Bug):");
+      for (const f of visuKontrolle.fehler.slice(0, 10)) {
+        console.error(`  ${f.datei}${f.element ? ` [${f.element}]` : ""}: ${f.grund}`);
+      }
+      return 1;
+    }
   }
 
   // Bericht
@@ -223,6 +278,33 @@ export function importiere(dumpPfad: string, ziel: string): number {
   }
   console.log("Bekannte Katalog-Lücken:");
   for (const l of BEKANNTE_LUECKEN) console.log(`  · ${l}`);
+
+  // ---- Visu-Report (Stufe 3) — Struktur rein, Lücken ehrlich ----------------
+  if (visuBericht !== null) {
+    const v = visuBericht;
+    console.log(`\n── Visu (Stufe 3) ──`);
+    console.log(
+      `${v.seiten} Seite(n), ${v.elemente} Element(e) aus ${v.visus} Visu(s) übernommen` +
+        (v.unaufgeloesteBindungen > 0
+          ? ` — ${v.unaufgeloesteBindungen} Bindung(en) nicht aufgelöst`
+          : ""),
+    );
+    const typen = [...v.controltypVerteilung.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, n]) => `${t}:${n}`)
+      .join("  ");
+    console.log(`controltyp-Verteilung: ${typen}`);
+    if (v.nichtAbgebildet.size > 0) {
+      console.log("Nicht (vollständig) abgebildet — vom Betreiber zu prüfen:");
+      for (const [grund, n] of [...v.nichtAbgebildet.entries()].sort((a, b) => b[1] - a[1])) {
+        console.log(`  ${String(n).padStart(4)}× ${grund}`);
+      }
+    }
+    console.log(
+      "Hinweis: Farben/Designs bewusst neutral (Slot-Matrix des Altsystems nicht dekodiert) " +
+        "— am Screenshot bestätigen.",
+    );
+  }
 
   console.log(`\nOK: Gewerk geschrieben nach ${ziel} (validate bestanden)`);
   return 0;
