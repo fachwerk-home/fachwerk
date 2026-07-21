@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { VisuSeite } from "../../../schema/src/visu.ts";
-import { dupliziereElemente, fuegeElementEin, rastere, verschiebeElemente } from "./visu-editor-modell.ts";
+import {
+  bestaetigeSeitenwechsel,
+  dupliziereElemente,
+  fehlendeVisuEditorScopes,
+  fuegeElementEin,
+  rastere,
+  sollDragHistorieMerken,
+  verschiebeElemente,
+} from "./visu-editor-modell.ts";
 
 const SEITE: VisuSeite = {
   typ: "seite",
@@ -41,5 +49,31 @@ describe("Visu-Editor-Modell", () => {
     const { seite, keys } = dupliziereElemente(SEITE, ["licht"], "tablet", 10);
     expect(keys).toEqual(["licht_kopie"]);
     expect(seite.elemente.licht_kopie?.placements?.tablet?.x).toBe(60);
+  });
+
+  it("fragt vor einem Seitenwechsel mit ungespeicherten Änderungen", () => {
+    let gefragt = 0;
+    expect(bestaetigeSeitenwechsel(false, () => {
+      gefragt += 1;
+      return false;
+    })).toBe(true);
+    expect(gefragt).toBe(0);
+    expect(bestaetigeSeitenwechsel(true, () => {
+      gefragt += 1;
+      return false;
+    })).toBe(false);
+    expect(gefragt).toBe(1);
+    expect(bestaetigeSeitenwechsel(true, () => true)).toBe(true);
+  });
+
+  it("merkt Drag-Historie erst bei echter Bewegung und nur einmal", () => {
+    expect(sollDragHistorieMerken(false, 0, 0)).toBe(false);
+    expect(sollDragHistorieMerken(false, 10, 0)).toBe(true);
+    expect(sollDragHistorieMerken(true, 10, 0)).toBe(false);
+  });
+
+  it("erkennt fehlende Schreib- und Aktivier-Scopes vor dem Speichern", () => {
+    expect(fehlendeVisuEditorScopes(["read", "operate"])).toEqual(["write:gewerk", "activate:dev"]);
+    expect(fehlendeVisuEditorScopes(["read", "operate", "write:gewerk", "activate:dev"])).toEqual([]);
   });
 });

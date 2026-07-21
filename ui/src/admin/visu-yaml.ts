@@ -20,8 +20,19 @@ function skalar(wert: unknown): string {
   if (typeof wert === "number" || typeof wert === "boolean") return String(wert);
   if (wert === null) return "null";
   if (typeof wert !== "string") return JSON.stringify(wert);
+  if (istYamlTypString(wert)) return JSON.stringify(wert);
   if (/^[a-zA-Z0-9_.:/-]+$/.test(wert)) return wert;
   return JSON.stringify(wert);
+}
+
+function istYamlTypString(wert: string): boolean {
+  return /^(?:true|false|null)$/i.test(wert) || /^[-+]?(?:\d+|\d+\.\d+|\.\d+)(?:e[-+]?\d+)?$/i.test(wert);
+}
+
+function istLeererContainer(wert: unknown): boolean {
+  return Array.isArray(wert)
+    ? wert.length === 0
+    : Boolean(wert && typeof wert === "object" && Object.keys(wert).length === 0);
 }
 
 function ordne(obj: Record<string, unknown>, reihenfolge: readonly string[]): Record<string, unknown> {
@@ -38,8 +49,13 @@ function ordne(obj: Record<string, unknown>, reihenfolge: readonly string[]): Re
 function zeilen(obj: unknown, einzug = 0): string[] {
   const pad = " ".repeat(einzug);
   if (Array.isArray(obj)) {
+    if (obj.length === 0) return [`${pad}[]`];
     const out: string[] = [];
     for (const eintrag of obj) {
+      if (istLeererContainer(eintrag)) {
+        out.push(`${pad}- ${Array.isArray(eintrag) ? "[]" : "{}"}`);
+        continue;
+      }
       if (typeof eintrag === "object" && eintrag !== null) {
         const [erste, ...rest] = zeilen(eintrag, einzug + 2);
         out.push(`${pad}- ${(erste ?? "").trimStart()}`);
@@ -51,11 +67,14 @@ function zeilen(obj: unknown, einzug = 0): string[] {
     return out;
   }
   if (typeof obj !== "object" || obj === null) return [`${pad}${skalar(obj)}`];
+  if (istLeererContainer(obj)) return [`${pad}{}`];
 
   const out: string[] = [];
   for (const [key, wert] of Object.entries(obj as Record<string, unknown>)) {
     if (wert === undefined) continue;
-    if (typeof wert === "object" && wert !== null) {
+    if (istLeererContainer(wert)) {
+      out.push(`${pad}${key}: ${Array.isArray(wert) ? "[]" : "{}"}`);
+    } else if (typeof wert === "object" && wert !== null) {
       out.push(`${pad}${key}:`);
       out.push(...zeilen(wert, einzug + 2));
     } else {
@@ -71,6 +90,8 @@ function ordnePlacement(placement: VisuPlacement): Record<string, unknown> {
 
 function ordneElement(element: VisuElement): Record<string, unknown> {
   const roh = { ...element } as Record<string, unknown>;
+  if (element.bindungen && Object.keys(element.bindungen).length === 0) delete roh["bindungen"];
+  if (element.aktionen && Object.keys(element.aktionen).length === 0) delete roh["aktionen"];
   if (element.placements) {
     const placements: Record<string, unknown> = {};
     for (const key of Object.keys(element.placements).sort()) {

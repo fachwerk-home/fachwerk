@@ -173,6 +173,12 @@ export interface VisuAntwort {
   designs: Record<string, unknown>;
 }
 
+export interface IchAntwort {
+  name: string;
+  art: "sitzung" | "token" | "anonym";
+  scopes: string[];
+}
+
 /** Token aus ?token= oder localStorage (DEV-Niveau, ADR-0009; P5-12 löst es ab). */
 function token(): string | null {
   const ausUrl = new URLSearchParams(location.search).get("token");
@@ -185,10 +191,11 @@ async function hole<T>(pfad: string): Promise<T> {
   const antwort = await fetch(pfad, {
     headers: t ? { authorization: `Bearer ${t}` } : {},
   });
+  const antwortKoerper = await antwort.json().catch(() => ({})) as ApiFehlerDetails;
   if (!antwort.ok) {
-    throw new Error(`${antwort.status} ${antwort.statusText} bei ${pfad}`);
+    throw new ApiFehler(antwort.status, antwort.statusText, pfad, antwortKoerper);
   }
-  return (await antwort.json()) as T;
+  return antwortKoerper as T;
 }
 
 async function sende<T>(pfad: string, koerper: unknown): Promise<T> {
@@ -215,6 +222,7 @@ export const api = {
       `/api/datenpunkte${filter ? `?filter=${encodeURIComponent(filter)}` : ""}`,
     ),
   traces: (n = 100) => hole<{ traces: Trace[] }>(`/api/traces?n=${n}`),
+  ich: () => hole<IchAntwort>("/api/ich"),
   gewerk: () => hole<GewerkStruktur>("/api/gewerk"),
   visu: <T = VisuAntwort>() => hole<T>("/api/visu"),
   setzeDatenpunkt: (schluessel: string, wert: Wert) =>
