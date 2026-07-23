@@ -10,7 +10,9 @@ import type {
 } from "../../../schema/src/visu.ts";
 import "../lib/stil.css";
 import "./visu.css";
-import { ApiFehler, api, verbindeLive, type DatenpunktSicht, type LiveNachricht, type Wert } from "../lib/api.ts";
+import { ApiFehler, api, setzeAuthErforderlichHandler, verbindeLive, type DatenpunktSicht, type IchAntwort, type LiveNachricht, type Wert } from "../lib/api.ts";
+import { hatScope, type AuthStatus } from "../lib/auth.ts";
+import { LoginAnsicht } from "../lib/login.tsx";
 import { Diagramm } from "../lib/diagramm.tsx";
 import { wertAusAktion, wertPasstZumDatenpunkt } from "./bedienen.ts";
 import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
@@ -40,6 +42,7 @@ interface BedienKontext {
   pending: ReadonlySet<string>;
   slider: ReadonlyMap<string, number>;
   liveNachricht: LiveWert | null;
+  darfBedienen: boolean;
   setzeSlider: (schluessel: string, wert: number | null) => void;
   bediene: (elementKey: string, element: VisuElement, wert?: Wert) => void;
 }
@@ -122,7 +125,7 @@ function ElementInhalt({
     const entwurf = setKey ? bedien.slider.get(setKey) : undefined;
     const zahl = entwurf ?? (typeof rohwert === "number" ? rohwert : min);
     const gesperrt = setKey ? bedien.gesperrt.get(setKey) : undefined;
-    const deaktiviert = !setKey || gesperrt !== undefined;
+    const deaktiviert = !setKey || !bedien.darfBedienen || gesperrt !== undefined;
     return (
       <div class="slider-inhalt">
         <span>{name}</span>
@@ -133,7 +136,7 @@ function ElementInhalt({
           max={max}
           value={zahl}
           disabled={deaktiviert}
-          title={gesperrt}
+          title={!bedien.darfBedienen ? "Scope operate fehlt" : gesperrt}
           onInput={(event) => {
             if (!setKey) return;
             bedien.setzeSlider(setKey, Number((event.target as HTMLInputElement).value));
@@ -237,7 +240,7 @@ function VisuElementAnsicht({
     sperrgrund ? "visu-element-deaktiviert" : "",
     pending ? "visu-element-gedrueckt" : "",
   ].filter(Boolean).join(" ");
-  const titel = sperrgrund;
+  const titel = hatSet && !bedien.darfBedienen ? "Scope operate fehlt" : sperrgrund;
 
   if (element.widget === "diagramm" || element.widget === "slider") {
     return (
@@ -258,7 +261,7 @@ function VisuElementAnsicht({
       <button
         class={klassen}
         style={stil}
-        disabled={sperrgrund !== undefined}
+        disabled={sperrgrund !== undefined || (hatSet && !bedien.darfBedienen)}
         title={titel}
         data-preset={element.preset ?? element.widget}
         data-pending={pending ? "true" : "false"}
@@ -336,6 +339,8 @@ function SeitenCanvas({
 }
 
 function App() {
+  const [auth, setAuth] = useState<AuthStatus>({ art: "laedt" });
+  const [authZaehler, setAuthZaehler] = useState(0);
   const [visu, setVisu] = useState<VisuAntwort | null>(null);
   const [werte, setWerte] = useState<Map<string, WertEintrag>>(new Map());
   const [datenpunkte, setDatenpunkte] = useState<Map<string, DatenpunktSicht>>(new Map());
@@ -352,6 +357,26 @@ function App() {
   const toastIdRef = useRef(0);
 
   useEffect(() => {
+    setzeAuthErforderlichHandler(() => setAuth({ art: "login" }));
+    return () => setzeAuthErforderlichHandler(null);
+  }, []);
+
+  const ladeIdentitaet = async (): Promise<void> => {
+    try {
+      const ich = await api.ich();
+      setAuth({ art: "bereit", ich });
+      setAuthZaehler((alt) => alt + 1);
+    } catch (error) {
+      if (error instanceof Error) setFehler(error.message);
+    }
+  };
+
+  useEffect(() => {
+    void ladeIdentitaet();
+  }, []);
+
+  useEffect(() => {
+    if (auth.art !== "bereit") return;
     let aktiv = true;
     void ladeVisuDaten()
       .then(({ visu: geladen, datenpunkte }) => {
@@ -372,7 +397,7 @@ function App() {
         if (aktiv) setFehler(error instanceof Error ? error.message : String(error));
       });
     return () => { aktiv = false; };
-  }, []);
+  }, [auth.art, authZaehler]);
 
   useEffect(() => () => {
     for (const eintrag of pendingRef.current.values()) clearTimeout(eintrag.timer);
@@ -424,6 +449,10 @@ function App() {
   const bediene = (elementKey: string, element: VisuElement, direkterWert?: Wert): void => {
     const setKey = element.bindungen?.["set"];
     if (!setKey) return;
+    if (!bedien.darfBedienen) {
+      zeigeToast(`${lesbarerName(elementKey)}: Scope operate fehlt`, "warn");
+      return;
+    }
     const sperrgrund = gesperrt.get(setKey);
     if (sperrgrund) {
       zeigeToast(sperrgrund, "warn");
@@ -459,7 +488,9 @@ function App() {
       });
   };
 
-  useEffect(() => verbindeLive((nachricht: LiveNachricht) => {
+  useEffect(() => {
+    if (auth.art !== "bereit") return;
+    return verbindeLive((nachricht: LiveNachricht) => {
     if (nachricht.art !== "wert") return;
     setLiveNachricht(nachricht);
     const offen = pendingRef.current.get(nachricht.schluessel);
@@ -476,7 +507,8 @@ function App() {
       neu.set(nachricht.schluessel, { ...dp, wert: nachricht.wert, ts: nachricht.ts });
       return neu;
     });
-  }, (verbunden) => setLive(verbunden ? "verbunden" : "getrennt")), []);
+    }, (verbunden) => setLive(verbunden ? "verbunden" : "getrennt"));
+  }, [auth.art, authZaehler]);
 
   useEffect(() => {
     const schliessen = (event: KeyboardEvent): void => {
@@ -514,9 +546,15 @@ function App() {
     pending,
     slider,
     liveNachricht,
+    darfBedienen: auth.art === "bereit" && hatScope(auth.ich, "operate"),
     setzeSlider,
     bediene,
-  }), [datenpunkte, gesperrt, pending, slider, liveNachricht, werte]);
+  }), [datenpunkte, gesperrt, pending, slider, liveNachricht, werte, auth]);
+
+  if (auth.art === "login") return <LoginAnsicht titel="Fachwerk Visu" onErfolg={() => void ladeIdentitaet()} />;
+  if (auth.art === "laedt") return <main class="visu-meldung"><h1>Fachwerk Visu</h1><p>Rechte werden geprüft …</p></main>;
+
+  const ich: IchAntwort = auth.ich;
 
   if (fehler) return <main class="visu-meldung fehler"><h1>Fachwerk Visu</h1><p>{fehler}</p></main>;
   if (!visu) return <main class="visu-meldung"><h1>Fachwerk Visu</h1><p>Visualisierung wird geladen …</p></main>;
@@ -531,7 +569,7 @@ function App() {
       <header class="visu-kopf">
         <strong>Fachwerk Visu</strong>
         <span>{seite.name}</span>
-        <span class={live === "verbunden" ? "live-ok" : "live-wartet"}>
+        <span class={live === "verbunden" ? "live-ok" : "live-wartet"} title={`${ich.name} · ${ich.art}`}>
           {live === "verbunden" ? "● live" : "○ verbindet"}
         </span>
       </header>

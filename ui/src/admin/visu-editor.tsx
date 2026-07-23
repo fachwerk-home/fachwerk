@@ -264,7 +264,7 @@ function AuswahlEigenschaften({
   );
 }
 
-export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
+export function VisuEditor({ dps, darfSpeichern, darfAktivieren }: { dps: DatenpunktSicht[]; darfSpeichern: boolean; darfAktivieren: boolean }) {
   const [seiten, setSeiten] = useState<Record<string, VisuSeite>>({});
   const [designs, setDesigns] = useState<VisuDesigns>({});
   const [seiteKey, setSeiteKey] = useState<string | null>(null);
@@ -348,7 +348,7 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
   };
 
   const speichere = async (): Promise<boolean> => {
-    if (!seite || !seiteKey || readonlyGrund) return false;
+    if (!seite || !seiteKey || readonlyGrund || !darfSpeichern) return false;
     const inhalt = inhaltZumSpeichern(seite, raw, dirty);
     try {
       const antwort = await api.schreibeGewerkDatei(dateiPfad(seiteKey), inhalt);
@@ -367,6 +367,10 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
 
   const aktiviere = async (): Promise<void> => {
     if (readonlyGrund) return;
+    if (!darfAktivieren) {
+      setMeldung({ ton: "fehler", text: "Aktivieren blockiert: Scope activate:dev fehlt." });
+      return;
+    }
     if (mussVorAktivierenSpeichern(dirty) && !(await speichere())) return;
     try {
       const antwort = await api.aktiviereGewerk();
@@ -444,8 +448,8 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
         <button disabled={auswahl.length === 0} onClick={() => setzeMitHistorie(loescheElemente(seite, auswahl), [])}>Löschen</button>
         <span class="werkzeuge-trenner" />
         {readonlyGrund && <span class="warn-chip" title={readonlyGrund}>Read-only</span>}
-        <button class="primaer" disabled={Boolean(readonlyGrund)} onClick={() => void speichere()}>{dirty ? "Speichern*" : "Speichern"}</button>
-        <button disabled={Boolean(readonlyGrund)} onClick={() => void aktiviere()}>Aktivieren</button>
+        <button class="primaer" disabled={Boolean(readonlyGrund) || !darfSpeichern} onClick={() => void speichere()} title={darfSpeichern ? undefined : "Scope write:gewerk fehlt"}>{dirty ? "Speichern*" : "Speichern"}</button>
+        <button disabled={Boolean(readonlyGrund) || !darfAktivieren} onClick={() => void aktiviere()} title={darfAktivieren ? undefined : "Scope activate:dev fehlt"}>Aktivieren</button>
       </div>
       {meldung && <div class={`editor-meldung ${meldung.ton}`} role="status">{meldung.text}</div>}
       <div class="editor-layout">
