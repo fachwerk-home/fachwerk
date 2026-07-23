@@ -35,6 +35,14 @@ export type {
   TraceAusloeser,
 } from "./logik/engine.ts";
 export type { Baustein, BausteinKontext, Ausloeser } from "./logik/bausteine.ts";
+export { findeBaustein, stdlibTypen } from "./logik/bausteine.ts";
+export { baueKatalog, katalogTypen, fehlendeKatalogEintraege } from "./logik/katalog.ts";
+export type {
+  Katalog,
+  KatalogBaustein,
+  KatalogVisuElement,
+  KatalogParameter,
+} from "./logik/katalog.ts";
 export { extrahiere, introspizieren } from "./logik/extract.ts";
 export type { ExtractFormat, Feld } from "./logik/extract.ts";
 export { UhrDienst, uhrDatenpunkte, uhrWert } from "./system/uhr.ts";

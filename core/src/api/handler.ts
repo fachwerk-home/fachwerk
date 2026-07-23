@@ -9,6 +9,7 @@ import type { Datenpunkt, VisuDesigns, VisuSeite, WertFormat } from "@fachwerk/s
 import type { Aggregation, ArchivDienst } from "../archiv/dienst.ts";
 import type { DatenpunktRegistry, Wert } from "../datenpunkte/registry.ts";
 import { hatScope, type AnmeldeErgebnis, type Identitaet, type Scope } from "./auth.ts";
+import { baueKatalog } from "../logik/katalog.ts";
 import type { AuditEintrag } from "./audit.ts";
 import type { Schreibbremse } from "./schreibbremse.ts";
 import type { Gewerk } from "../gewerk/loader.ts";
@@ -454,6 +455,12 @@ export function beantworte(
   // Neue GET-Routen sind damit automatisch geschuetzt, nicht erst nach
   // Erinnerung an eine Zeile weiter unten.
   if (!darf("read")) return verweigert("read");
+
+  if (pfad === "/api/katalog") {
+    // Was kann Fachwerk? Agent-first (ADR-0009 A-1): dieselbe Auskunft wie
+    // `fachwerk katalog --json`, damit Agenten sie ohne Shell bekommen.
+    return { status: 200, koerper: baueKatalog(ktx.gewerk.manifest.format) };
+  }
 
   if (pfad === "/api/status") {
     const jetzt = (ktx.jetzt ?? Date.now)();

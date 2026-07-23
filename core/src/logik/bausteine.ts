@@ -706,3 +706,12 @@ const STDLIB = new Map<string, Baustein>(
 export function findeBaustein(typ: string): Baustein | undefined {
   return STDLIB.get(typ);
 }
+
+/**
+ * Alle Typnamen der Standardbibliothek, sortiert. Grundlage des Fähigkeiten-
+ * Katalogs (katalog.ts) — und dessen Vollständigkeitstest: ein neuer Baustein
+ * ohne Katalogeintrag lässt den Test fallen, damit der Katalog nicht driftet.
+ */
+export function stdlibTypen(): string[] {
+  return [...STDLIB.keys()].sort();
+}

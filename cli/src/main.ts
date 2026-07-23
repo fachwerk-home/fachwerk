@@ -127,6 +127,12 @@ switch (cmd) {
     break;
   }
 
+  case "katalog": {
+    const { katalog } = await import("./katalog.ts");
+    process.exit(katalog(args));
+    break;
+  }
+
   case "nutzer": {
     const { nutzer } = await import("./nutzer.ts");
     process.exit(await nutzer(args));
@@ -147,7 +153,7 @@ switch (cmd) {
     console.error(`Unbekanntes Kommando: ${cmd}`);
     console.error(
       "Verfügbar: version · validate <verzeichnis> · run <verzeichnis> · " +
-        "baustein test <verzeichnis> · nutzer anlegen|entfernen|liste",
+        "baustein test <verzeichnis> · nutzer anlegen|entfernen|liste · katalog [--json]",
     );
     process.exit(1);
 }

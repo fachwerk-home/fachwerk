@@ -60,6 +60,7 @@ const ROUTEN: Route[] = [
   { methode: "GET", pfad: "/api/gewerk", scope: "read" },
   { methode: "GET", pfad: "/api/visu", scope: "read" },
   { methode: "GET", pfad: "/api/archive", scope: "read" },
+  { methode: "GET", pfad: "/api/katalog", scope: "read" },
   { methode: "GET", pfad: "/api/gewerk/dateien/visu/a.yaml", scope: "read" },
   {
     methode: "POST",
