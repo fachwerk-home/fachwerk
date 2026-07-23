@@ -10,6 +10,19 @@ export function rastere(wert: number, raster: number): number {
   return Math.round(wert / raster) * raster;
 }
 
+export function bestaetigeSeitenwechsel(dirty: boolean, bestaetige: () => boolean): boolean {
+  return !dirty || bestaetige();
+}
+
+export function sollDragHistorieMerken(historieGemerk: boolean, dx: number, dy: number): boolean {
+  return !historieGemerk && (dx !== 0 || dy !== 0);
+}
+
+export function fehlendeVisuEditorScopes(scopes: readonly string[]): string[] {
+  const vorhanden = new Set(scopes);
+  return ["write:gewerk", "activate:dev"].filter((scope) => !vorhanden.has(scope));
+}
+
 export function freierKey(seite: VisuSeite, basis: string): string {
   const roh = basis.toLowerCase().replaceAll(/[^a-z0-9_]/g, "_").replaceAll(/_+/g, "_").replace(/^_+/, "") || "element";
   const start = /^[a-z]/.test(roh) ? roh : `e_${roh}`;

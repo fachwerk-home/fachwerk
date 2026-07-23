@@ -13,10 +13,13 @@ import type {
 import { ApiFehler, api, type DatenpunktSicht } from "../lib/api.ts";
 import { designFuer, formatierterWert, lesbarerName, placementFuer, type WertEintrag } from "../visu/modell.ts";
 import {
+  bestaetigeSeitenwechsel,
   dupliziereElemente,
+  fehlendeVisuEditorScopes,
   fuegeElementEin,
   loescheElemente,
   materialisierePlacement,
+  sollDragHistorieMerken,
   skaliereElement,
   verschiebeElemente,
   type PaletteTyp,
@@ -45,6 +48,7 @@ interface DragStart {
   y: number;
   seite: VisuSeite;
   keys: string[];
+  historieGemerk: boolean;
 }
 
 interface AuswahlRahmen {
@@ -188,6 +192,7 @@ function AuswahlEigenschaften({
     e.bindungen ??= {};
     if (wert) e.bindungen[rolle] = wert;
     else delete e.bindungen[rolle];
+    if (Object.keys(e.bindungen).length === 0) delete e.bindungen;
   });
   const setPlacement = (feld: keyof VisuPlacement, wert: number | boolean | undefined): void => aendere((entwurf) => {
     const p = materialisierePlacement(entwurf, key, breakpoint);
@@ -281,6 +286,15 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
 
   useEffect(() => {
     let aktiv = true;
+    void api.ich()
+      .then((antwort) => {
+        if (!aktiv) return;
+        const fehlend = fehlendeVisuEditorScopes(antwort.scopes);
+        if (fehlend.length > 0) setReadonlyGrund(`Token ohne Schreib-/Aktivier-Scope: ${fehlend.join(", ")}`);
+      })
+      .catch(() => {
+        if (aktiv) setReadonlyGrund("Berechtigungen konnten nicht gelesen werden.");
+      });
     void api.visu<{ seiten: Record<string, VisuSeite>; designs: VisuDesigns }>()
       .then((antwort) => {
         if (!aktiv) return;
@@ -364,6 +378,7 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
   };
 
   const neueSeite = (): void => {
+    if (!bestaetigeSeitenwechsel(dirty, () => globalThis.confirm("Ungespeicherte Änderungen verwerfen und eine neue Seite anlegen?"))) return;
     const key = `seite_${Object.keys(seiten).length + 1}`;
     const neu = leereSeite(`Seite ${Object.keys(seiten).length + 1}`);
     setSeiten((alt) => ({ ...alt, [key]: neu }));
@@ -399,7 +414,12 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
   return (
     <div class="visu-editor">
       <div class="werkzeuge editor-toolbar">
-        <select value={seiteKey ?? ""} aria-label="Visu-Seite" onChange={(event) => setSeiteKey((event.target as HTMLSelectElement).value)}>
+        <select value={seiteKey ?? ""} aria-label="Visu-Seite" onChange={(event) => {
+          const ziel = (event.target as HTMLSelectElement).value;
+          if (ziel === seiteKey) return;
+          if (!bestaetigeSeitenwechsel(dirty, () => globalThis.confirm("Ungespeicherte Änderungen verwerfen und Seite wechseln?"))) return;
+          setSeiteKey(ziel);
+        }}>
           {Object.keys(seiten).sort().map((key) => <option key={key} value={key}>{key}</option>)}
         </select>
         <button onClick={neueSeite}>Neue Seite</button>
@@ -465,6 +485,11 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
               if (!drag) return;
               const dx = event.clientX - drag.x;
               const dy = event.clientY - drag.y;
+              if (dx === 0 && dy === 0) return;
+              if (sollDragHistorieMerken(drag.historieGemerk, dx, dy)) {
+                history.merke(drag.seite);
+                setDrag({ ...drag, historieGemerk: true });
+              }
               setSeite(drag.art === "resize"
                 ? skaliereElement(drag.seite, drag.key, breakpoint, dx, dy, raster)
                 : verschiebeElemente(drag.seite, drag.keys, breakpoint, dx, dy, raster));
@@ -508,12 +533,11 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
                   }}
                   onPointerDown={(event) => {
                     event.stopPropagation();
-                    history.merke(seite);
                     const neueAuswahl = event.shiftKey
                       ? (gewaehlt ? auswahl.filter((k) => k !== key) : [...auswahl, key])
                       : (gewaehlt ? auswahl : [key]);
                     setAuswahl(neueAuswahl);
-                    setDrag({ key, art: "move", x: event.clientX, y: event.clientY, seite: clone(seite), keys: neueAuswahl });
+                    setDrag({ key, art: "move", x: event.clientX, y: event.clientY, seite: clone(seite), keys: neueAuswahl, historieGemerk: false });
                   }}
                 >
                   <span class="editor-element-typ">{typLabel(element)}</span>
@@ -524,8 +548,7 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
                       aria-label="Skalieren"
                       onPointerDown={(event) => {
                         event.stopPropagation();
-                        history.merke(seite);
-                        setDrag({ key, art: "resize", x: event.clientX, y: event.clientY, seite: clone(seite), keys: [key] });
+                        setDrag({ key, art: "resize", x: event.clientX, y: event.clientY, seite: clone(seite), keys: [key], historieGemerk: false });
                       }}
                     />
                   )}
