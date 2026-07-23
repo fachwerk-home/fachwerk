@@ -77,3 +77,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-P5-11-FIX.md | Codex | offen (Nachbesserung nach Review) |
 | AUFTRAG-P5-12.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
 | AUFTRAG-P5-UI-LOGIN.md | Codex | offen (Folge von P5-12) |
+| AUFTRAG-B8-VISU-TEXT.md | Codex | offen (Renderer/Editor-Hälfte von B-8; Schema+Import erledigt) |

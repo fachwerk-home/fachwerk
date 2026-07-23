@@ -50,6 +50,12 @@ export type VisuAktion =
 export interface VisuElement {
   preset?: VisuPreset;
   widget?: VisuWidget;
+  /**
+   * Statischer Anzeigetext des Elements (B-8): Beschriftung eines Labels/
+   * Tasters oder ein Symbol-Glyph. Rein deklarativ, kein Wertbezug — dynamische
+   * Werte laufen weiter ueber bindungen + format.
+   */
+  text?: string;
   parameter?: Record<string, unknown>;
   bindungen?: Record<string, string>;
   gruppe?: string;

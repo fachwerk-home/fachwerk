@@ -2,16 +2,15 @@
  * Tests des Visu-Imports (Stufe 3, P5-9) — ausschliesslich mit SYNTHETISCHEM
  * Fixture. Betreiberdaten kommen nie ins Repo (Clean-Room); die reale Abnahme
  * laeuft lokal gegen _ingest und wird per Screenshot bestaetigt.
+ *
+ * Das Mapping folgt der Interop-Spec (research/visu-format-spec.md): gaid=Status,
+ * gaid2=Klick-Ziel (KO2), text=Beschriftung/Symbol, var3=Klick-Aktion,
+ * var15=KO2-Wert, controltyp 0=Gruppenknoten, Design-Slots s9/s14/s15.
  */
 import { expect, test } from "vitest";
 import { validateVisuDesigns, validateVisuSeite } from "@fachwerk/schema";
 import { konvertiereVisu, type VisuExport } from "./visu.ts";
 
-/**
- * Minimaler, aber repraesentativer Export: zwei Seiten (eine normale, ein
- * Popup), je ein Element der bekannten controltyp-Familien plus ein
- * unbekannter Typ und eine nicht aufloesbare Bindung.
- */
 function fixture(): VisuExport {
   return {
     editVisuPage: [
@@ -20,103 +19,131 @@ function fixture(): VisuExport {
     ],
     editKo: [
       { id: 100, ga: "1/0/2" }, // Bus-KO, aufloesbar
-      { id: 200, ga: "0/0/9" }, // Bus-KO ohne Datenpunkt im Ziel
       { id: 300, ga: "300" }, // internes KO (keine GA)
     ],
     editVisuElement: [
-      // controltyp 1 mit gaid -> statusanzeige
+      // Statusanzeige: gaid (KO1) gesetzt, kein Klick.
       { id: 10, controltyp: 1, pageid: 1, gaid: 100, xpos: 10, ypos: 20, xsize: 100, ysize: 40, zindex: 2, text: "" },
-      // controltyp 1 nur Text -> label, Text landet in Notizen
-      { id: 11, controltyp: 1, pageid: 1, gaid: 0, xpos: 0, ypos: 0, xsize: 200, ysize: 30, text: "Wohnzimmer" },
-      // controltyp 1004 -> schalter + umschalten
-      { id: 12, controltyp: 1004, pageid: 1, gaid: 100, xpos: 0, ypos: 60, xsize: 80, ysize: 80, text: "\n\nAn\nAus" },
-      // controltyp 0 -> label (Grafik)
-      { id: 13, controltyp: 0, pageid: 1, gaid: 0, xpos: 0, ypos: 0, xsize: 300, ysize: 300, text: "" },
-      // Navigation via gotopageid -> navigation (Ziel ist Popup)
-      { id: 14, controltyp: 1, pageid: 1, gaid: 0, gotopageid: 2, xpos: 0, ypos: 150, xsize: 120, ysize: 40, text: "" },
-      // unbekannter controltyp -> label + Bericht
-      { id: 15, controltyp: 999, pageid: 1, gaid: 0, xpos: 0, ypos: 200, xsize: 50, ysize: 50, text: "" },
-      // Bindung auf internes KO -> unaufloesbar (Bericht)
-      { id: 16, controltyp: 1, pageid: 1, gaid: 300, xpos: 0, ypos: 260, xsize: 50, ysize: 20, text: "" },
-      // Element mit Nullgroesse -> Placement ohne w/h
-      { id: 17, controltyp: 1, pageid: 2, gaid: 0, xpos: 5, ypos: 5, xsize: 0, ysize: 0, text: "" },
+      // Reines Label mit Text.
+      { id: 11, controltyp: 1, pageid: 1, xpos: 0, ypos: 0, xsize: 200, ysize: 30, text: "Wohnzimmer" },
+      // Taster: KO2 (gaid2) + var3=4 (KO2 setzen) + var15=1 -> setze true. Text = Symbol.
+      { id: 12, controltyp: 1, pageid: 1, gaid2: 100, var3: 4, var15: "1", xpos: 0, ypos: 60, xsize: 60, ysize: 60, text: "&#xe92d" },
+      // Navigation via gotopageid (Ziel ist Popup).
+      { id: 13, controltyp: 1, pageid: 1, gotopageid: 2, xpos: 0, ypos: 150, xsize: 120, ysize: 40, text: "Details" },
+      // Statustext (controltyp 1004): bool-Status mit Zustandsliste.
+      { id: 14, controltyp: 1004, pageid: 1, gaid: 100, xpos: 0, ypos: 210, xsize: 200, ysize: 80, text: "\n\nAn\nAus" },
+      // Positionsanzeige mit Formel -> Format.
+      { id: 15, controltyp: 1, pageid: 1, gaid: 100, xpos: 300, ypos: 60, xsize: 80, ysize: 40, text: "{floor(#*100/255)} %" },
+      // Gruppenknoten (controltyp 0) -> uebersprungen.
+      { id: 16, controltyp: 0, pageid: 1, xpos: 0, ypos: 0, xsize: 1, ysize: 1, name: "Wohnzimmer Couch" },
+      // Unbekannter controltyp -> label + Bericht.
+      { id: 17, controltyp: 999, pageid: 1, xpos: 0, ypos: 300, xsize: 50, ysize: 50, text: "" },
+      // Bindung auf internes KO -> unaufloesbar (Bericht).
+      { id: 18, controltyp: 1, pageid: 1, gaid: 300, xpos: 0, ypos: 360, xsize: 50, ysize: 20, text: "" },
+      // Nullgroesse -> Placement ohne w/h.
+      { id: 19, controltyp: 1, pageid: 2, xpos: 5, ypos: 5, xsize: 0, ysize: 0, text: "x" },
     ],
-    editVisuCmdList: [
-      // cmd 2 = setze auf KO 100
-      { id: 1, targetid: 14, cmd: 2, cmdid1: 100, cmdvalue1: "1" },
-      // cmd 6 = nicht abgebildet
-      { id: 2, targetid: 10, cmd: 6, cmdid1: 100, cmdvalue1: "20" },
+    editVisuElementDesign: [
+      // Basis-Design fuer Element 10: Hintergrund #1, Textfarbe #2, Schrift 18.
+      { id: 1, targetid: 10, styletyp: 0, s9: "1", s14: "18", s15: "2", s31: "1", s27: "3" },
     ],
+    editVisuBGcol: [{ id: 1, color: "#123456" }, { id: 3, color: "#abcdef" }],
+    editVisuFGcol: [{ id: 2, color: "#ffffff" }],
+    editVisuCmdList: [],
   };
 }
 
-/** GA -> Datenpunkt-Schluessel; nur 1/0/2 existiert im Ziel. */
 const gaKey = (ga: string): string | undefined => (ga === "1/0/2" ? "wohnen.licht" : undefined);
 
+function seiteWz(): ReturnType<typeof konvertiereVisu> {
+  return konvertiereVisu(fixture(), gaKey);
+}
+
 test("Seiten entstehen mit Groesse aus der Element-Bounding-Box", () => {
-  const { seiten } = konvertiereVisu(fixture(), gaKey);
+  const { seiten } = seiteWz();
   expect([...seiten.keys()].sort()).toEqual(["details", "wohnzimmer"]);
+  expect(seiten.get("wohnzimmer")!.groessen.panel).toEqual({ w: 380, h: 380 });
+});
+
+test("controltyp 0 wird als Gruppenknoten uebersprungen, nicht gerendert", () => {
+  const { seiten, bericht } = seiteWz();
   const wz = seiten.get("wohnzimmer")!;
-  expect(wz.typ).toBe("seite");
-  expect(wz.basis).toBe("panel");
-  // groesste Ausdehnung: Element 13 (300x300).
-  expect(wz.groessen.panel).toEqual({ w: 300, h: 300 });
+  expect(bericht.gruppenknoten).toBe(1);
+  expect(Object.values(wz.elemente).some((e) => (e.text ?? "") === "")).toBe(true);
+  // Kein Element traegt den Gruppennamen.
+  expect(JSON.stringify(wz.elemente)).not.toContain("Couch");
 });
 
-test("controltyp 1 mit GA wird statusanzeige mit aufgelöster Bindung", () => {
-  const wz = konvertiereVisu(fixture(), gaKey).seiten.get("wohnzimmer")!;
-  const el = Object.values(wz.elemente).find((e) => e.bindungen?.status === "wohnen.licht");
-  expect(el?.preset).toBe("statusanzeige");
-  expect(el?.ebene).toBe(2);
+test("statischer Text landet im neuen text-Feld (B-8), Symbole werden entschluesselt", () => {
+  const wz = seiteWz().seiten.get("wohnzimmer")!;
+  const label = Object.values(wz.elemente).find((e) => e.text === "Wohnzimmer");
+  expect(label?.preset).toBe("label");
+  // &#xe92d -> echtes Symbol-Zeichen (Private Use Area).
+  const taster = Object.values(wz.elemente).find((e) => e.preset === "taster");
+  expect(taster?.text).toBe(String.fromCodePoint(0xe92d));
 });
 
-test("statischer Text wird nicht erfunden, sondern in Notizen vermerkt", () => {
-  const wz = konvertiereVisu(fixture(), gaKey).seiten.get("wohnzimmer")!;
-  expect(wz.notizen ?? "").toContain("Wohnzimmer");
-  // Kein Preset-Element traegt parameter (Schema verbietet das).
-  for (const el of Object.values(wz.elemente)) {
-    if (el.preset) expect(el.parameter).toBeUndefined();
-  }
+test("Taster setzt KO2 (gaid2) mit dem var15-Wert", () => {
+  const wz = seiteWz().seiten.get("wohnzimmer")!;
+  const taster = Object.values(wz.elemente).find((e) => e.preset === "taster")!;
+  expect(taster.bindungen?.set).toBe("wohnen.licht");
+  expect(taster.aktionen?.kurz).toEqual({ setze: true });
 });
 
-test("controltyp 1004 wird Schalter mit Umschalt-Aktion", () => {
-  const wz = konvertiereVisu(fixture(), gaKey).seiten.get("wohnzimmer")!;
-  const el = Object.values(wz.elemente).find((e) => e.preset === "schalter");
-  expect(el).toBeDefined();
-  expect(el?.aktionen?.kurz).toEqual({ art: "umschalten" });
-  expect(el?.bindungen?.set).toBe("wohnen.licht");
+test("gaid ergibt eine Statusanzeige (kein Set)", () => {
+  const wz = seiteWz().seiten.get("wohnzimmer")!;
+  const status = Object.values(wz.elemente).find(
+    (e) => e.preset === "statusanzeige" && e.bindungen?.status === "wohnen.licht" && !e.bindungen?.set,
+  );
+  expect(status).toBeDefined();
+  expect(status?.ebene).toBe(2);
 });
 
-test("gotopageid wird Navigation; Ziel-Popup ergibt popup-Aktion", () => {
-  const wz = konvertiereVisu(fixture(), gaKey).seiten.get("wohnzimmer")!;
+test("gotopageid wird Navigation zum Popup", () => {
+  const wz = seiteWz().seiten.get("wohnzimmer")!;
   const nav = Object.values(wz.elemente).find((e) => e.preset === "navigation");
   expect(nav?.aktionen?.kurz).toEqual({ popup: "details" });
 });
 
-test("Nullgroesse ergibt Placement ohne w/h (Schema: w/h > 0)", () => {
-  const det = konvertiereVisu(fixture(), gaKey).seiten.get("details")!;
-  const el = Object.values(det.elemente)[0]!;
-  expect(el.placements?.panel).toEqual({ x: 5, y: 5 });
+test("Formel-Text wird zu einem Wert-Format (Skalierung), nicht als Text", () => {
+  const wz = seiteWz().seiten.get("wohnzimmer")!;
+  const anzeige = Object.values(wz.elemente).find((e) => e.format?.skalierung !== undefined)!;
+  expect(anzeige.format).toMatchObject({ skalierung: 100 / 255, dezimalstellen: 0, suffix: " %" });
+  expect(anzeige.text).toBeUndefined();
 });
 
-test("Bericht zählt Unbekanntes und nicht aufgelöste Bindungen", () => {
-  const { bericht } = konvertiereVisu(fixture(), gaKey);
+test("Design-Slots werden zu einem dedizierten Design (Farben, Schrift, Rand)", () => {
+  const { seiten, designs } = seiteWz();
+  const el = seiten.get("wohnzimmer")!.elemente;
+  const mitDesign = Object.values(el).find((e) => e.design)!;
+  const d = designs[mitDesign.design!]!;
+  expect(d.hintergrund).toBe("#123456");
+  expect(d.text).toBe("#ffffff");
+  expect(d.schriftgroesse).toBe(18);
+  expect(d.rand).toMatchObject({ staerke: 1, farbe: "#abcdef" });
+});
+
+test("controltyp 1004 wird Statusanzeige mit Notiz zur offenen Wert-Zuordnung", () => {
+  const { seiten, bericht } = seiteWz();
+  const wz = seiten.get("wohnzimmer")!;
+  const st = Object.values(wz.elemente).find((e) => e.preset === "statusanzeige" && e.bindungen?.status === "wohnen.licht" && wz.notizen?.includes("Zustandstexte"));
+  expect(st).toBeDefined();
+  expect([...bericht.nichtAbgebildet.keys()].join(" ")).toContain("1004");
+});
+
+test("Bericht zaehlt Unbekanntes und nicht aufgeloeste Bindungen", () => {
+  const { bericht } = seiteWz();
   expect(bericht.visus).toBe(1);
-  expect(bericht.elemente).toBe(8);
-  expect(bericht.controltypVerteilung.get(1)).toBe(5);
-  // internes KO (300) + GA ohne Datenpunkt kommen als unaufgelöst.
   expect(bericht.unaufgeloesteBindungen).toBeGreaterThanOrEqual(1);
-  const gruende = [...bericht.nichtAbgebildet.keys()].join(" | ");
-  expect(gruende).toContain("controltyp 999");
-  expect(gruende).toContain("cmd 6");
+  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("controltyp 999");
 });
 
 test("die erzeugten Seiten und Designs sind schema-konform", () => {
-  const { seiten, designs } = konvertiereVisu(fixture(), gaKey);
+  const { seiten, designs } = seiteWz();
   expect(validateVisuDesigns(designs)).toBe(true);
-  for (const [slug, seite] of seiten) {
+  for (const [s, seite] of seiten) {
     const ok = validateVisuSeite(seite);
-    if (!ok) throw new Error(`${slug}: ${JSON.stringify(validateVisuSeite.errors)}`);
+    if (!ok) throw new Error(`${s}: ${JSON.stringify(validateVisuSeite.errors)}`);
     expect(ok).toBe(true);
   }
 });

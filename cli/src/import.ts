@@ -285,6 +285,7 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
     console.log(`\n── Visu (Stufe 3) ──`);
     console.log(
       `${v.seiten} Seite(n), ${v.elemente} Element(e) aus ${v.visus} Visu(s) übernommen` +
+        (v.gruppenknoten > 0 ? ` (${v.gruppenknoten} Gruppenknoten übersprungen)` : "") +
         (v.unaufgeloesteBindungen > 0
           ? ` — ${v.unaufgeloesteBindungen} Bindung(en) nicht aufgelöst`
           : ""),
@@ -301,8 +302,8 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
       }
     }
     console.log(
-      "Hinweis: Farben/Designs bewusst neutral (Slot-Matrix des Altsystems nicht dekodiert) " +
-        "— am Screenshot bestätigen.",
+      "Hinweis: Designs (Farben/Schrift/Rahmen) aus den Slots übernommen — am Screenshot " +
+        "bestätigen. Symbol-Glyphen brauchen die Symbol-Schrift des Panels (separater Schritt).",
     );
   }
 

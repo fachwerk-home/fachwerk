@@ -132,6 +132,7 @@
       "properties": {
         "preset": { "enum": ["taster", "schalter", "statusanzeige", "wertanzeige", "label", "symbol", "navigation"] },
         "widget": { "enum": ["slider", "diagramm"] },
+        "text": { "type": "string" },
         "parameter": { "type": "object" },
         "bindungen": {
           "type": "object",

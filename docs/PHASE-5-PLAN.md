@@ -215,12 +215,22 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
   cmd 2→setze; Unbekanntes→label+Report. Realer Lauf am Betreiber-Export:
   **10 Seiten / 149 Elemente, validate + ladeVisu grün, im Visu-Client live
   gerendert** (Startseite, Lichtsteuerung mit An/Aus-Schaltern, Navigation).
-- **Ehrliche Lücken (im Report gezählt, Betreiber-Bestätigung offen):**
-  48 statische Texte ohne Zielfeld (**Schema-Lücke: Presets haben kein
-  Textfeld** → Backlog B-8), 21 Grafik/Hintergrund-Elemente (controltyp 0)
-  als leeres label, 7 interne KOs ohne GA nicht aufgelöst, cmd 4/6 + 3 exotische
-  controltypen nicht abgebildet, Design-Slot-Matrix bewusst nicht dekodiert
-  (Farben am Screenshot bestätigen — NICHT geraten).
+- **v2 (21.07.2026): spec-basiert nachgeschärft.** Grundlage: vom Betreiber
+  geprüfte Interop-Spec (`research/visu-format-spec.md`, Dirty-Room/Gemini).
+  Korrekte KO-Rollen (gaid=Status, **gaid2=Klick-Ziel**, gaid3=dyn. Design),
+  `text`→neues Schema-Feld **B-8** (Beschriftung/Symbol), var3+var15 und
+  `editVisuCmdList` cmd 2 → Klick-Aktionen (Rollladen-Auf/Stopp/Ab werden
+  `taster` mit `setze`), `{floor(#*a/b)}`→WertFormat (Skalierung/%), Design-
+  Slots s9/s14/s15/s31 → echte Designs (dedupliziert, Farbpaletten aufgelöst),
+  controltyp 0 = Gruppenknoten (übersprungen), 13→slider, 21→diagramm.
+  Realer Re-Run: **10 Seiten / 128 Elemente**, validate+ladeVisu grün; Beispiel
+  Jalousie: 18 taster, 6 wertanzeige, echte Labels+Designs.
+- **Ehrliche Rest-Lücken (im Report gezählt):** 7 interne KOs ohne GA, cmd 4/6
+  (je 3/5) nicht katalogisiert, controltyp 1004 Zustandstext-**Index** offen
+  (→ Dirty-Room), 12/15 (Dimmer/Colorpicker) + 21 (Diagramm-Archivbindung)
+  best-effort. **Renderer-Hälfte von B-8** (Elementtext anzeigen) +
+  **Symbol-Schrift** (Panel-Icons) sind eigene Aufträge für Codex
+  (`AUFTRAG-B8-VISU-TEXT.md`) — bis dahin zeigt der Renderer noch Schlüssel.
 
 ---
 

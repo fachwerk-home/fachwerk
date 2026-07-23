@@ -124,7 +124,7 @@ export const KEY_ORDER = {
   logikKnoten: ["baustein", "parameter"],
   logikKante: ["von", "nach", "trigger"],
   visuSeite: ["typ", "name", "basis", "groessen", "gruppen", "elemente", "notizen"],
-  visuElement: ["preset", "widget", "parameter", "bindungen", "gruppe", "ebene", "design", "design_je_wert", "aktionen", "format", "placements"],
+  visuElement: ["preset", "widget", "text", "parameter", "bindungen", "gruppe", "ebene", "design", "design_je_wert", "aktionen", "format", "placements"],
   visuPlacement: ["x", "y", "w", "h", "sichtbar", "format"],
   wertFormat: ["einheit", "praefix", "suffix", "dezimalstellen", "skalierung", "offset", "tausendertrenner", "enum_map", "bool_map", "fallback", "leerwert", "max_laenge", "ellipsis", "muster", "modus", "template"],
 } as const;

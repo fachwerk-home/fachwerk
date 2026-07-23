@@ -2,38 +2,45 @@
  * Visu-Import (Import-Assistent, Stufe 3, P5-9): erzeugt aus dem Export der
  * editVisu*-Tabellen des Altsystems Fachwerk-Visuseiten im P5-6-Format.
  *
- * Clean-Room: gelesen werden ausschliesslich NUTZDATEN des Betreibers
- * (Seiten, Elementpositionen, KO-Rollen, Texte) — niemals Programmcode,
- * niemals Grafiken. Was nicht sicher abbildbar ist, wird NICHT geraten,
- * sondern als `label` mit Notiz importiert und im Bericht gezaehlt.
+ * Das Mapping folgt der geprueften Interop-Spec (research/visu-format-spec.md):
+ *   - gaid  (KO1) = Status/Wert/Sichtbarkeit
+ *   - gaid2 (KO2) = wird bei Klick gesetzt
+ *   - gaid3 (KO3) = steuert dynamische Designs
+ *   - text        = Beschriftung ODER Symbol-Glyph (B-8: eigenes Textfeld)
+ *   - controltyp 1 (Universalelement): var3/var4 = Klick-Aktion,
+ *     var15/var16 = zu sendender KO2-Wert, var11 = Symbolposition
+ *   - Design-Slots s1..s48 je styletyp (0 Basis, 1 dynamisch): s9 Hintergrund-
+ *     farbe, s14 Schriftgroesse, s15 Textfarbe, s31 Rahmenbreite, s27 Rahmen-
+ *     farbe, s23 Eckenradius, s8 Deckkraft.
  *
- * Aufloesung der Datenpunkte (Auftrag F-1): ein Element verweist ueber
- * `gaid`/`gaid2`/`gaid3` auf einen KO-Eintrag der Visu-eigenen editKo-Tabelle;
- * dessen GA fuehrt ueber den injizierten `gaKey`-Index (aus den bereits
- * importierten Datenpunkten des Ziel-Gewerks) auf den Fachwerk-Schluessel.
- * Interne KOs ohne GA lassen sich so nicht aufloesen — sie landen ehrlich
- * im Bericht statt als geratene Bindung.
+ * Clean-Room: gelesen werden ausschliesslich NUTZDATEN des Betreibers; die
+ * Spec stammt aus der Dirty-Room-Analyse und wurde vom Betreiber geprueft.
+ * Was Spec und Daten NICHT eindeutig hergeben, wird NICHT geraten, sondern als
+ * label/Notiz importiert und im Bericht gezaehlt (Stub-Philosophie).
  */
 import type {
   VisuAktion,
+  VisuDesign,
   VisuDesigns,
   VisuElement,
   VisuPreset,
   VisuSeite,
   VisuSeitenTyp,
+  VisuWidget,
 } from "@fachwerk/schema";
 import { slug } from "./konvertiere.ts";
 
-/** Rohe Visu-Tabellen aus exportVisu.json (Werte, kein Code). */
 export interface VisuExport {
   editVisuPage?: unknown;
   editVisuElement?: unknown;
+  editVisuElementDesign?: unknown;
   editVisuCmdList?: unknown;
+  editVisuBGcol?: unknown;
+  editVisuFGcol?: unknown;
   editKo?: unknown;
   [tabelle: string]: unknown;
 }
 
-/** GA-Schluessel (z. B. "1/3/21") -> Fachwerk-Datenpunkt-Schluessel. */
 export type GaAufloesung = (ga: string) => string | undefined;
 
 export interface VisuKonvertierErgebnis {
@@ -46,9 +53,11 @@ export interface VisuBericht {
   visus: number;
   seiten: number;
   elemente: number;
-  /** controltyp -> Anzahl (Grundlage fuer weiteres Mapping). */
+  /** controltyp -> Anzahl. */
   controltypVerteilung: Map<number, number>;
-  /** Was NICHT abgebildet wurde: Grund -> Anzahl. */
+  /** Uebersprungene Gruppenknoten (controltyp 0). */
+  gruppenknoten: number;
+  /** Was NICHT (vollstaendig) abgebildet wurde: Grund -> Anzahl. */
   nichtAbgebildet: Map<string, number>;
   /** Bindungen, deren KO sich nicht auf einen Datenpunkt aufloesen liess. */
   unaufgeloesteBindungen: number;
@@ -57,7 +66,6 @@ export interface VisuBericht {
 
 // ---- kleine Helfer ---------------------------------------------------------
 
-/** Export-Tabellen sind mal Array, mal id-indiziertes Objekt. */
 function alsZeilen(o: unknown): Record<string, unknown>[] {
   if (Array.isArray(o)) return o as Record<string, unknown>[];
   if (o && typeof o === "object") return Object.values(o as Record<string, unknown>) as Record<string, unknown>[];
@@ -74,10 +82,32 @@ function str(z: Record<string, unknown>, spalte: string): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
-/** Ein GA-belegtes KO oder undefined. */
 function istGa(ga: string): boolean {
   return /^\d+\/\d+\/\d+$/.test(ga);
 }
+
+/** cmdvalue/var-Wert in bool/zahl/text (best effort — wie im Bus-Kontext). */
+function alsWert(roh: string): string | number | boolean {
+  if (roh === "1") return true;
+  if (roh === "0") return false;
+  const n = Number(roh);
+  return Number.isFinite(n) && roh.trim() !== "" ? n : roh;
+}
+
+/**
+ * EDOMI-Text kann HTML-Entities fuer Symbol-Glyphen enthalten (`&#xe92d`).
+ * Numerische Entities in echte Zeichen wandeln, damit ein Symbol-Font sie
+ * rendert; benannte Entities (&amp; …) bleiben unangetastet (selten in Labels).
+ */
+function entschluessleText(t: string): string {
+  return t.replace(/&#x([0-9a-fA-F]+);?/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);?/g, (_, dez) => String.fromCodePoint(Number(dez)));
+}
+
+// ---- Klick-Aktionen (Spec controltyp 1, var3) ------------------------------
+// Bitmaske: 1=Seitensteuerung, 2=Befehle, 4=KO2 setzen (Werte 0..7). Die
+// Seitensteuerung laeuft ueber gotopageid, die Befehle ueber editVisuCmdList.
+const AKT_KO2 = 4;
 
 // ---- Konvertierung ---------------------------------------------------------
 
@@ -89,6 +119,7 @@ export function konvertiereVisu(
   const controltypVerteilung = new Map<number, number>();
   const hinweise: string[] = [];
   let unaufgeloesteBindungen = 0;
+  let gruppenknoten = 0;
   const zaehle = (grund: string): void => {
     nichtAbgebildet.set(grund, (nichtAbgebildet.get(grund) ?? 0) + 1);
   };
@@ -97,13 +128,11 @@ export function konvertiereVisu(
   const koGa = new Map<number, string>();
   for (const ko of alsZeilen(visu.editKo)) koGa.set(num(ko, "id"), str(ko, "ga"));
 
-  /** gaid (KO-Id) -> Datenpunkt-Schluessel, oder undefined (dann Bericht). */
   const aufloese = (koId: number): string | undefined => {
     if (koId === 0) return undefined;
     const ga = koGa.get(koId);
     if (ga === undefined) return undefined;
     if (!istGa(ga)) {
-      // Internes KO ohne GA — ueber den GA-Index nicht aufloesbar.
       zaehle("Bindung auf internes KO (keine GA) nicht aufloesbar");
       unaufgeloesteBindungen++;
       return undefined;
@@ -116,8 +145,55 @@ export function konvertiereVisu(
     return key;
   };
 
-  // Seiten: id -> {slug, typ, name}. Erst der Index, dann die Elemente —
-  // Navigationsziele brauchen die Slugs anderer Seiten.
+  // Farbpaletten (Slot-IDs -> Farbe).
+  const bgFarbe = new Map<number, string>();
+  for (const c of alsZeilen(visu.editVisuBGcol)) bgFarbe.set(num(c, "id"), str(c, "color"));
+  const fgFarbe = new Map<number, string>();
+  for (const c of alsZeilen(visu.editVisuFGcol)) fgFarbe.set(num(c, "id"), str(c, "color"));
+
+  // Basis-Designs je Element (styletyp 0) aus editVisuElementDesign.
+  const designRoh = new Map<number, Record<string, unknown>>();
+  for (const d of alsZeilen(visu.editVisuElementDesign)) {
+    if (num(d, "styletyp") === 0) designRoh.set(num(d, "targetid"), d);
+  }
+
+  // Design-Sammlung: gleiche Optik -> ein Design (dedupliziert).
+  const designs: VisuDesigns = {};
+  const designNachSignatur = new Map<string, string>();
+  const designFuer = (elementId: number): string | undefined => {
+    const roh = designRoh.get(elementId);
+    if (!roh) return undefined;
+    const d: VisuDesign = {};
+    const bg = bgFarbe.get(num(roh, "s9"));
+    if (bg) d.hintergrund = bg;
+    const tf = fgFarbe.get(num(roh, "s15"));
+    if (tf) d.text = tf;
+    const gr = num(roh, "s14");
+    if (gr > 0) d.schriftgroesse = gr;
+    const deck = Number(str(roh, "s8"));
+    if (Number.isFinite(deck) && deck > 0 && deck < 1) d.deckkraft = deck;
+    const rb = num(roh, "s31");
+    const rf = fgFarbe.get(num(roh, "s27")) ?? bgFarbe.get(num(roh, "s27"));
+    const radius = num(roh, "s23");
+    if (rb > 0 || rf || radius > 0) {
+      d.rand = {
+        ...(rb > 0 ? { staerke: rb } : {}),
+        ...(rf ? { farbe: rf } : {}),
+        ...(radius > 0 ? { radius } : {}),
+      };
+    }
+    if (Object.keys(d).length === 0) return undefined;
+    const signatur = JSON.stringify(d);
+    let name = designNachSignatur.get(signatur);
+    if (!name) {
+      name = `d${designNachSignatur.size + 1}`;
+      designNachSignatur.set(signatur, name);
+      designs[name] = d;
+    }
+    return name;
+  };
+
+  // Seiten-Index (Slugs, Typen) — vor den Elementen (Navigationsziele).
   const seitenRoh = alsZeilen(visu.editVisuPage);
   const visuIds = new Set<number>();
   const seiteInfo = new Map<number, { slug: string; typ: VisuSeitenTyp; name: string }>();
@@ -132,7 +208,6 @@ export function konvertiereVisu(
     seiteInfo.set(id, { slug: s, typ: seitentyp(num(p, "pagetyp")), name });
   }
 
-  // Elemente je Seite gruppieren.
   const elementeRoh = alsZeilen(visu.editVisuElement);
   const proSeite = new Map<number, Record<string, unknown>[]>();
   for (const e of elementeRoh) {
@@ -141,7 +216,8 @@ export function konvertiereVisu(
     controltypVerteilung.set(num(e, "controltyp"), (controltypVerteilung.get(num(e, "controltyp")) ?? 0) + 1);
   }
 
-  // Befehle je Element (targetid -> Befehle).
+  // Klick-Befehle je Element (Spec var3-Bit 2 „Befehle"): targetid -> Befehle.
+  // Hier stecken die eigentlichen Aktionen der Symbol-Tasten (Rollladen auf/ab).
   const cmdProElement = new Map<number, Record<string, unknown>[]>();
   for (const c of alsZeilen(visu.editVisuCmdList)) {
     const t = num(c, "targetid");
@@ -157,10 +233,17 @@ export function konvertiereVisu(
     let maxX = 1;
     let maxY = 1;
     const elemSlugs = new Set<string>();
-
     const seitenNotizen: string[] = [];
 
     for (const e of rohElemente) {
+      const controltyp = num(e, "controltyp");
+      // controltyp 0 = Gruppen-/Ordnerknoten (1x1, kein Wert) — kein sichtbares
+      // Element. Ueberspringen statt als leeres label zu rendern.
+      if (controltyp === 0) {
+        gruppenknoten++;
+        continue;
+      }
+
       const id = num(e, "id");
       const x = num(e, "xpos");
       const y = num(e, "ypos");
@@ -177,21 +260,22 @@ export function konvertiereVisu(
         zaehle,
       );
 
-      const name = str(e, "name") || str(e, "text") || `element_${id}`;
-      let key = slug(name);
+      const designName = designFuer(id);
+      if (designName) element.design = designName;
+
+      // Element-Schluessel: sprechender Name, sonst Text, sonst element_<id>.
+      const rohName = str(e, "name") || str(e, "text") || `element_${id}`;
+      let key = slug(rohName);
       while (elemSlugs.has(key)) key = `${key}_${id}`;
       elemSlugs.add(key);
       elemente[key] = element;
 
-      // Placement (einziger Breakpoint "panel"). w/h nur wenn > 0 (Schema).
       const panel: { x: number; y: number; w?: number; h?: number } = { x, y };
       if (w > 0) panel.w = w;
       if (h > 0) panel.h = h;
       element.placements = { panel };
       const z = num(e, "zindex");
       if (z > 0) element.ebene = z;
-      // Element-Notizen sammeln sich seitenweit — das Schema kennt kein
-      // Notizfeld je Element, aber eines je Seite.
       for (const n of notizen) seitenNotizen.push(`${key}: ${n}`);
       elementAnzahl++;
     }
@@ -209,12 +293,13 @@ export function konvertiereVisu(
 
   return {
     seiten,
-    designs: BASIS_DESIGNS,
+    designs,
     bericht: {
       visus: visuIds.size,
       seiten: seiten.size,
       elemente: elementAnzahl,
       controltypVerteilung,
+      gruppenknoten,
       nichtAbgebildet,
       unaufgeloesteBindungen,
       hinweise,
@@ -223,10 +308,9 @@ export function konvertiereVisu(
 }
 
 /**
- * Ein einzelnes Element abbilden. Reihenfolge der Entscheidung:
- * Navigation (gotopageid) schlaegt den controltyp, weil sie das Verhalten
- * bestimmt; danach die bekannten controltyp-Familien; alles Uebrige wird
- * `label` mit Notiz — Struktur rein, Verhalten offen (Stub-Philosophie).
+ * Ein einzelnes Element abbilden (Spec-Katalog). Reihenfolge: Navigation
+ * schlaegt alles (bestimmt das Verhalten), dann Taster (setzt KO2), dann
+ * Anzeige (Status/Wert), sonst Label. Unbekannte controltypen -> label+Notiz.
  */
 function baueElement(
   e: Record<string, unknown>,
@@ -236,119 +320,162 @@ function baueElement(
   zaehle: (grund: string) => void,
 ): { element: VisuElement; notizen: string[] } {
   const controltyp = num(e, "controltyp");
-  const text = str(e, "text");
-  const gaid = num(e, "gaid");
+  const rohText = str(e, "text");
+  const text = rohText ? entschluessleText(rohText) : "";
   const bindungen: Record<string, string> = {};
   const aktionen: Record<string, VisuAktion> = {};
   const notizen: string[] = [];
 
+  const statusKey = aufloese(num(e, "gaid"));
+  let setKey = aufloese(num(e, "gaid2"));
+
   // Navigation: gotopageid / closepopupid.
-  const ziel = num(e, "gotopageid");
-  if (ziel !== 0) {
-    const zielInfo = seiteInfo.get(ziel);
-    if (zielInfo) {
-      aktionen.kurz = zielInfo.typ === "popup" ? { popup: zielInfo.slug } : { seite: zielInfo.slug };
-    } else {
+  const navZiel = num(e, "gotopageid");
+  if (navZiel !== 0) {
+    const zi = seiteInfo.get(navZiel);
+    if (zi) aktionen.kurz = zi.typ === "popup" ? { popup: zi.slug } : { seite: zi.slug };
+    else {
       zaehle("Navigationsziel (gotopageid) unbekannt");
-      notizen.push(`Navigationsziel ${ziel} nicht gefunden`);
+      notizen.push(`Navigationsziel ${navZiel} nicht gefunden`);
     }
   }
   if (num(e, "closepopupid") !== 0 || str(e, "closepopup") === "1") {
-    // Fuer "Popup schliessen" gibt es (noch) keine eigene Aktion im Schema.
     zaehle("closepopup ohne Ziel-Aktion im Schema");
     notizen.push("schliesst ein Popup — im Zielschema noch nicht abbildbar");
   }
 
-  // Befehle (cmd 2 = setze auf ein KO). cmd 4/6 sind noch nicht katalogisiert.
+  // controltyp 1: Universalelement — var3 (Kurz-Klick-Aktion) + var15 (KO2-Wert).
+  if (controltyp === 1) {
+    const kurzAktion = num(e, "var3");
+    if (kurzAktion & AKT_KO2 && setKey) {
+      bindungen.set = setKey;
+      const wert = str(e, "var15");
+      if (wert !== "" && aktionen.kurz === undefined) aktionen.kurz = { setze: alsWert(wert) };
+    }
+  }
+
+  // „Befehle" (var3-Bit 2): die eigentliche Aktion der Symbol-Tasten. cmd 2 =
+  // setze KO auf einen Wert. cmdid1 = Ziel-KO, cmdvalue1 = Wert. Hier bekommen
+  // Rollladen-Auf/Ab/Stopp erst ihre Funktion.
   for (const c of cmds) {
     const cmd = num(c, "cmd");
     if (cmd === 2) {
       const key = aufloese(num(c, "cmdid1"));
-      if (key) {
+      if (key && aktionen.kurz === undefined) {
+        setKey = key;
         bindungen.set = key;
-        if (aktionen.kurz === undefined) aktionen.kurz = { setze: cmdWert(str(c, "cmdvalue1")) };
+        aktionen.kurz = { setze: alsWert(str(c, "cmdvalue1")) };
       }
     } else {
       zaehle(`Element-Befehl cmd ${cmd} nicht abgebildet`);
+      notizen.push(`Klick-Befehl cmd ${cmd} noch nicht abgebildet`);
     }
   }
 
-  // Rollen aus gaid: gaid = anzeigen/schalten, gaid2/gaid3 = Status (best effort).
-  const statusKey = aufloese(gaid) ?? aufloese(num(e, "gaid2")) ?? aufloese(num(e, "gaid3"));
+  // Vorrang-Reihenfolge fuer den Preset.
+  const hatSeitenAktion =
+    aktionen.kurz !== undefined &&
+    ((aktionen.kurz as { seite?: string }).seite !== undefined ||
+      (aktionen.kurz as { popup?: string }).popup !== undefined);
 
-  let preset: VisuPreset;
-  if (aktionen.kurz && (aktionen.kurz as { seite?: string; popup?: string }).seite !== undefined) {
-    preset = "navigation";
-  } else if (aktionen.kurz && (aktionen.kurz as { popup?: string }).popup !== undefined) {
+  let preset: VisuPreset | undefined;
+  let widget: VisuWidget | undefined;
+
+  if (hatSeitenAktion) {
     preset = "navigation";
   } else if (controltyp === 1004) {
-    // KO mit Zustandstexten -> Schalter; die Werte-Zuordnung der Texte ist
-    // ohne Doku nicht sicher und wird bewusst NICHT geraten (Notiz + Bericht).
-    preset = "schalter";
-    if (statusKey) {
-      bindungen.status = statusKey;
-      if (bindungen.set === undefined) bindungen.set = statusKey;
-    }
-    if (aktionen.kurz === undefined && bindungen.set) aktionen.kurz = { art: "umschalten" };
+    // Statustext-Element (nicht in der Spec; aus Daten: bool-Status mit
+    // Zustandstext). Wert->Text-Index ist unbestaetigt -> Dirty-Room.
+    preset = "statusanzeige";
+    if (statusKey) bindungen.status = statusKey;
     const zustaende = text.split("\n").map((t) => t.trim()).filter(Boolean);
     if (zustaende.length > 0) {
-      notizen.push(`Zustandstexte: ${zustaende.join(" / ")} — Werte-Zuordnung pruefen`);
-      zaehle("Zustandstexte eines Schalters nicht als Format abgebildet");
+      notizen.push(`Zustandstexte: ${zustaende.join(" / ")} — Wert-Zuordnung offen (Dirty-Room)`);
+      zaehle("controltyp 1004 Zustandstext-Zuordnung unbestaetigt");
     }
-  } else if (controltyp === 1) {
-    if (statusKey) {
-      preset = "statusanzeige";
-      bindungen.status = statusKey;
+  } else if (controltyp === 21) {
+    widget = "diagramm";
+    zaehle("controltyp 21 (Diagramm) als Widget — Archivbindung pruefen");
+    notizen.push("Diagramm: Archivquelle im Editor zuweisen");
+  } else if (controltyp === 13) {
+    widget = "slider";
+    if (setKey) bindungen.set = setKey;
+    if (statusKey) bindungen.display = statusKey;
+  } else if (bindungen.set) {
+    // Klickbares Element mit KO2 -> Taster (schickt einen festen Wert) bzw.
+    // Schalter (kein fester Wert -> umschalten).
+    if (aktionen.kurz && (aktionen.kurz as { setze?: unknown }).setze !== undefined) {
+      preset = "taster";
     } else {
-      preset = "label";
-      if (text) {
-        // Statischer Text hat im Preset-Schema keinen Platz (kein Textfeld);
-        // ehrlich als Notiz sichern statt zu erfinden.
-        notizen.push(`Text "${text}" nicht uebernommen (Schema hat kein Textfeld fuer Presets)`);
-        zaehle("statischer Text ohne Zielfeld");
-      }
+      preset = "schalter";
+      if (statusKey) bindungen.status = statusKey;
+      if (aktionen.kurz === undefined) aktionen.kurz = { art: "umschalten" };
     }
-  } else if (controltyp === 0) {
-    // Rein grafisches Element (Hintergrund/Rahmen) — kein Fachwerk-Preset
-    // trifft es; als leeres Label mit Notiz, damit die Flaeche erhalten bleibt.
+  } else if (statusKey) {
+    // Reine Anzeige: Zahl -> Wertanzeige, sonst Statusanzeige.
+    preset = text.includes("{") ? "wertanzeige" : "statusanzeige";
+    bindungen.status = statusKey;
+    if (preset === "wertanzeige") bindungen.display = statusKey;
+  } else if (controltyp === 12 || controltyp === 15) {
+    // Dimmer/RGB bzw. Colorpicker — kein direktes Fachwerk-Preset.
     preset = "label";
-    zaehle("controltyp 0 (Grafik/Hintergrund) als label uebernommen");
+    zaehle(`controltyp ${controltyp} (Farb-/Dimmerregler) noch nicht als Widget abgebildet`);
+    notizen.push(`controltyp ${controltyp}: Regler — im Editor nachbauen`);
+  } else if (controltyp === 1) {
+    preset = "label";
   } else {
     preset = "label";
     zaehle(`controltyp ${controltyp} unbekannt -> als label`);
     notizen.push(`controltyp ${controltyp} beim Import nicht erkannt`);
   }
 
-  // Preset-Elemente duerfen laut Schema KEIN parameter tragen (das ist den
-  // Widgets vorbehalten) — Text/Notizen wandern deshalb in seite.notizen.
-  const element: VisuElement = { preset, design: "standard" };
+  // Dynamisches Design via KO3 (Spec: gaid3 steuert design_je_wert).
+  const designKo = aufloese(num(e, "gaid3"));
+  if (designKo && bindungen.status === undefined && preset !== "navigation") {
+    bindungen.status = designKo;
+  }
+
+  // Text als Format-Vorlage (z. B. "{floor(#*100/255)} %") -> WertFormat.
+  const format = textAlsFormat(text);
+
+  const element: VisuElement = {};
+  if (widget) {
+    element.widget = widget;
+    element.parameter = {}; // Widgets MUESSEN parameter tragen (Schema).
+  } else {
+    element.preset = preset!;
+    // Statischer Text/Symbol nur, wo es kein Wert-Format ist.
+    if (text && !format) element.text = text;
+  }
+  if (format) element.format = format;
   if (Object.keys(bindungen).length > 0) element.bindungen = bindungen;
   if (Object.keys(aktionen).length > 0) element.aktionen = aktionen;
   return { element, notizen };
 }
 
-/** cmdvalue-Text in bool/zahl/text (best effort — wie im Bus-Kontext). */
-function cmdWert(roh: string): string | number | boolean {
-  if (roh === "1") return true;
-  if (roh === "0") return false;
-  const n = Number(roh);
-  return Number.isFinite(n) && roh.trim() !== "" ? n : roh;
+/**
+ * EDOMI-Wertausdruck im Text ("{floor(#*100/255)} %") in ein WertFormat
+ * uebersetzen, soweit sicher moeglich. `#` ist der Rohwert. Erkannt wird der
+ * haeufige Skalierungsfall floor(#*a/b); alles andere bleibt Text (kein Raten).
+ */
+function textAlsFormat(text: string): VisuElement["format"] | undefined {
+  if (!text.includes("{")) return undefined;
+  const m = text.match(/\{floor\(#\*(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\)\}/);
+  if (m) {
+    const suffix = text.replace(m[0], "").trim();
+    return {
+      skalierung: Number(m[1]) / Number(m[2]),
+      dezimalstellen: 0,
+      ...(suffix ? { suffix: ` ${suffix}` } : {}),
+    };
+  }
+  // Unbekannter Ausdruck: als Template durchreichen (# -> {wert}) waere Raten;
+  // stattdessen den sichtbaren Text ohne Formel als Suffix behalten.
+  return undefined;
 }
 
-/** pagetyp -> Fachwerk-Seitentyp. 0 = Seite, 2 = Include (Header/Overlay). */
 function seitentyp(pagetyp: number): VisuSeitenTyp {
   if (pagetyp === 2) return "include";
   if (pagetyp === 1) return "popup";
   return "seite";
 }
-
-/**
- * Neutrale Basis-Designs. Das Design-System des Altsystems (Slot-Matrix
- * s1..s48, CSS-Farbverlaeufe) ist undokumentiert; es zu dekodieren waere
- * Raten. Deshalb ein schlichtes, lesbares Set — Farben bestaetigt der
- * Betreiber am Screenshot, nicht der Import.
- */
-const BASIS_DESIGNS: VisuDesigns = {
-  standard: { hintergrund: "#222", text: "#eee", rand: { staerke: 1, farbe: "#444" } },
-  aktiv: { hintergrund: "#fc0", text: "#000" },
-};
