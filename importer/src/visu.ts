@@ -325,6 +325,7 @@ function baueElement(
   const bindungen: Record<string, string> = {};
   const aktionen: Record<string, VisuAktion> = {};
   const notizen: string[] = [];
+  let element_format_bool: { wahr: string; falsch: string } | undefined;
 
   const statusKey = aufloese(num(e, "gaid"));
   let setKey = aufloese(num(e, "gaid2"));
@@ -384,14 +385,24 @@ function baueElement(
   if (hatSeitenAktion) {
     preset = "navigation";
   } else if (controltyp === 1004) {
-    // Statustext-Element (nicht in der Spec; aus Daten: bool-Status mit
-    // Zustandstext). Wert->Text-Index ist unbestaetigt -> Dirty-Room.
-    preset = "statusanzeige";
-    if (statusKey) bindungen.status = statusKey;
-    const zustaende = text.split("\n").map((t) => t.trim()).filter(Boolean);
-    if (zustaende.length > 0) {
-      notizen.push(`Zustandstexte: ${zustaende.join(" / ")} — Wert-Zuordnung offen (Dirty-Room)`);
-      zaehle("controltyp 1004 Zustandstext-Zuordnung unbestaetigt");
+    // Custom-Visuelement „Schiebeschalter (Designgesteuert)" von Sven Anders
+    // (VSE 1004). Semantik aus der geprueften Dirty-Room-Spec (var1=Text-Modus,
+    // var6/var8=Schaltlogik) clean-room nachgebildet. Es ist ein interaktiver
+    // Umschalter auf KO1, KEINE reine Anzeige.
+    preset = "schalter";
+    if (statusKey) {
+      bindungen.status = statusKey;
+      bindungen.set = statusKey; // gaid2 ist bei diesem Element unbenutzt
+      if (aktionen.kurz === undefined) aktionen.kurz = { art: "umschalten" };
+    }
+    const sch = schiebeschalter(e, text);
+    if (sch.an && sch.aus && sch.an !== sch.aus) {
+      element_format_bool = sch.onWahr
+        ? { wahr: sch.an, falsch: sch.aus }
+        : { wahr: sch.aus, falsch: sch.an };
+    }
+    if (sch.deaktiviert) {
+      notizen.push(`Deaktiviert-Text "${sch.deaktiviert}" — Fachwerk hat keinen Sperrtext`);
     }
   } else if (controltyp === 21) {
     widget = "diagramm";
@@ -436,7 +447,12 @@ function baueElement(
   }
 
   // Text als Format-Vorlage (z. B. "{floor(#*100/255)} %") -> WertFormat.
-  const format = textAlsFormat(text);
+  // Dazu ggf. die bool-Beschriftung des Schiebeschalters (An/Aus).
+  const skalFormat = textAlsFormat(text);
+  const format =
+    skalFormat || element_format_bool
+      ? { ...(skalFormat ?? {}), ...(element_format_bool ? { bool_map: element_format_bool } : {}) }
+      : undefined;
 
   const element: VisuElement = {};
   if (widget) {
@@ -444,7 +460,7 @@ function baueElement(
     element.parameter = {}; // Widgets MUESSEN parameter tragen (Schema).
   } else {
     element.preset = preset!;
-    // Statischer Text/Symbol nur, wo es kein Wert-Format ist.
+    // Statischer Text/Symbol nur, wo es kein Wert-Format/keine bool-Map ist.
     if (text && !format) element.text = text;
   }
   if (format) element.format = format;
@@ -472,6 +488,45 @@ function textAlsFormat(text: string): VisuElement["format"] | undefined {
   // Unbekannter Ausdruck: als Template durchreichen (# -> {wert}) waere Raten;
   // stattdessen den sichtbaren Text ohne Formel als Suffix behalten.
   return undefined;
+}
+
+/**
+ * Schiebeschalter (VSE 1004): An-/Aus-/Deaktiviert-Beschriftungen und die
+ * Ein-Bedeutung aus var1/var6/var8 bestimmen (Dirty-Room-Spec).
+ *   var1 = Text-Modus (welche Zeile des Textfelds welche Rolle hat)
+ *   var6 = Schaltlogik (0/1: An == x · 2/3: An != x)
+ *   var8 = Vergleichswert x (bool: 1 = An)
+ * `onWahr` = true bedeutet: KO-Wert wahr entspricht dem An-Text.
+ */
+function schiebeschalter(
+  e: Record<string, unknown>,
+  text: string,
+): { an?: string; aus?: string; deaktiviert?: string; onWahr: boolean } {
+  const zeilen = text.split(/<br\s*\/?>|\n/);
+  const z = (i: number): string | undefined => {
+    const t = (zeilen[i] ?? "").trim();
+    return t === "" ? undefined : t;
+  };
+  const var1 = num(e, "var1");
+  let an: string | undefined;
+  let aus: string | undefined;
+  let deaktiviert: string | undefined;
+  // Index-Tabelle laut Spec; bei var1=5 die Knopf-Beschriftung (idx 2/3)
+  // bevorzugen, sonst die Hintergrund-Beschriftung (idx 0/1).
+  switch (var1) {
+    case 1: [an, aus] = [z(0), z(1)]; break;
+    case 2: [an, aus, deaktiviert] = [z(0), z(0), z(1)]; break;
+    case 3: [an, aus, deaktiviert] = [z(0), z(1), z(2)]; break;
+    case 4: [an, aus, deaktiviert] = [z(0), z(1), z(3)]; break;
+    case 5: [an, aus, deaktiviert] = [z(2) ?? z(0), z(3) ?? z(1), z(4)]; break;
+    default: break;
+  }
+  // Ein-Bedeutung: var6 0/1 => An bei value==x; 2/3 => An bei value!=x.
+  const var6 = num(e, "var6");
+  const xIstEins = str(e, "var8").trim() === "1";
+  const anGleichX = var6 === 0 || var6 === 1;
+  const onWahr = anGleichX ? xIstEins : !xIstEins;
+  return { ...(an ? { an } : {}), ...(aus ? { aus } : {}), ...(deaktiviert ? { deaktiviert } : {}), onWahr };
 }
 
 function seitentyp(pagetyp: number): VisuSeitenTyp {

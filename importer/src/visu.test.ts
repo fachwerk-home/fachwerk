@@ -30,8 +30,9 @@ function fixture(): VisuExport {
       { id: 12, controltyp: 1, pageid: 1, gaid2: 100, var3: 4, var15: "1", xpos: 0, ypos: 60, xsize: 60, ysize: 60, text: "&#xe92d" },
       // Navigation via gotopageid (Ziel ist Popup).
       { id: 13, controltyp: 1, pageid: 1, gotopageid: 2, xpos: 0, ypos: 150, xsize: 120, ysize: 40, text: "Details" },
-      // Statustext (controltyp 1004): bool-Status mit Zustandsliste.
-      { id: 14, controltyp: 1004, pageid: 1, gaid: 100, xpos: 0, ypos: 210, xsize: 200, ysize: 80, text: "\n\nAn\nAus" },
+      // Schiebeschalter (VSE 1004): var1=5 -> Knopftext idx 2/3; var6=0,var8=1
+      // -> An bei wahr. Text: "" "" An Aus deaktiviert.
+      { id: 14, controltyp: 1004, pageid: 1, gaid: 100, var1: "5", var6: "0", var8: "1", xpos: 0, ypos: 210, xsize: 200, ysize: 80, text: "\n\nAn\nAus\ndeaktiviert" },
       // Positionsanzeige mit Formel -> Format.
       { id: 15, controltyp: 1, pageid: 1, gaid: 100, xpos: 300, ypos: 60, xsize: 80, ysize: 40, text: "{floor(#*100/255)} %" },
       // Gruppenknoten (controltyp 0) -> uebersprungen.
@@ -123,12 +124,18 @@ test("Design-Slots werden zu einem dedizierten Design (Farben, Schrift, Rand)", 
   expect(d.rand).toMatchObject({ staerke: 1, farbe: "#abcdef" });
 });
 
-test("controltyp 1004 wird Statusanzeige mit Notiz zur offenen Wert-Zuordnung", () => {
-  const { seiten, bericht } = seiteWz();
-  const wz = seiten.get("wohnzimmer")!;
-  const st = Object.values(wz.elemente).find((e) => e.preset === "statusanzeige" && e.bindungen?.status === "wohnen.licht" && wz.notizen?.includes("Zustandstexte"));
-  expect(st).toBeDefined();
-  expect([...bericht.nichtAbgebildet.keys()].join(" ")).toContain("1004");
+test("controltyp 1004 wird interaktiver Schalter mit An/Aus-bool_map (Dirty-Room-Spec)", () => {
+  const wz = seiteWz().seiten.get("wohnzimmer")!;
+  const sch = Object.values(wz.elemente).find(
+    (e) => e.preset === "schalter" && e.format?.bool_map !== undefined,
+  );
+  expect(sch).toBeDefined();
+  // var1=5 -> Knopftext idx2/idx3 = An/Aus; var6=0,var8=1 -> wahr=An.
+  expect(sch?.format?.bool_map).toEqual({ wahr: "An", falsch: "Aus" });
+  expect(sch?.bindungen).toMatchObject({ status: "wohnen.licht", set: "wohnen.licht" });
+  expect(sch?.aktionen?.kurz).toEqual({ art: "umschalten" });
+  // "deaktiviert" hat kein Zielfeld -> Notiz.
+  expect(wz.notizen ?? "").toContain("deaktiviert");
 });
 
 test("Bericht zaehlt Unbekanntes und nicht aufgeloeste Bindungen", () => {

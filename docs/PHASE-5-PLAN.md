@@ -225,11 +225,16 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
   controltyp 0 = Gruppenknoten (übersprungen), 13→slider, 21→diagramm.
   Realer Re-Run: **10 Seiten / 128 Elemente**, validate+ladeVisu grün; Beispiel
   Jalousie: 18 taster, 6 wertanzeige, echte Labels+Designs.
+- **controltyp 1004 aufgelöst (21.07.2026, Dirty-Room):** Custom-VSE
+  „Schiebeschalter (Designgesteuert)" (Sven Anders). Spec via Gemini aus
+  `.../admin/vse/1004_vse.php` extrahiert, in `research/visu-format-spec.md §5`
+  dokumentiert, clean-room in den Katalog gebaut: preset **schalter** (nicht
+  statusanzeige!), status+set=KO1, umschalten, An/Aus-Text (var1-Index) →
+  `bool_map` (Ein-Bedeutung aus var6/var8), Deaktiviert-Text → Notiz.
 - **Ehrliche Rest-Lücken (im Report gezählt):** 7 interne KOs ohne GA, cmd 4/6
-  (je 3/5) nicht katalogisiert, controltyp 1004 Zustandstext-**Index** offen
-  (→ Dirty-Room), 12/15 (Dimmer/Colorpicker) + 21 (Diagramm-Archivbindung)
-  best-effort. **Renderer-Hälfte von B-8** (Elementtext anzeigen) +
-  **Symbol-Schrift** (Panel-Icons) sind eigene Aufträge für Codex
+  (je 3/5) nicht katalogisiert, 12/15 (Dimmer/Colorpicker) + 21 (Diagramm-
+  Archivbindung) best-effort. **Renderer-Hälfte von B-8** (Elementtext anzeigen)
+  + **Symbol-Schrift** (Panel-Icons) sind eigene Aufträge für Codex
   (`AUFTRAG-B8-VISU-TEXT.md`) — bis dahin zeigt der Renderer noch Schlüssel.
 
 ---
