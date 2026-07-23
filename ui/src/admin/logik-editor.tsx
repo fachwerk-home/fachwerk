@@ -215,11 +215,15 @@ export function LogikEditor({
   dps,
   seiteKey,
   setSeiteKey,
+  darfSpeichern,
+  darfAktivieren,
 }: {
   gewerk: GewerkStruktur;
   dps: DatenpunktSicht[];
   seiteKey: string;
   setSeiteKey: (key: string) => void;
+  darfSpeichern: boolean;
+  darfAktivieren: boolean;
 }) {
   const apiSeite = gewerk.seiten.find((s) => s.name === seiteKey) ?? gewerk.seiten[0]!;
   const [seite, setSeite] = useState<LogikSeite>(() => zuLogikSeite(apiSeite));
@@ -288,7 +292,7 @@ export function LogikEditor({
     setDirty(true);
   };
   const save = async (): Promise<void> => {
-    if (readonlyGrund) return;
+    if (readonlyGrund || !darfSpeichern) return;
     const inhalt = inhaltZumSpeichern(seite, raw, dirty);
     try {
       const antwort = await api.schreibeGewerkDatei(dateiPfad(seiteKey), inhalt);
@@ -303,6 +307,10 @@ export function LogikEditor({
   };
   const aktivieren = async (): Promise<void> => {
     const fehler = probleme.filter((p) => p.art === "fehler");
+    if (!darfAktivieren) {
+      setMeldung({ ton: "fehler", text: "Aktivieren blockiert: Scope activate:dev fehlt." });
+      return;
+    }
     if (fehler.length > 0) {
       setMeldung({ ton: "fehler", text: `Aktivieren blockiert: ${fehler.map((p) => `${p.ort}: ${p.text}`).join(" | ")}` });
       return;
@@ -344,8 +352,8 @@ export function LogikEditor({
         <button disabled={vergangenheit.current.length === 0} onClick={undo}>↶</button>
         <button disabled={zukunft.current.length === 0} onClick={redo}>↷</button>
         {readonlyGrund && <span class="warn-chip" title={readonlyGrund}>Read-only</span>}
-        <button class="primaer" disabled={Boolean(readonlyGrund)} onClick={() => void save()}>{dirty ? "Speichern*" : "Speichern"}</button>
-        <button disabled={Boolean(readonlyGrund)} onClick={() => void aktivieren()}>Aktivieren</button>
+        <button class="primaer" disabled={Boolean(readonlyGrund) || !darfSpeichern} onClick={() => void save()} title={darfSpeichern ? undefined : "Scope write:gewerk fehlt"}>{dirty ? "Speichern*" : "Speichern"}</button>
+        <button disabled={Boolean(readonlyGrund) || !darfAktivieren} onClick={() => void aktivieren()} title={darfAktivieren ? undefined : "Scope activate:dev fehlt"}>Aktivieren</button>
         <span class="schwach">Validierung lokal bis API /api/gewerk/validieren existiert.</span>
       </div>
       {meldung && <div class={`editor-meldung ${meldung.ton}`}>{meldung.text}</div>}

@@ -4,7 +4,9 @@ import "../lib/stil.css";
 import "./admin.css";
 import {
   api,
+  setzeAuthErforderlichHandler,
   verbindeLive,
+  type IchAntwort,
   type DatenpunktSicht,
   type ArchivEintrag,
   type GewerkStruktur,
@@ -12,6 +14,8 @@ import {
   type Status,
   type Trace,
 } from "../lib/api.ts";
+import { hatScope, type AuthStatus } from "../lib/auth.ts";
+import { LoginAnsicht } from "../lib/login.tsx";
 import { BildPuffer } from "./batching.ts";
 import { dauer } from "./format.ts";
 import { Datenpunkte } from "./datenpunkte.tsx";
@@ -76,7 +80,19 @@ const navigation: Array<{ id: Ansicht; icon: string; label: string; taste: strin
   { id: "visu_editor", icon: "▧", label: "Visu-Editor", taste: "5" },
 ];
 
-function Navigation({ ansicht, wechseln, wartend }: { ansicht: Ansicht; wechseln: (ansicht: Ansicht) => void; wartend: number }) {
+function Navigation({
+  ansicht,
+  wechseln,
+  wartend,
+  ich,
+  abmelden,
+}: {
+  ansicht: Ansicht;
+  wechseln: (ansicht: Ansicht) => void;
+  wartend: number;
+  ich: IchAntwort;
+  abmelden: () => void;
+}) {
   return (
     <nav class="seitenleiste" aria-label="Hauptnavigation">
       <div class="seitenleiste-marke" title="Fachwerk">F</div>
@@ -89,6 +105,7 @@ function Navigation({ ansicht, wechseln, wartend }: { ansicht: Ansicht; wechseln
         ))}
       </div>
       <div class="nav-gruppe nav-unten">
+        <button title={`Abmelden (${ich.name}, ${ich.art})`} onClick={abmelden}><span class="nav-icon" aria-hidden="true">⎋</span><span class="nav-label">Abmelden</span></button>
         <button disabled title="Einstellungen – folgt in einer späteren Ausbaustufe"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Einstellungen</span></button>
       </div>
     </nav>
@@ -96,6 +113,8 @@ function Navigation({ ansicht, wechseln, wartend }: { ansicht: Ansicht; wechseln
 }
 
 function App() {
+  const [auth, setAuth] = useState<AuthStatus>({ art: "laedt" });
+  const [authZaehler, setAuthZaehler] = useState(0);
   const [status, setStatus] = useState<Status | null>(null);
   const [dps, setDps] = useState<DatenpunktSicht[]>([]);
   const [geaendert, setGeaendert] = useState<Record<string, number>>({});
@@ -115,6 +134,26 @@ function App() {
   const pausiertRef = useRef(false);
 
   useEffect(() => {
+    setzeAuthErforderlichHandler(() => setAuth({ art: "login" }));
+    return () => setzeAuthErforderlichHandler(null);
+  }, []);
+
+  const ladeIdentitaet = async (): Promise<void> => {
+    try {
+      const ich = await api.ich();
+      setAuth({ art: "bereit", ich });
+      setAuthZaehler((alt) => alt + 1);
+    } catch (error) {
+      if (error instanceof Error) setFehler(error.message);
+    }
+  };
+
+  useEffect(() => {
+    void ladeIdentitaet();
+  }, []);
+
+  useEffect(() => {
+    if (auth.art !== "bereit") return;
     let aktiv = true;
     const laden = async (): Promise<void> => {
       try {
@@ -134,9 +173,10 @@ function App() {
     void laden();
     const timer = setInterval(() => void api.status().then(setStatus).catch(() => {}), 5_000);
     return () => { aktiv = false; clearInterval(timer); };
-  }, []);
+  }, [auth.art, authZaehler]);
 
   useEffect(() => {
+    if (auth.art !== "bereit") return;
     const wertPuffer = new BildPuffer<WertNachricht>();
     let bild: number | null = null;
     const anwenden = (): void => {
@@ -170,7 +210,7 @@ function App() {
       }
     }, setLive);
     return () => { trennen(); if (bild !== null) cancelAnimationFrame(bild); };
-  }, []);
+  }, [auth.art, authZaehler]);
 
   useEffect(() => {
     const tastatur = (event: KeyboardEvent): void => {
@@ -203,18 +243,36 @@ function App() {
     if (!an) setWartend(0);
   };
 
+  const abmelden = async (): Promise<void> => {
+    await api.logout().catch(() => {});
+    setStatus(null);
+    setDps([]);
+    setGewerk(null);
+    setArchive([]);
+    setTraces([]);
+    setLive(false);
+    setAuth({ art: "login" });
+  };
+
+  if (auth.art === "login") return <LoginAnsicht titel="Fachwerk Admin" onErfolg={() => void ladeIdentitaet()} />;
+  if (auth.art === "laedt") return <main class="login-seite"><div class="login-karte"><span class="produkt">FACHWERK</span><p>Rechte werden geprüft …</p></div></main>;
+
+  const ich = auth.ich;
+  const darfGewerkSchreiben = hatScope(ich, "write:gewerk");
+  const darfAktivieren = hatScope(ich, "activate:dev");
+
   return (
     <div class="admin-shell">
-      <Navigation ansicht={ansicht} wechseln={setAnsicht} wartend={pausiert ? wartend : 0} />
+      <Navigation ansicht={ansicht} wechseln={setAnsicht} wartend={pausiert ? wartend : 0} ich={ich} abmelden={() => void abmelden()} />
       <div class="admin-inhalt">
         <div class="admin-kopfbereich"><Kopf status={status} live={live} /></div>
         {fehler && <div class="fehlermeldung" role="alert"><strong>API nicht erreichbar</strong><span>{fehler}</span></div>}
         <main>
           <section hidden={ansicht !== "datenpunkte"} aria-label="Datenpunkte"><Datenpunkte dps={dps} geaendert={geaendert} sucheRef={sucheRef} /></section>
           <section hidden={ansicht !== "traces"} aria-label="Traces"><Traces traces={traces} pausiert={pausiert} wartend={wartend} setzePause={setzePause} escSignal={escSignal} /></section>
-          <section hidden={ansicht !== "logik"} aria-label="Logik"><Logik gewerk={gewerk} dps={dps} schritte={schritte} escSignal={escSignal} /></section>
+          <section hidden={ansicht !== "logik"} aria-label="Logik"><Logik gewerk={gewerk} dps={dps} schritte={schritte} escSignal={escSignal} darfSpeichern={darfGewerkSchreiben} darfAktivieren={darfAktivieren} /></section>
           <section hidden={ansicht !== "archive"} aria-label="Archive"><Archive archive={archive} liveNachricht={liveNachricht} /></section>
-          <section hidden={ansicht !== "visu_editor"} aria-label="Visu-Editor"><VisuEditor dps={dps} /></section>
+          <section hidden={ansicht !== "visu_editor"} aria-label="Visu-Editor"><VisuEditor dps={dps} darfSpeichern={darfGewerkSchreiben} darfAktivieren={darfAktivieren} /></section>
         </main>
       </div>
     </div>

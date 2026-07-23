@@ -173,42 +173,65 @@ export interface VisuAntwort {
   designs: Record<string, unknown>;
 }
 
-/** Token aus ?token= oder localStorage (DEV-Niveau, ADR-0009; P5-12 löst es ab). */
-function token(): string | null {
-  const ausUrl = new URLSearchParams(location.search).get("token");
-  if (ausUrl) localStorage.setItem("fachwerk-token", ausUrl);
-  return localStorage.getItem("fachwerk-token");
+export type Scope = "read" | "operate" | "write:gewerk" | "activate:dev";
+
+export interface IchAntwort {
+  name: string;
+  art: "sitzung" | "token" | "anonym";
+  scopes: Scope[];
+}
+
+export interface LoginAntwort {
+  token: string;
+  ablauf: number;
+  nutzer: string;
+  scopes: Scope[];
+}
+
+export interface LogoutAntwort {
+  abgemeldet: boolean;
+}
+
+let beiAuthErforderlich: (() => void) | null = null;
+
+export function setzeAuthErforderlichHandler(handler: (() => void) | null): void {
+  beiAuthErforderlich = handler;
+}
+
+function meldeAuthErforderlich(status: number): void {
+  if (status === 401) beiAuthErforderlich?.();
 }
 
 async function hole<T>(pfad: string): Promise<T> {
-  const t = token();
-  const antwort = await fetch(pfad, {
-    headers: t ? { authorization: `Bearer ${t}` } : {},
-  });
+  const antwort = await fetch(pfad);
+  const antwortKoerper = await antwort.json().catch(() => ({})) as ApiFehlerDetails;
   if (!antwort.ok) {
-    throw new Error(`${antwort.status} ${antwort.statusText} bei ${pfad}`);
+    meldeAuthErforderlich(antwort.status);
+    throw new ApiFehler(antwort.status, antwort.statusText, pfad, antwortKoerper);
   }
-  return (await antwort.json()) as T;
+  return antwortKoerper as T;
 }
 
 async function sende<T>(pfad: string, koerper: unknown): Promise<T> {
-  const t = token();
   const antwort = await fetch(pfad, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(t ? { authorization: `Bearer ${t}` } : {}),
     },
     body: JSON.stringify(koerper),
   });
   const antwortKoerper = await antwort.json().catch(() => ({})) as ApiFehlerDetails;
   if (!antwort.ok) {
+    meldeAuthErforderlich(antwort.status);
     throw new ApiFehler(antwort.status, antwort.statusText, pfad, antwortKoerper);
   }
   return antwortKoerper as T;
 }
 
 export const api = {
+  login: (name: string, passwort: string) => sende<LoginAntwort>("/api/login", { name, passwort }),
+  logout: () => sende<LogoutAntwort>("/api/logout", {}),
+  ich: () => hole<IchAntwort>("/api/ich"),
   status: () => hole<Status>("/api/status"),
   datenpunkte: (filter = "") =>
     hole<{ anzahl: number; datenpunkte: DatenpunktSicht[] }>(
@@ -257,12 +280,14 @@ export function verbindeLive(
   let versuch = 0;
   let beendet = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let warVerbunden = false;
 
   const oeffne = (): void => {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     ws = new WebSocket(`${proto}//${location.host}/api/ws`);
     ws.onopen = () => {
       versuch = 0;
+      warVerbunden = true;
       beiStatus?.(true);
     };
     ws.onmessage = (ev) => {
@@ -275,6 +300,11 @@ export function verbindeLive(
     ws.onclose = () => {
       beiStatus?.(false);
       if (beendet) return;
+      if (!warVerbunden) {
+        void fetch("/api/ich")
+          .then((antwort) => meldeAuthErforderlich(antwort.status))
+          .catch(() => {});
+      }
       const wartenMs = Math.min(10_000, 500 * 2 ** Math.min(versuch++, 4));
       timer = setTimeout(oeffne, wartenMs);
     };

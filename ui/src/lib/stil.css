@@ -141,6 +141,61 @@ input[type="search"], input[type="text"], select {
   color: var(--fw-text);
 }
 
+input[type="password"] {
+  min-height: 30px;
+  padding: var(--fw-s1) var(--fw-s2);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-s);
+  background: var(--fw-flaeche);
+  color: var(--fw-text);
+}
+
+.login-seite {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--fw-s5);
+}
+
+.login-karte {
+  width: min(100%, 360px);
+  display: grid;
+  gap: var(--fw-s3);
+  padding: var(--fw-s5);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-l);
+  background: var(--fw-flaeche);
+  box-shadow: var(--fw-schatten-m);
+}
+
+.login-karte h1 {
+  margin: var(--fw-s1) 0;
+  font-size: 22px;
+}
+
+.login-karte p {
+  margin: 0;
+}
+
+.login-karte label {
+  display: grid;
+  gap: var(--fw-s1);
+  color: var(--fw-text-schwach);
+  font-size: 12px;
+}
+
+.login-karte input {
+  width: 100%;
+}
+
+.login-fehler {
+  padding: var(--fw-s2);
+  border: 1px solid color-mix(in srgb, var(--fw-fehler) 35%, var(--fw-rand));
+  border-radius: var(--fw-radius-s);
+  background: var(--fw-fehler-ruhig);
+  color: var(--fw-fehler);
+}
+
 .schwach { color: var(--fw-text-schwach); }
 .ok { color: var(--fw-ok); }
 .warn { color: var(--fw-warn); }

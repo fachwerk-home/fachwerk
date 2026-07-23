@@ -249,11 +249,15 @@ export function Logik({
   dps,
   schritte,
   escSignal,
+  darfSpeichern,
+  darfAktivieren,
 }: {
   gewerk: GewerkStruktur | null;
   dps: DatenpunktSicht[];
   schritte: Record<string, LetzterSchritt>;
   escSignal: number;
+  darfSpeichern: boolean;
+  darfAktivieren: boolean;
 }) {
   const [seitenName, setSeitenName] = useState<string | null>(null);
   const [gewaehlt, setGewaehlt] = useState<string | null>(null);
@@ -299,6 +303,8 @@ export function Logik({
           gewerk={gewerk}
           dps={dps}
           seiteKey={seite.name}
+          darfSpeichern={darfSpeichern}
+          darfAktivieren={darfAktivieren}
           setSeiteKey={(key) => {
             setSeitenName(key);
             setGewaehlt(null);
@@ -372,7 +378,7 @@ export function Logik({
         </select>
         {seite.notizen && <span class="schwach logik-notiz">{seite.notizen}</span>}
         <span class="werkzeuge-trenner" />
-        <button class="primaer" onClick={() => setEditieren(true)}>Editieren</button>
+        {(darfSpeichern || darfAktivieren) && <button class="primaer" onClick={() => setEditieren(true)}>Editieren</button>}
         <button onClick={() => setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom / 1.2) }))} aria-label="Verkleinern">−</button>
         <span class="mono schwach">{Math.round(kamera.zoom * 100)}%</span>
         <button onClick={() => setKamera((alt) => ({ ...alt, zoom: begrenzeZoom(alt.zoom * 1.2) }))} aria-label="Vergrößern">+</button>
