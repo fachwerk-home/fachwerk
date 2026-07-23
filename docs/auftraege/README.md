@@ -72,10 +72,10 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-P5-9.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main; Screenshot-Bestätigung + B-8 offen) |
 | AUFTRAG-P5-10a.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
 | AUFTRAG-P5-10.md | Codex | ⚠️ gemergt, aber fehlerhaft → P5-10-FIX |
-| AUFTRAG-P5-10-FIX.md | Codex | ✅ gebaut auf `auftrag/p5-10-visu-editor-fix` — **wartet auf Review+Merge (Spur 1)** |
+| AUFTRAG-P5-10-FIX.md | Codex | ✅ gemergt (2b9dfa0) |
 | AUFTRAG-P5-11.md | Codex | ⚠️ gemergt, aber fehlerhaft → P5-11-FIX |
-| AUFTRAG-P5-11-FIX.md | Codex | ✅ gebaut auf `auftrag/p5-11-logik-editor-fix` — **wartet auf Review+Merge (Spur 1)** |
+| AUFTRAG-P5-11-FIX.md | Codex | ✅ gemergt (3f2644c) |
 | AUFTRAG-P5-12.md | Spur 1 (Opus) | ✅ erledigt (direkt auf main) |
-| AUFTRAG-P5-UI-LOGIN.md | Codex | 🔨 vergeben 24.07.2026 (Folge von P5-12) |
+| AUFTRAG-P5-UI-LOGIN.md | Codex | ✅ gemergt (5049a7b) |
 | AUFTRAG-B8-VISU-TEXT.md | Codex | 🔨 vergeben 24.07.2026 (Renderer/Editor-Hälfte von B-8; Schema+Import erledigt) |
 | AUFTRAG-MIGRATIONS-REPORT.md | Gemini | 🔨 vergeben 24.07.2026 (unbekannte LBS/VSE als Aufgabenliste) |
