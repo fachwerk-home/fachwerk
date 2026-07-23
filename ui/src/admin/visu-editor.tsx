@@ -19,6 +19,7 @@ import {
   fuegeElementEin,
   loescheElemente,
   materialisierePlacement,
+  mussVorAktivierenSpeichern,
   sollDragHistorieMerken,
   skaliereElement,
   verschiebeElemente,
@@ -346,8 +347,8 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
     return { x: Math.max(0, event.clientX - (rect?.left ?? 0)), y: Math.max(0, event.clientY - (rect?.top ?? 0)) };
   };
 
-  const speichere = async (): Promise<void> => {
-    if (!seite || !seiteKey || readonlyGrund) return;
+  const speichere = async (): Promise<boolean> => {
+    if (!seite || !seiteKey || readonlyGrund) return false;
     const inhalt = inhaltZumSpeichern(seite, raw, dirty);
     try {
       const antwort = await api.schreibeGewerkDatei(dateiPfad(seiteKey), inhalt);
@@ -355,15 +356,18 @@ export function VisuEditor({ dps }: { dps: DatenpunktSicht[] }) {
       setDirty(false);
       setReadonlyGrund(null);
       setMeldung({ ton: "ok", text: `Gespeichert: ${antwort.pfad ?? dateiPfad(seiteKey)}` });
+      return true;
     } catch (error) {
       const grund = error instanceof Error ? error.message : String(error);
       if (error instanceof ApiFehler && (error.status === 401 || error.status === 403)) setReadonlyGrund(grund);
       setMeldung({ ton: "fehler", text: grund });
+      return false;
     }
   };
 
   const aktiviere = async (): Promise<void> => {
     if (readonlyGrund) return;
+    if (mussVorAktivierenSpeichern(dirty) && !(await speichere())) return;
     try {
       const antwort = await api.aktiviereGewerk();
       setReadonlyGrund(null);

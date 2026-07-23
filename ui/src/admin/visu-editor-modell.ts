@@ -23,6 +23,10 @@ export function fehlendeVisuEditorScopes(scopes: readonly string[]): string[] {
   return ["write:gewerk", "activate:dev"].filter((scope) => !vorhanden.has(scope));
 }
 
+export function mussVorAktivierenSpeichern(dirty: boolean): boolean {
+  return dirty;
+}
+
 export function freierKey(seite: VisuSeite, basis: string): string {
   const roh = basis.toLowerCase().replaceAll(/[^a-z0-9_]/g, "_").replaceAll(/_+/g, "_").replace(/^_+/, "") || "element";
   const start = /^[a-z]/.test(roh) ? roh : `e_${roh}`;

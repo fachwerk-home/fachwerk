@@ -5,6 +5,7 @@ import {
   dupliziereElemente,
   fehlendeVisuEditorScopes,
   fuegeElementEin,
+  mussVorAktivierenSpeichern,
   rastere,
   sollDragHistorieMerken,
   verschiebeElemente,
@@ -75,5 +76,10 @@ describe("Visu-Editor-Modell", () => {
   it("erkennt fehlende Schreib- und Aktivier-Scopes vor dem Speichern", () => {
     expect(fehlendeVisuEditorScopes(["read", "operate"])).toEqual(["write:gewerk", "activate:dev"]);
     expect(fehlendeVisuEditorScopes(["read", "operate", "write:gewerk", "activate:dev"])).toEqual([]);
+  });
+
+  it("fordert vor Aktivieren einen Save, wenn der Visu-Editor dirty ist", () => {
+    expect(mussVorAktivierenSpeichern(true)).toBe(true);
+    expect(mussVorAktivierenSpeichern(false)).toBe(false);
   });
 });
