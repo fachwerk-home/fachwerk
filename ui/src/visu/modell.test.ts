@@ -5,6 +5,7 @@ import {
   elementAnzeige,
   formatierterWert,
   placementFuer,
+  renderElementeFuerSeite,
   startSeite,
   waehleBreakpoint,
 } from "./modell.ts";
@@ -119,11 +120,52 @@ describe("Seitenstart", () => {
   it("respektiert eine gültige URL-Seite und fällt alphabetisch zurück", () => {
     const seiten = {
       popup: { ...SEITE, typ: "popup" as const },
+      kopf: { ...SEITE, typ: "include" as const },
       zimmer: SEITE,
       anfang: { ...SEITE, name: "Anfang" },
     };
     expect(startSeite(seiten, "zimmer")).toBe("zimmer");
     expect(startSeite(seiten, "popup")).toBe("anfang");
+    expect(startSeite(seiten, "kopf")).toBe("anfang");
     expect(startSeite(seiten)).toBe("anfang");
+  });
+});
+
+describe("Include-Seiten", () => {
+  it("rendert Include-Elemente vor den Elementen der eigentlichen Seite", () => {
+    const seiten: Record<string, VisuSeite> = {
+      kopf: {
+        ...SEITE,
+        typ: "include",
+        elemente: {
+          logo: { preset: "symbol", text: "F" },
+          titel: { preset: "label", text: "Header" },
+        },
+      },
+      start: {
+        ...SEITE,
+        includes: ["kopf"],
+        elemente: {
+          inhalt: { preset: "label", text: "Inhalt" },
+        },
+      },
+    };
+
+    expect(renderElementeFuerSeite(seiten, "start").map((element) => element.renderKey))
+      .toEqual(["kopf:logo", "kopf:titel", "start:inhalt"]);
+  });
+
+  it("ignoriert fehlende oder nicht-include Referenzen robust", () => {
+    const seiten: Record<string, VisuSeite> = {
+      kopf: { ...SEITE, typ: "seite", elemente: { falsch: { preset: "label" } } },
+      start: {
+        ...SEITE,
+        includes: ["fehlt", "kopf"],
+        elemente: { inhalt: { preset: "label", text: "Inhalt" } },
+      },
+    };
+
+    expect(renderElementeFuerSeite(seiten, "start").map((element) => element.renderKey))
+      .toEqual(["start:inhalt"]);
   });
 });

@@ -20,6 +20,7 @@ import {
   designFuer,
   elementAnzeige,
   placementFuer,
+  renderElementeFuerSeite,
   startSeite,
   waehleBreakpoint,
   type WertEintrag,
@@ -286,6 +287,8 @@ function VisuElementAnsicht({
 
 function SeitenCanvas({
   seite,
+  seiteKey,
+  seiteLookup,
   designs,
   werte,
   onAktion,
@@ -293,6 +296,8 @@ function SeitenCanvas({
   popup = false,
 }: {
   seite: VisuSeite;
+  seiteKey: string;
+  seiteLookup: Record<string, VisuSeite>;
   designs: VisuDesigns;
   werte: ReadonlyMap<string, WertEintrag>;
   onAktion: (aktion: VisuAktion) => void;
@@ -313,16 +318,21 @@ function SeitenCanvas({
       <div
         class="canvas"
         data-breakpoint={breakpoint}
-        style={{ width: canvas.w, height: canvas.h, transform: `scale(${faktor})` }}
+        style={{
+          width: canvas.w,
+          height: canvas.h,
+          transform: `scale(${faktor})`,
+          ...(seite.hintergrund ? { background: seite.hintergrund } : {}),
+        }}
       >
-        {Object.entries(seite.elemente).map(([key, element]) => {
-          const placement = placementFuer(element, breakpoint, seite.basis);
+        {renderElementeFuerSeite(seiteLookup, seiteKey).map(({ renderKey, elementKey, element, seite: renderSeite }) => {
+          const placement = placementFuer(element, breakpoint, renderSeite.basis);
           if (!placement || placement.sichtbar === false) return null;
-          const gruppenEbene = element.gruppe ? seite.gruppen?.[element.gruppe]?.ebene ?? 0 : 0;
+          const gruppenEbene = element.gruppe ? renderSeite.gruppen?.[element.gruppe]?.ebene ?? 0 : 0;
           return (
             <VisuElementAnsicht
-              key={key}
-              elementKey={key}
+              key={renderKey}
+              elementKey={elementKey}
               element={element}
               placement={placement}
               designs={designs}
@@ -389,9 +399,6 @@ function App() {
         ])));
         const ausUrl = new URLSearchParams(location.search).get("seite");
         setSeiteKey(startSeite(geladen.seiten, ausUrl));
-        for (const [key, seite] of Object.entries(geladen.seiten)) {
-          if (seite.typ === "include") console.info(`Include-Seite ${key} wird in v1 nicht gerendert.`);
-        }
       })
       .catch((error: unknown) => {
         if (aktiv) setFehler(error instanceof Error ? error.message : String(error));
@@ -525,10 +532,7 @@ function App() {
     if (!ziel) return;
     const zielSeite = visu.seiten[ziel];
     if (!zielSeite) return;
-    if (zielSeite.typ === "include") {
-      console.info(`Include-Seite ${ziel} wird in v1 nicht gerendert.`);
-      return;
-    }
+    if (zielSeite.typ === "include") return;
     if ("popup" in aktion || zielSeite.typ === "popup") {
       setPopupKey(ziel);
       return;
@@ -575,9 +579,9 @@ function App() {
         </span>
       </header>
       <section class="visu-flaeche" aria-label={seite.name}>
-        <SeitenCanvas seite={seite} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} />
+        <SeitenCanvas seite={seite} seiteKey={seiteKey} seiteLookup={visu.seiten} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} />
       </section>
-      {popup && (
+      {popup && popupKey && (
         <div class="popup-hintergrund" role="presentation" onClick={() => setPopupKey(null)}>
           <section
             class="popup"
@@ -587,7 +591,7 @@ function App() {
             onClick={(event) => event.stopPropagation()}
           >
             <button class="popup-schliessen" aria-label="Popup schließen" onClick={() => setPopupKey(null)}>×</button>
-            <SeitenCanvas seite={popup} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} popup />
+            <SeitenCanvas seite={popup} seiteKey={popupKey} seiteLookup={visu.seiten} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} popup />
           </section>
         </div>
       )}
