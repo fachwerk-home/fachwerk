@@ -83,6 +83,8 @@ export interface VisuRand {
 export interface VisuDesign {
   hintergrund?: string;
   text?: string;
+  /** Schriftfamilie aus visu/dateien/ (ADR-0015 D-2: Name, nie ein Pfad). */
+  schriftart?: string;
   icon?: string;
   schriftgroesse?: number;
   deckkraft?: number;

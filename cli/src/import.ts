@@ -26,7 +26,9 @@ import {
   extrahiereStruktur,
   konvertiere,
   konvertiereSeite,
+  istTar,
   konvertiereVisu,
+  leseTar,
   migrationsReportAlsMarkdown,
   parseDump,
   type StubInfo,
@@ -151,10 +153,29 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
 
   // ---- Stufe 3: Visu (P5-9) — optional, nur mit --visu ----------------------
   let visuBericht: ReturnType<typeof konvertiereVisu>["bericht"] | null = null;
+  const visuDateien: string[] = [];
   if (visuPfad !== undefined) {
+    // Der Export kommt entweder als nackte JSON oder als Paket (Tar) mit
+    // Schriften/Bildern — ADR-0015. Das Paket ist der bessere Weg: nur damit
+    // erscheinen die Symbole des Panels.
     let visuExport: VisuExport;
+    const beilagen: Array<{ name: string; inhalt: Buffer }> = [];
     try {
-      visuExport = JSON.parse(readFileSync(visuPfad, "utf8")) as VisuExport;
+      const roh = readFileSync(visuPfad);
+      if (istTar(roh)) {
+        const eintraege = leseTar(roh);
+        const json = eintraege.find((e) => e.name.toLowerCase().endsWith(".json"));
+        if (!json) {
+          console.error(`FEHLER: Paket ${visuPfad} enthält keine Export-JSON.`);
+          return 1;
+        }
+        visuExport = JSON.parse(json.inhalt.toString("utf8")) as VisuExport;
+        for (const e of eintraege) {
+          if (e !== json) beilagen.push({ name: e.name, inhalt: e.inhalt });
+        }
+      } else {
+        visuExport = JSON.parse(roh.toString("utf8")) as VisuExport;
+      }
     } catch (e) {
       console.error(`FEHLER: Visu-Export nicht lesbar: ${e instanceof Error ? e.message : e}`);
       return 1;
@@ -174,6 +195,27 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
       writeFileSync(join(ziel, "visu", "designs.yaml"), visuDesignsZuYaml(visu.designs), "utf8");
       for (const [slug, seite] of visu.seiten) {
         writeFileSync(join(ziel, "visu", "seiten", `${slug}.yaml`), visuSeiteZuYaml(seite), "utf8");
+      }
+    }
+
+    // Beilagen (Schriften/Bilder) ins Gewerk legen und benennen (ADR-0015).
+    // Die Dateien heissen im Paket font-<id>.ttf; im Gewerk soll der SPRECHENDE
+    // Name stehen, weil die Designs ihn referenzieren.
+    if (beilagen.length > 0) {
+      const dateienDir = join(ziel, "visu", "dateien");
+      mkdirSync(dateienDir, { recursive: true });
+      const fontNamen = new Map<number, string>();
+      for (const f of Object.values(visuExport.editVisuFont ?? {}) as Array<Record<string, unknown>>) {
+        const n = String(f["name"] ?? "");
+        if (n !== "") fontNamen.set(Number(f["id"]), n);
+      }
+      for (const b of beilagen) {
+        const fontId = /^font-(\d+)\./.exec(b.name);
+        const name = fontId
+          ? `${(fontNamen.get(Number(fontId[1])) ?? `font-${fontId[1]}`).replace(/[^\w. -]/g, "_")}${b.name.slice(b.name.lastIndexOf("."))}`
+          : b.name;
+        writeFileSync(join(dateienDir, name), b.inhalt);
+        visuDateien.push(name);
       }
     }
     visuBericht = visu.bericht;
@@ -304,8 +346,10 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
       }
     }
     console.log(
-      "Hinweis: Designs (Farben/Schrift/Rahmen) aus den Slots übernommen — am Screenshot " +
-        "bestätigen. Symbol-Glyphen brauchen die Symbol-Schrift des Panels (separater Schritt).",
+      "Hinweis: Designs (Farben/Schrift/Rahmen) aus den Slots übernommen — am Screenshot bestätigen." +
+        (visuDateien.length > 0
+          ? ` ${visuDateien.length} Beilage(n) in visu/dateien/ übernommen (Schriften/Bilder).`
+          : " Symbol-Glyphen bleiben leer: der Export als .tar enthält die Schriften mit."),
     );
   }
 
@@ -345,7 +389,7 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
   // die Zeichen erscheinen sonst als leere Kästchen. Die Liste ist die
   // Grundlage, um sie auf Fachwerk-Symbole abzubilden.
   const glyphen = visuBericht?.glyphen ?? [];
-  if (glyphen.length > 0) {
+  if (glyphen.length > 0 && visuDateien.length === 0) {
     migrationMd +=
       `\n## Symbole aus der Panel-Schrift (${glyphen.length})\n\n` +
       "Diese Zeichen stammen aus einer Symbol-Schrift des Altsystems. Der Export\n" +
@@ -365,7 +409,9 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
         ? "Nichts offen: alle Bausteine und Elemente sind abgebildet."
         : `${migration.summe.lbs} Baustein(e) und ${migration.summe.vse} Elementtyp(en) brauchen ` +
           `eine Entscheidung — Liste in ${join(ziel, "MIGRATION.md")}`) +
-      (glyphen.length > 0 ? `\n${glyphen.length} Symbol-Zeichen ohne Schrift (siehe MIGRATION.md).` : ""),
+      (glyphen.length > 0 && visuDateien.length === 0
+        ? `\n${glyphen.length} Symbol-Zeichen ohne Schrift — als .tar exportieren, dann kommen sie mit.`
+        : ""),
   );
 
   console.log(`\nOK: Gewerk geschrieben nach ${ziel} (validate bestanden)`);

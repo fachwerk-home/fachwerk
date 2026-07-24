@@ -612,6 +612,10 @@ export async function run(dir: string): Promise<number> {
       {
         port: httpPort,
         ...(existsSync(uiVerzeichnis) ? { uiVerzeichnis } : {}),
+        // Gewerk-Beilagen (ADR-0015): Schriften/Bilder der importierten Visu.
+        ...(existsSync(join(dir, "visu", "dateien"))
+          ? { visuDateien: join(dir, "visu", "dateien") }
+          : {}),
         ...(apiToken ? { token: apiToken } : {}),
         auth: authDienst,
         cookieSecure: process.env["FACHWERK_COOKIE_SECURE"] === "1",

@@ -166,11 +166,37 @@ export function konvertiereVisu(
   const fgFarbe = new Map<number, string>();
   for (const c of alsZeilen(visu.editVisuFGcol)) fgFarbe.set(num(c, "id"), str(c, "color"));
 
+  // Schriften (ADR-0015): Slot s13 verweist auf eine Font-Id; im Gewerk steht
+  // der NAME, die Datei liegt daneben in visu/dateien/.
+  const schriftName = new Map<number, string>();
+  for (const f of alsZeilen(visu.editVisuFont)) {
+    const name = str(f, "name");
+    if (name !== "") schriftName.set(num(f, "id"), name);
+  }
+
   // Basis-Designs je Element (styletyp 0) aus editVisuElementDesign.
   const designRoh = new Map<number, Record<string, unknown>>();
   for (const d of alsZeilen(visu.editVisuElementDesign)) {
     if (num(d, "styletyp") === 0) designRoh.set(num(d, "targetid"), d);
   }
+  // Design-VORLAGEN (editVisuElementDesignDef): die Elementzeile verweist per
+  // defid darauf und laesst ihre eigenen Slots meist leer — die Werte stehen
+  // in der Vorlage. Wer nur die Elementzeile liest, verliert fast alles
+  // (Schriften, Farben, Groessen).
+  const designDef = new Map<number, Record<string, unknown>>();
+  for (const d of alsZeilen(visu.editVisuElementDesignDef)) designDef.set(num(d, "id"), d);
+
+  /** Slotwert mit Vorlagen-Kaskade: eigener Wert schlaegt Vorlage. */
+  const slot = (roh: Record<string, unknown>, name: string): string => {
+    const eigen = str(roh, name);
+    if (eigen !== "") return eigen;
+    const vorlage = designDef.get(num(roh, "defid"));
+    return vorlage ? str(vorlage, name) : "";
+  };
+  const slotZahl = (roh: Record<string, unknown>, name: string): number => {
+    const v = Number(slot(roh, name));
+    return Number.isFinite(v) ? v : 0;
+  };
 
   // Design-Sammlung: gleiche Optik -> ein Design (dedupliziert).
   const designs: VisuDesigns = {};
@@ -179,17 +205,19 @@ export function konvertiereVisu(
     const roh = designRoh.get(elementId);
     if (!roh) return undefined;
     const d: VisuDesign = {};
-    const bg = bgFarbe.get(num(roh, "s9"));
+    const bg = bgFarbe.get(slotZahl(roh, "s9"));
     if (bg) d.hintergrund = bg;
-    const tf = fgFarbe.get(num(roh, "s15"));
+    const tf = fgFarbe.get(slotZahl(roh, "s15"));
     if (tf) d.text = tf;
-    const gr = num(roh, "s14");
+    const gr = slotZahl(roh, "s14");
     if (gr > 0) d.schriftgroesse = gr;
-    const deck = Number(str(roh, "s8"));
+    const schrift = schriftName.get(slotZahl(roh, "s13"));
+    if (schrift) d.schriftart = schrift;
+    const deck = Number(slot(roh, "s8"));
     if (Number.isFinite(deck) && deck > 0 && deck < 1) d.deckkraft = deck;
-    const rb = num(roh, "s31");
-    const rf = fgFarbe.get(num(roh, "s27")) ?? bgFarbe.get(num(roh, "s27"));
-    const radius = num(roh, "s23");
+    const rb = slotZahl(roh, "s31");
+    const rf = fgFarbe.get(slotZahl(roh, "s27")) ?? bgFarbe.get(slotZahl(roh, "s27"));
+    const radius = slotZahl(roh, "s23");
     if (rb > 0 || rf || radius > 0) {
       d.rand = {
         ...(rb > 0 ? { staerke: rb } : {}),

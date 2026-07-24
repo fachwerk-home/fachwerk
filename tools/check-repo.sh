@@ -34,7 +34,17 @@ if grep -rIl $'\xEF\xBF\xBD' --exclude-dir=.git --exclude-dir=node_modules --exc
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "OK: repo hygiene checks passed"
+  # ADR-0015 D-4: Schriften/Bilder aus fremden Anlagen gehoeren dem Betreiber,
+# nie dem Projekt. In examples/ stuenden sie unter unserer Verteilung — und
+# ihre Lizenz gehoert uns nicht.
+if find examples -type f \( -iname "*.ttf" -o -iname "*.otf" -o -iname "*.woff" -o -iname "*.woff2"     -o -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) 2>/dev/null | grep -q .; then
+  echo "FEHLER: Binaerdateien (Schriften/Bilder) unter examples/ gefunden."
+  echo "        ADR-0015 D-4: solche Dateien bleiben im Gewerk des Betreibers."
+  find examples -type f \( -iname "*.ttf" -o -iname "*.otf" -o -iname "*.woff" -o -iname "*.woff2"     -o -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) 2>/dev/null
+  exit 1
+fi
+
+echo "OK: repo hygiene checks passed"
 else
   exit 1
 fi

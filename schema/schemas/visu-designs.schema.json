@@ -13,6 +13,7 @@
       "properties": {
         "hintergrund": { "type": "string" },
         "text": { "type": "string" },
+        "schriftart": { "type": "string" },
         "icon": { "type": "string" },
         "schriftgroesse": { "type": "number", "exclusiveMinimum": 0 },
         "deckkraft": { "type": "number", "minimum": 0, "maximum": 1 },

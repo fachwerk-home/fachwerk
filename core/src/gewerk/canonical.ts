@@ -68,7 +68,7 @@ export function visuSeiteZuYaml(seite: VisuSeite): string {
 
 export function visuDesignsZuYaml(designs: VisuDesigns): string {
   const out: Record<string, unknown> = {};
-  const reihenfolge = ["hintergrund", "text", "icon", "schriftgroesse", "deckkraft", "rand"];
+  const reihenfolge = ["hintergrund", "text", "schriftart", "icon", "schriftgroesse", "deckkraft", "rand"];
   for (const key of Object.keys(designs).sort()) {
     out[key] = ordne(designs[key] as unknown as Record<string, unknown>, reihenfolge);
   }

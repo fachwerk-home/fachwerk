@@ -32,6 +32,11 @@ export interface ServerOptionen {
   token?: string;
   /** Auth-Dienst (P5-12); fehlt er, gilt jede Anfrage als anonym (nur lesend). */
   auth?: ServerAuth;
+  /**
+   * Verzeichnis `visu/dateien/` des laufenden Gewerks (ADR-0015): Schriften
+   * und Bilder. Wird unter /api/visu/datei/<name> ausgeliefert.
+   */
+  visuDateien?: string;
   /** Cookie mit Secure-Flag ausliefern (nur hinter TLS sinnvoll). */
   cookieSecure?: boolean;
   onMeldung?: (m: string) => void;
@@ -47,6 +52,9 @@ const MIME: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".webp": "image/webp",
   ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
   ".ico": "image/x-icon",
 };
 
@@ -139,13 +147,34 @@ function fremdeOrigin(req: IncomingMessage): boolean {
   }
 }
 
-/** Statische Datei ausliefern; SPA-Fallback auf index.html. */
-function statisch(res: ServerResponse, wurzel: string, pfad: string): boolean {
+/** Route der Gewerk-Beilagen (ADR-0015). */
+const PFAD_VISU_DATEI = "/api/visu/datei/";
+
+/**
+ * Ein Beilagen-Name ist ein reiner Dateiname — kein Pfad, kein Ausbruch.
+ * Bewusst streng: hier wird aus einer URL ein Dateizugriff.
+ */
+function gueltigerDateiname(name: string): boolean {
+  return name !== "" && !name.includes("/") && !name.includes("\\") && !name.includes("..");
+}
+
+/**
+ * Statische Datei ausliefern. `spaFallback` steuert, ob ein Fehltreffer auf
+ * index.html umgelenkt wird — fuer die UI ja, fuer Beilagen NIE (sonst
+ * bekaeme eine fehlende Schrift stillschweigend HTML zurueck).
+ */
+function statisch(
+  res: ServerResponse,
+  wurzel: string,
+  pfad: string,
+  spaFallback = true,
+): boolean {
   // Pfad-Traversal ausschließen: normalisieren und Wurzel erzwingen.
   const rel = normalize(decodeURIComponent(pfad)).replace(/^(\.\.[/\\])+/, "");
   let datei = resolve(join(wurzel, rel === "/" ? "index.html" : rel));
   if (!datei.startsWith(resolve(wurzel))) return false;
   if (!existsSync(datei) || statSync(datei).isDirectory()) {
+    if (!spaFallback) return false;
     const index = resolve(join(wurzel, "index.html")); // SPA-Fallback
     if (!existsSync(index)) return false;
     datei = index;
@@ -238,6 +267,28 @@ export class ApiServer {
             json(res, 401, { fehler: "Anmeldung erforderlich" });
             return;
           }
+        }
+
+        // Gewerk-Beilagen (ADR-0015 D-3): binaer, deshalb nicht im JSON-Handler.
+        // Lesescope wie jedes GET; der Dateiname darf nie ein Pfad sein.
+        if (methode === "GET" && pfad.startsWith(PFAD_VISU_DATEI)) {
+          if (!anfrager?.identitaet.scopes.includes("read")) {
+            json(res, 403, { fehler: "fehlender Scope: read" });
+            return;
+          }
+          if (!this.#opts.visuDateien) {
+            json(res, 404, { fehler: "Gewerk hat keine Beilagen" });
+            return;
+          }
+          const name = decodeURIComponent(pfad.slice(PFAD_VISU_DATEI.length));
+          if (!gueltigerDateiname(name)) {
+            json(res, 400, { fehler: "ungueltiger Dateiname" });
+            return;
+          }
+          if (!statisch(res, this.#opts.visuDateien, `/${name}`, false)) {
+            json(res, 404, { fehler: `nicht gefunden: ${name}` });
+          }
+          return;
         }
 
         if (methode === "GET") {

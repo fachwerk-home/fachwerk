@@ -79,3 +79,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-P5-UI-LOGIN.md | Codex | ✅ gemergt (5049a7b) |
 | AUFTRAG-B8-VISU-TEXT.md | Codex | ✅ gemergt (bff1320) |
 | AUFTRAG-MIGRATIONS-REPORT.md | Gemini | ✅ gemergt (fe0988f); CLI-Verdrahtung (MIGRATION.md schreiben) offen |
+| AUFTRAG-VISU-SCHRIFTEN.md | Codex | 🔨 offen (@font-face + Schriftfamilie; ADR-0015) |

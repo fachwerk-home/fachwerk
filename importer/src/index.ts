@@ -40,3 +40,5 @@ export type {
 } from "./visu.ts";
 export { ermittleMigrationsBedarf, migrationsReportAlsMarkdown } from "./migration.ts";
 export type { MigrationsPosten, MigrationsReport, MigrationsEingabe } from "./migration.ts";
+export { leseTar, istTar } from "./tar.ts";
+export type { TarEintrag } from "./tar.ts";
