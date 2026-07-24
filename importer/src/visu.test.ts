@@ -185,3 +185,25 @@ test("die erzeugten Seiten und Designs sind schema-konform", () => {
     expect(ok).toBe(true);
   }
 });
+
+test("alle Seiten einer Visu teilen sich EINE Leinwandbreite (B3)", () => {
+  // Das Altsystem entwirft auf einer Breite und skaliert die ganze Seite; je
+  // Seite eine eigene Breite liesse dieselbe Schriftgroesse unterschiedlich
+  // gross wirken. Die Hoehe bleibt seitenweise.
+  const { seiten } = seiteWz();
+  const breiten = [...seiten.values()].map((s) => s.groessen["panel"]!.w);
+  expect(new Set(breiten).size).toBe(1);
+  expect(breiten[0]).toBe(Math.max(...breiten));
+  const hoehen = [...seiten.values()].map((s) => s.groessen["panel"]!.h);
+  expect(new Set(hoehen).size).toBeGreaterThan(1);
+});
+
+test("Verlaeufe verlieren den -webkit-Praefix (Live-Rendering-Form)", () => {
+  const roh = fixture();
+  (roh.editVisuBGcol as Array<Record<string, unknown>>)[0]!["color"] =
+    "-webkit-linear-gradient(-90deg, #000 0%, #fff 100%)";
+  const { seiten } = konvertiereVisu(roh, gaKey);
+  expect(seiten.get("wohnzimmer")!.hintergrund).toBe(
+    "linear-gradient(-90deg, #000 0%, #fff 100%)",
+  );
+});

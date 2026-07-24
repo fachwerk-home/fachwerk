@@ -80,3 +80,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-B8-VISU-TEXT.md | Codex | ✅ gemergt (bff1320) |
 | AUFTRAG-MIGRATIONS-REPORT.md | Gemini | ✅ gemergt (fe0988f); CLI-Verdrahtung (MIGRATION.md schreiben) offen |
 | AUFTRAG-VISU-SCHRIFTEN.md | Codex | 🔨 offen (@font-face + Schriftfamilie; ADR-0015) |
+| AUFTRAG-VISU-SKALIERUNG.md | Codex | 🔨 offen (aus B3: Seite auf Viewport skalieren) |

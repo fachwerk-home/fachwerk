@@ -90,6 +90,16 @@ function str(z: Record<string, unknown>, spalte: string): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
+/**
+ * Farbwert der Palette normalisieren: der Export speichert Verlaeufe mit
+ * `-webkit-`-Praefix, das Live-Rendering des Altsystems gibt sie ohne Praefix
+ * aus (gleicher Winkel, belegt am gesicherten Rendering). Wir uebernehmen die
+ * Live-Form — sonst sieht der Betreiber etwas anderes als bisher.
+ */
+function farbe(roh: string): string {
+  return roh.replace(/-webkit-(linear-gradient|radial-gradient)/g, "$1");
+}
+
 function istGa(ga: string): boolean {
   return /^\d+\/\d+\/\d+$/.test(ga);
 }
@@ -162,9 +172,9 @@ export function konvertiereVisu(
 
   // Farbpaletten (Slot-IDs -> Farbe).
   const bgFarbe = new Map<number, string>();
-  for (const c of alsZeilen(visu.editVisuBGcol)) bgFarbe.set(num(c, "id"), str(c, "color"));
+  for (const c of alsZeilen(visu.editVisuBGcol)) bgFarbe.set(num(c, "id"), farbe(str(c, "color")));
   const fgFarbe = new Map<number, string>();
-  for (const c of alsZeilen(visu.editVisuFGcol)) fgFarbe.set(num(c, "id"), str(c, "color"));
+  for (const c of alsZeilen(visu.editVisuFGcol)) fgFarbe.set(num(c, "id"), farbe(str(c, "color")));
 
   // Schriften (ADR-0015): Slot s13 verweist auf eine Font-Id; im Gewerk steht
   // der NAME, die Datei liegt daneben in visu/dateien/.
@@ -385,6 +395,21 @@ export function konvertiereVisu(
     }
     if (seitenNotizen.length > 0) seite.notizen = seitenNotizen.join("\n");
     seiten.set(info.slug, seite);
+  }
+
+  // Einheitliche Leinwandbreite (B3): Das Altsystem entwirft eine Visu auf EINER
+  // Breite und laesst das Geraet die ganze Seite darauf skalieren (gesichertes
+  // Live-Rendering: viewport width=1170 — exakt die groesste Ausdehnung hier).
+  // Je Seite eine eigene Breite aus der Bounding-Box waere falsch: dann skaliert
+  // jede Seite anders und dieselbe Schriftgroesse wirkt unterschiedlich gross.
+  // Die Hoehe bleibt seitenweise, denn Seiten scrollen vertikal.
+  const breiten = [...seiten.values()].map((s) => s.groessen["panel"]?.w ?? 1);
+  if (breiten.length > 0) {
+    const leinwand = Math.max(...breiten);
+    for (const s of seiten.values()) {
+      const g = s.groessen["panel"];
+      if (g) g.w = leinwand;
+    }
   }
 
   return {
