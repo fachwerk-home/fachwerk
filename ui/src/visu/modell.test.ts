@@ -74,33 +74,43 @@ describe("Design und Format", () => {
 describe("Elementtext", () => {
   const werte = new Map([["raum.temp", { wert: 21.37, format: { einheit: "°C", dezimalstellen: 1 } }]]);
 
-  it("priorisiert gesetzten Text vor dem lesbaren Schlüssel", () => {
-    const anzeige = elementAnzeige("raum_temp", { preset: "label", text: "Wohnzimmer" }, werte);
+  it("priorisiert gesetzten Text im Client vor Wert und Schlüssel", () => {
+    const anzeige = elementAnzeige("client", "raum_temp", { preset: "label", text: "Wohnzimmer" }, werte);
     expect(anzeige).toMatchObject({ label: "Wohnzimmer", wert: "", hatText: true, hatWert: false });
   });
 
-  it("ignoriert leeren Text und fällt auf den lesbaren Schlüssel zurück", () => {
-    const anzeige = elementAnzeige("raum_temp", { preset: "label", text: "   " }, werte);
-    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "", hatText: false, hatWert: false });
+  it("zeigt im Client bei leerem Text ohne Bindung keinen technischen Schlüssel", () => {
+    const anzeige = elementAnzeige("client", "raum_temp", { preset: "label", text: "   " }, werte);
+    expect(anzeige).toMatchObject({ label: "", wert: "", hatText: false, hatWert: false });
   });
 
-  it("nutzt ohne Text den bisherigen lesbaren Schlüssel", () => {
-    const anzeige = elementAnzeige("raum_temp", { preset: "label" }, werte);
-    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "", hatText: false, hatWert: false });
+  it("zeigt im Client ohne Text und ohne Bindung keinen technischen Schlüssel", () => {
+    const anzeige = elementAnzeige("client", "raum_temp", { preset: "label" }, werte);
+    expect(anzeige).toMatchObject({ label: "", wert: "", hatText: false, hatWert: false });
   });
 
-  it("behält bei Text und Display-Bindung Text als Label und Wert separat", () => {
-    const anzeige = elementAnzeige("raum_temp", { preset: "wertanzeige", text: "Innen", bindungen: { display: "raum.temp" } }, werte);
+  it("behält im Client bei Text und Display-Bindung Text als Label und Wert separat", () => {
+    const anzeige = elementAnzeige("client", "raum_temp", { preset: "wertanzeige", text: "Innen", bindungen: { display: "raum.temp" } }, werte);
     expect(anzeige).toMatchObject({ label: "Innen", wert: "21.4 °C", hatText: true, hatWert: true });
   });
 
-  it("behält bei leerem Text und Display-Bindung den Wert separat", () => {
-    const anzeige = elementAnzeige("raum_temp", { preset: "wertanzeige", text: "", bindungen: { display: "raum.temp" } }, werte);
-    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "21.4 °C", hatText: false, hatWert: true });
+  it("behält im Client bei leerem Text und Display-Bindung nur den Wert separat", () => {
+    const anzeige = elementAnzeige("client", "raum_temp", { preset: "wertanzeige", text: "", bindungen: { display: "raum.temp" } }, werte);
+    expect(anzeige).toMatchObject({ label: "", wert: "21.4 °C", hatText: false, hatWert: true });
   });
 
-  it("behält ohne Text und mit Display-Bindung den Wert separat", () => {
-    const anzeige = elementAnzeige("raum_temp", { preset: "wertanzeige", bindungen: { display: "raum.temp" } }, werte);
+  it("behält im Client ohne Text und mit Display-Bindung nur den Wert separat", () => {
+    const anzeige = elementAnzeige("client", "raum_temp", { preset: "wertanzeige", bindungen: { display: "raum.temp" } }, werte);
+    expect(anzeige).toMatchObject({ label: "", wert: "21.4 °C", hatText: false, hatWert: true });
+  });
+
+  it("behält im Editor bei leerem Text den bisherigen lesbaren Schlüssel", () => {
+    const anzeige = elementAnzeige("editor", "raum_temp", { preset: "label", text: "   " }, werte);
+    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "", hatText: false, hatWert: false });
+  });
+
+  it("behält im Editor ohne Text und mit Display-Bindung Schlüssel und Wert separat", () => {
+    const anzeige = elementAnzeige("editor", "raum_temp", { preset: "wertanzeige", bindungen: { display: "raum.temp" } }, werte);
     expect(anzeige).toMatchObject({ label: "Raum temp", wert: "21.4 °C", hatText: false, hatWert: true });
   });
 });
