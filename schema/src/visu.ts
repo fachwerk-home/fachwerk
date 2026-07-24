@@ -71,6 +71,19 @@ export interface VisuSeite {
   name: string;
   basis: string;
   groessen: Record<string, VisuGroesse>;
+  /**
+   * Hintergrund der Seite (Farbe oder CSS-Verlauf). Bewusst ein eigenes Feld
+   * statt eines Design-Verweises: die Seite traegt genau diese eine Eigenschaft,
+   * und `hintergrund: "#05395E"` ist im Diff sofort lesbar, waehrend
+   * `design: d12` einen Nachschlag erzwingt (ADR-0004: Gewerk = lesbarer Text).
+   */
+  hintergrund?: string;
+  /**
+   * Seiten vom Typ `include`, die VOR dem eigenen Inhalt gerendert werden
+   * (z. B. ein Kopfbereich auf jeder Seite). Referenziert wird der Seiten-
+   * schluessel, nie ein Pfad.
+   */
+  includes?: string[];
   gruppen?: Record<string, { name: string; ebene?: number }>;
   elemente: Record<string, VisuElement>;
   notizen?: string;

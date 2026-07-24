@@ -14,8 +14,11 @@ import { konvertiereVisu, type VisuExport } from "./visu.ts";
 function fixture(): VisuExport {
   return {
     editVisuPage: [
-      { id: 1, visuid: 2, name: "Wohnzimmer", pagetyp: 0 },
+      // bgcolorid 1 -> Palette; globalinclude 1 -> Header wird eingebunden.
+      { id: 1, visuid: 2, name: "Wohnzimmer", pagetyp: 0, bgcolorid: 1, globalinclude: 1 },
       { id: 2, visuid: 2, name: "Details", pagetyp: 1 },
+      // Globale Include-Seite (Kopfbereich).
+      { id: 3, visuid: 2, name: "Header", pagetyp: 2, globalinclude: 1 },
     ],
     editKo: [
       { id: 100, ga: "1/0/2" }, // Bus-KO, aufloesbar
@@ -62,7 +65,7 @@ function seiteWz(): ReturnType<typeof konvertiereVisu> {
 
 test("Seiten entstehen mit Groesse aus der Element-Bounding-Box", () => {
   const { seiten } = seiteWz();
-  expect([...seiten.keys()].sort()).toEqual(["details", "wohnzimmer"]);
+  expect([...seiten.keys()].sort()).toEqual(["details", "header", "wohnzimmer"]);
   expect(seiten.get("wohnzimmer")!.groessen.panel).toEqual({ w: 380, h: 380 });
 });
 
@@ -154,6 +157,23 @@ test("Fremdelemente und Symbol-Glyphen landen im Bericht (Migrations-Report)", (
   expect(bericht.fremdElemente.some((f) => f.controltyp === 1004)).toBe(false);
   // Der Symbol-Glyph des Tasters wird gezaehlt (Schrift fehlt im Export).
   expect(bericht.glyphen).toContainEqual({ codepoint: "E92D", verwendungen: 1 });
+});
+
+test("Seitenhintergrund kommt aus der Farbpalette (B1)", () => {
+  const { seiten } = seiteWz();
+  expect(seiten.get("wohnzimmer")!.hintergrund).toBe("#123456");
+  // Ohne bgcolorid bleibt das Feld weg — kein erfundener Standardwert.
+  expect(seiten.get("details")!.hintergrund).toBeUndefined();
+});
+
+test("globalinclude bindet die Include-Seiten ein; Include-Seiten selbst nicht (B2)", () => {
+  const { seiten } = seiteWz();
+  expect(seiten.get("wohnzimmer")!.includes).toEqual(["header"]);
+  // Der Header hat selbst globalinclude=1, darf sich aber nicht einbinden.
+  expect(seiten.get("header")!.includes).toBeUndefined();
+  expect(seiten.get("header")!.typ).toBe("include");
+  // Details hat globalinclude=0 -> keine Einbindung.
+  expect(seiten.get("details")!.includes).toBeUndefined();
 });
 
 test("die erzeugten Seiten und Designs sind schema-konform", () => {

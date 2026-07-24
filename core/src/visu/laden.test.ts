@@ -80,3 +80,39 @@ describe("ladeVisu", () => {
     expect(ladeVisu(dir).fehler[0]).toEqual(expect.objectContaining({ datei: "visu/seiten/falsch.yaml", element: "kaputt" }));
   });
 });
+
+describe("Include-Verweise (B2)", () => {
+  const seite = (typ: string, includes?: string[]): string =>
+    [
+      `typ: ${typ}`,
+      `name: ${typ}-Seite`,
+      "basis: panel",
+      "groessen: { panel: { w: 100, h: 100 } }",
+      ...(includes ? [`includes: [${includes.join(", ")}]`] : []),
+      "elemente: {}",
+      "",
+    ].join("\n");
+
+  it("akzeptiert einen Verweis auf eine Include-Seite", () => {
+    const dir = gewerk({
+      "visu/seiten/start.yaml": seite("seite", ["kopf"]),
+      "visu/seiten/kopf.yaml": seite("include"),
+    });
+    const erg = ladeVisu(dir);
+    expect(erg.fehler).toEqual([]);
+    expect(erg.seiten.get("start")!.includes).toEqual(["kopf"]);
+  });
+
+  it("meldet einen Verweis auf eine unbekannte Seite", () => {
+    const dir = gewerk({ "visu/seiten/start.yaml": seite("seite", ["fehlt"]) });
+    expect(ladeVisu(dir).fehler.map((f) => f.grund).join(" ")).toContain("unbekannte Seite fehlt");
+  });
+
+  it("meldet einen Verweis auf eine Seite, die kein Include ist", () => {
+    const dir = gewerk({
+      "visu/seiten/start.yaml": seite("seite", ["zweite"]),
+      "visu/seiten/zweite.yaml": seite("seite"),
+    });
+    expect(ladeVisu(dir).fehler.map((f) => f.grund).join(" ")).toContain("erwartet: include");
+  });
+});

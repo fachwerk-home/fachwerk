@@ -15,6 +15,11 @@
       "propertyNames": { "$ref": "#/$defs/schluessel" },
       "additionalProperties": { "$ref": "#/$defs/groesse" }
     },
+    "hintergrund": { "type": "string" },
+    "includes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/schluessel" }
+    },
     "gruppen": {
       "type": "object",
       "propertyNames": { "$ref": "#/$defs/schluessel" },

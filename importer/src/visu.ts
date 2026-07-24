@@ -239,7 +239,10 @@ export function konvertiereVisu(
   // Seiten-Index (Slugs, Typen) — vor den Elementen (Navigationsziele).
   const seitenRoh = alsZeilen(visu.editVisuPage);
   const visuIds = new Set<number>();
-  const seiteInfo = new Map<number, { slug: string; typ: VisuSeitenTyp; name: string }>();
+  const seiteInfo = new Map<
+    number,
+    { slug: string; typ: VisuSeitenTyp; name: string; bgcolorid: number; includeid: number; globalinclude: boolean }
+  >();
   const slugVergeben = new Set<string>();
   for (const p of seitenRoh) {
     const id = num(p, "id");
@@ -248,8 +251,21 @@ export function konvertiereVisu(
     let s = slug(name);
     while (slugVergeben.has(s)) s = `${s}_${id}`;
     slugVergeben.add(s);
-    seiteInfo.set(id, { slug: s, typ: seitentyp(num(p, "pagetyp")), name });
+    seiteInfo.set(id, {
+      slug: s,
+      typ: seitentyp(num(p, "pagetyp")),
+      name,
+      bgcolorid: num(p, "bgcolorid"),
+      includeid: num(p, "includeid"),
+      globalinclude: num(p, "globalinclude") === 1,
+    });
   }
+  // Alle global einzubindenden Seiten (typ include) — Ziel jeder Seite mit
+  // globalinclude=1.
+  const globaleIncludes = [...seiteInfo.values()]
+    .filter((i) => i.typ === "include")
+    .map((i) => i.slug)
+    .sort();
 
   const elementeRoh = alsZeilen(visu.editVisuElement);
   const proSeite = new Map<number, Record<string, unknown>[]>();
@@ -354,6 +370,19 @@ export function konvertiereVisu(
       groessen: { panel: { w: Math.ceil(maxX), h: Math.ceil(maxY) } },
       elemente,
     };
+    // Seitenhintergrund (B1): bgcolorid ueber die Palette. 0/null = keiner.
+    const bg = bgFarbe.get(info.bgcolorid);
+    if (bg) seite.hintergrund = bg;
+    // Include-Verweise (B2): eine Seite mit globalinclude=1 bekommt ALLE
+    // globalen Include-Seiten; includeid ist der Einzelverweis. Include-Seiten
+    // selbst binden nichts ein (sonst enthielte der Header sich selbst).
+    if (info.typ !== "include") {
+      const ziele = new Set<string>();
+      if (info.globalinclude) for (const s of globaleIncludes) ziele.add(s);
+      const einzeln = seiteInfo.get(info.includeid);
+      if (einzeln && einzeln.typ === "include") ziele.add(einzeln.slug);
+      if (ziele.size > 0) seite.includes = [...ziele].sort();
+    }
     if (seitenNotizen.length > 0) seite.notizen = seitenNotizen.join("\n");
     seiten.set(info.slug, seite);
   }
@@ -392,7 +421,7 @@ export function konvertiereVisu(
 function baueElement(
   e: Record<string, unknown>,
   aufloese: (koId: number) => string | undefined,
-  seiteInfo: Map<number, { slug: string; typ: VisuSeitenTyp; name: string }>,
+  seiteInfo: Map<number, Readonly<{ slug: string; typ: VisuSeitenTyp; name: string }>>,
   cmds: Record<string, unknown>[],
   zaehle: (grund: string) => void,
 ): { element: VisuElement; notizen: string[] } {

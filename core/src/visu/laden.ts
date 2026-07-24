@@ -115,6 +115,24 @@ export function ladeVisu(
       seiten.set(key, roh);
       pruefeSeite(rel, roh, designs, definitionen, fehler);
     }
+    // Include-Verweise erst pruefen, wenn ALLE Seiten gelesen sind — sonst
+    // haengt das Ergebnis von der Dateireihenfolge ab.
+    for (const [key, seite] of seiten) {
+      for (const ziel of seite.includes ?? []) {
+        const zielSeite = seiten.get(ziel);
+        if (!zielSeite) {
+          fehler.push({
+            datei: `visu/seiten/${key}.yaml`,
+            grund: `includes verweist auf unbekannte Seite ${ziel}`,
+          });
+        } else if (zielSeite.typ !== "include") {
+          fehler.push({
+            datei: `visu/seiten/${key}.yaml`,
+            grund: `includes verweist auf ${ziel}, aber die Seite hat typ ${zielSeite.typ} (erwartet: include)`,
+          });
+        }
+      }
+    }
   }
   return { seiten, designs, fehler };
 }
