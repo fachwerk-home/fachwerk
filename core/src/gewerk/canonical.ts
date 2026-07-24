@@ -4,6 +4,7 @@
  * Damit bleiben Git-Diffs minimal und Round-trips verlustfrei.
  */
 import { stringify } from "yaml";
+import type { BausteinPins } from "../logik/pins.ts";
 import {
   KEY_ORDER,
   type ArchivDatei,
@@ -71,6 +72,16 @@ export function visuDesignsZuYaml(designs: VisuDesigns): string {
   const reihenfolge = ["hintergrund", "text", "schriftart", "icon", "schriftgroesse", "deckkraft", "rand"];
   for (const key of Object.keys(designs).sort()) {
     out[key] = ordne(designs[key] as unknown as Record<string, unknown>, reihenfolge);
+  }
+  return stringify(out, YAML_OPTS);
+}
+
+/** Baustein-Pins (ADR-0014 V-3) — kanonisch wie jede andere Gewerk-Datei. */
+export function pinsZuYaml(pins: BausteinPins): string {
+  const out: Record<string, unknown> = {};
+  const reihenfolge = ["version", "sha256", "herkunft"];
+  for (const id of Object.keys(pins).sort()) {
+    out[id] = ordne(pins[id] as unknown as Record<string, unknown>, reihenfolge);
   }
   return stringify(out, YAML_OPTS);
 }

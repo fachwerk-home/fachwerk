@@ -140,8 +140,16 @@ switch (cmd) {
   }
 
   case "baustein": {
+    if (args[0] === "pin") {
+      if (!args[1]) {
+        console.error("Aufruf: fachwerk baustein pin <gewerk-verzeichnis> [--herkunft eigen|community|unverifiziert]");
+        process.exit(2);
+      }
+      const { bausteinPin } = await import("./baustein-pin.ts");
+      process.exit(bausteinPin(args[1], args.slice(2)));
+    }
     if (args[0] !== "test" || !args[1]) {
-      console.error("Aufruf: fachwerk baustein test <gewerk-verzeichnis>");
+      console.error("Aufruf: fachwerk baustein test|pin <gewerk-verzeichnis>");
       process.exit(2);
     }
     const { bausteinTest } = await import("./baustein-test.ts");
@@ -153,7 +161,7 @@ switch (cmd) {
     console.error(`Unbekanntes Kommando: ${cmd}`);
     console.error(
       "Verfügbar: version · validate <verzeichnis> · run <verzeichnis> · " +
-        "baustein test <verzeichnis> · nutzer anlegen|entfernen|liste · katalog [--json]",
+        "baustein test|pin <verzeichnis> · nutzer anlegen|entfernen|liste · katalog [--json]",
     );
     process.exit(1);
 }

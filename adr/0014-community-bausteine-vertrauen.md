@@ -1,7 +1,12 @@
 # ADR-0014: Vertrauensmodell für Community-Bausteine
 
 - **Status:** AKZEPTIERT (Betreiber, 2026-07-20) — V-1 und V-2 umgesetzt;
-  V-3 und V-4 bleiben terminiert, nicht implementiert.
+  V-3 umgesetzt (24.07.2026): Pins in `bausteine/pins.yaml`, Abweichung =
+  Startverweigerung, `fachwerk baustein pin` zum Beglaubigen. Die harte
+  protected-Regel war bereits erfuellt — und zwar strenger als gefordert:
+  die Registry lehnt JEDEN Schreibzugriff aus der Logik auf `protected` ab,
+  nicht nur den von Bausteinen mit `netz`-Faehigkeit (Test haelt das fest).
+  V-4 bleibt terminiert, nicht implementiert.
 - **Datum:** 2026-07-19
 - **Kontext-Auslöser:** Review des Telegram-Bausteins; Frage des Betreibers,
   wie mit Community-Bausteinen sicher umzugehen ist.

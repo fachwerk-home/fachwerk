@@ -8,6 +8,7 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, basename } from "node:path";
 import { parse } from "yaml";
 import { pruefeBausteinCode } from "../logik/faehigkeiten.ts";
+import { bausteinHash, istHerkunft, pruefePins, type BausteinPins } from "../logik/pins.ts";
 import {
   type ErrorObject,
   validateGewerkManifest,
@@ -31,6 +32,8 @@ export interface EigenerBaustein {
   manifest: BausteinManifest;
   /** Absoluter Pfad zu baustein.js (plain JS, ESM). */
   jsPfad: string;
+  /** sha256 ueber manifest.yaml + baustein.js (ADR-0014 V-3). */
+  sha256: string;
 }
 
 export interface Gewerk {
@@ -132,7 +135,17 @@ function pruefeReferenzen(gewerk: Gewerk, fehler: LadeFehler[]): void {
  * Lädt ein Gewerk aus einem Verzeichnis. Sammelt ALLE Fehler statt beim
  * ersten abzubrechen; `gewerk` ist nur bei fehlerfreier Struktur gesetzt.
  */
-export function loadGewerk(dir: string): LadeErgebnis {
+export interface LadeOptionen {
+  /**
+   * Pin-Pruefung ueberspringen (ADR-0014 V-3). Nur fuer `fachwerk baustein pin`:
+   * nach einer GEWOLLTEN Aenderung muss sich ein Gewerk neu pinnen lassen —
+   * sonst blockiert der alte Pin genau die Handlung, die ihn erneuern soll.
+   * Fuer validate/run bleibt die Pruefung immer an.
+   */
+  ohnePinPruefung?: boolean;
+}
+
+export function loadGewerk(dir: string, optionen: LadeOptionen = {}): LadeErgebnis {
   const fehler: LadeFehler[] = [];
 
   // Manifest
@@ -225,7 +238,56 @@ export function loadGewerk(dir: string): LadeErgebnis {
         }
         continue;
       }
-      bausteine.set(roh.id, { manifest: roh, jsPfad });
+      // Inhalts-Hash fuer die Pin-Pruefung (ADR-0014 V-3): manifest + Code.
+      let manifestText = "";
+      try {
+        manifestText = readFileSync(manifestPfad2, "utf8");
+      } catch {
+        manifestText = "";
+      }
+      const sha256 = bausteinHash(
+        new Map([
+          ["manifest.yaml", manifestText],
+          ["baustein.js", quelltext],
+        ]),
+      );
+      bausteine.set(roh.id, { manifest: roh, jsPfad, sha256 });
+    }
+
+    // Pins pruefen (ADR-0014 V-3). Fehlt die Datei, bleibt alles beim Alten —
+    // bestehende Gewerke sollen nicht durch eine neue Pflicht brechen.
+    const pinPfad = join(bausteinDir, "pins.yaml");
+    if (existsSync(pinPfad) && !optionen.ohnePinPruefung) {
+      const rohPins = parseYaml(pinPfad, fehler);
+      const pins: BausteinPins = {};
+      if (rohPins !== undefined && typeof rohPins === "object" && rohPins !== null) {
+        for (const [id, wert] of Object.entries(rohPins as Record<string, unknown>)) {
+          const e = wert as { version?: unknown; sha256?: unknown; herkunft?: unknown };
+          const herkunft = typeof e?.herkunft === "string" && istHerkunft(e.herkunft)
+            ? e.herkunft
+            : "unverifiziert";
+          if (typeof e?.sha256 !== "string" || typeof e?.version !== "number") {
+            fehler.push({
+              datei: "bausteine/pins.yaml",
+              pfad: `/${id}`,
+              meldung: "Pin braucht version (Zahl) und sha256 (Text)",
+            });
+            continue;
+          }
+          pins[id] = { version: e.version, sha256: e.sha256, herkunft };
+        }
+      }
+      const lage = pruefePins(
+        new Map([...bausteine].map(([id, b]) => [id, { version: b.manifest.version, sha256: b.sha256 }])),
+        pins,
+      );
+      for (const e of lage.ergebnisse) {
+        // Nur echte Abweichungen sind Fehler; Fehlendes/Verwaistes ist eine
+        // Information (siehe pins.ts — ein entfernter Baustein ist kein Angriff).
+        if (e.art === "abweichung") {
+          fehler.push({ datei: "bausteine/pins.yaml", pfad: `/${e.id}`, meldung: e.meldung ?? "Pin-Abweichung" });
+        }
+      }
     }
   }
 

@@ -8,7 +8,7 @@ import { GEWERK_FORMAT_VERSION } from "@fachwerk/schema";
 export const SUPPORTED_GEWERK_FORMAT = GEWERK_FORMAT_VERSION;
 
 export { loadGewerk } from "./gewerk/loader.ts";
-export type { Gewerk, LadeErgebnis, LadeFehler, EigenerBaustein } from "./gewerk/loader.ts";
+export type { Gewerk, LadeErgebnis, LadeFehler, EigenerBaustein, LadeOptionen } from "./gewerk/loader.ts";
 export { BausteinSandbox, sandboxAlsBaustein } from "./logik/sandbox.ts";
 export {
   manifestZuYaml,
@@ -17,6 +17,7 @@ export {
   archiveZuYaml,
   visuSeiteZuYaml,
   visuDesignsZuYaml,
+  pinsZuYaml,
 } from "./gewerk/canonical.ts";
 export { DatenpunktRegistry } from "./datenpunkte/registry.ts";
 export type {
@@ -99,6 +100,8 @@ export { pruefeGewerkPfad } from "./gewerk/dateien.ts";
 export type { PfadPruefung } from "./gewerk/dateien.ts";
 export type { GewerkDateien } from "./api/handler.ts";
 export { loeseFaehigkeitenAuf, netzZielErlaubt, pruefeBausteinCode } from "./logik/faehigkeiten.ts";
+export { bausteinHash, pruefePins, istHerkunft, HERKUNFT_STUFEN } from "./logik/pins.ts";
+export type { BausteinPin, BausteinPins, BausteinHerkunft, PinPruefung, PinLage } from "./logik/pins.ts";
 export type { Faehigkeiten, AufgeloesteFaehigkeiten, NetzFaehigkeit } from "./logik/faehigkeiten.ts";
 export { holeMitGrenzen } from "./logik/netz.ts";
 export type { NetzAuftrag, NetzAntwort, NetzGrenzen, NetzAusfuehrer } from "./logik/netz.ts";
