@@ -145,6 +145,17 @@ test("Bericht zaehlt Unbekanntes und nicht aufgeloeste Bindungen", () => {
   expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("controltyp 999");
 });
 
+test("Fremdelemente und Symbol-Glyphen landen im Bericht (Migrations-Report)", () => {
+  const { bericht } = seiteWz();
+  // controltyp 999 hat keine Fachwerk-Entsprechung -> Posten fuer den Betreiber.
+  const fremd = bericht.fremdElemente.find((f) => f.controltyp === 999);
+  expect(fremd).toMatchObject({ verwendungen: 1, seiten: ["Wohnzimmer"] });
+  // 1004 hat einen Katalogeintrag und gilt als erledigt.
+  expect(bericht.fremdElemente.some((f) => f.controltyp === 1004)).toBe(false);
+  // Der Symbol-Glyph des Tasters wird gezaehlt (Schrift fehlt im Export).
+  expect(bericht.glyphen).toContainEqual({ codepoint: "E92D", verwendungen: 1 });
+});
+
 test("die erzeugten Seiten und Designs sind schema-konform", () => {
   const { seiten, designs } = seiteWz();
   expect(validateVisuDesigns(designs)).toBe(true);

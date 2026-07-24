@@ -22,10 +22,12 @@ import {
   befehlsStatistik,
   bewerte,
   defInfos,
+  ermittleMigrationsBedarf,
   extrahiereStruktur,
   konvertiere,
   konvertiereSeite,
   konvertiereVisu,
+  migrationsReportAlsMarkdown,
   parseDump,
   type StubInfo,
   type VisuExport,
@@ -306,6 +308,65 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
         "bestätigen. Symbol-Glyphen brauchen die Symbol-Schrift des Panels (separater Schritt).",
     );
   }
+
+  // ---- MIGRATION.md: was der Betreiber selbst klären muss -------------------
+  // Zusammengeführt aus beiden Stufen: Fremd-LBS (Stubs) und nicht abgebildete
+  // Visuelemente. Verwendungen und Fundstellen kommen aus dem Logik-Report
+  // bzw. dem Visu-Bericht — ohne sie wäre die Liste nicht priorisierbar.
+  const lbsVerwendung = new Map<number, { anzahl: number; seiten: Set<string> }>();
+  for (const s of logikReport.seiten) {
+    for (const eintrag of s.stubFunctionIds) {
+      const v = lbsVerwendung.get(eintrag.functionId) ?? { anzahl: 0, seiten: new Set<string>() };
+      v.anzahl += eintrag.anzahl;
+      v.seiten.add(s.seite);
+      lbsVerwendung.set(eintrag.functionId, v);
+    }
+  }
+  const migration = ermittleMigrationsBedarf({
+    stubs: [...alleStubs.values()].map((s) => {
+      const v = lbsVerwendung.get(s.functionId);
+      return {
+        functionId: s.functionId,
+        name: s.name,
+        eingaenge: s.eingaenge,
+        ausgaenge: s.ausgaenge,
+        verwendungen: v?.anzahl ?? 0,
+        seiten: v ? [...v.seiten] : [],
+      };
+    }),
+    vse: (visuBericht?.fremdElemente ?? []).map((f) => ({
+      controltyp: f.controltyp,
+      verwendungen: f.verwendungen,
+      seiten: f.seiten,
+    })),
+  });
+  let migrationMd = migrationsReportAlsMarkdown(migration);
+  // Symbol-Glyphen anhängen: die Panel-Schrift ist NICHT Teil des Exports,
+  // die Zeichen erscheinen sonst als leere Kästchen. Die Liste ist die
+  // Grundlage, um sie auf Fachwerk-Symbole abzubilden.
+  const glyphen = visuBericht?.glyphen ?? [];
+  if (glyphen.length > 0) {
+    migrationMd +=
+      `\n## Symbole aus der Panel-Schrift (${glyphen.length})\n\n` +
+      "Diese Zeichen stammen aus einer Symbol-Schrift des Altsystems. Der Export\n" +
+      "enthält die Schriftdatei nicht — die Zeichen erscheinen deshalb leer. Ordne\n" +
+      "jedem Zeichen ein Symbol zu (oder hinterlege die Schrift in deiner\n" +
+      "Installation); die Reihenfolge zeigt, wo sich der Aufwand lohnt.\n\n" +
+      "| Zeichen | Verwendungen |\n|---|---|\n" +
+      glyphen.map((g) => `| U+${g.codepoint} | ${g.verwendungen} |`).join("\n") +
+      "\n";
+  }
+  writeFileSync(join(ziel, "MIGRATION.md"), migrationMd, "utf8");
+
+  const offen = migration.summe.lbs + migration.summe.vse;
+  console.log(
+    `\n── Migration ──\n` +
+      (offen === 0
+        ? "Nichts offen: alle Bausteine und Elemente sind abgebildet."
+        : `${migration.summe.lbs} Baustein(e) und ${migration.summe.vse} Elementtyp(en) brauchen ` +
+          `eine Entscheidung — Liste in ${join(ziel, "MIGRATION.md")}`) +
+      (glyphen.length > 0 ? `\n${glyphen.length} Symbol-Zeichen ohne Schrift (siehe MIGRATION.md).` : ""),
+  );
 
   console.log(`\nOK: Gewerk geschrieben nach ${ziel} (validate bestanden)`);
   return 0;

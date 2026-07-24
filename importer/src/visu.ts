@@ -61,6 +61,14 @@ export interface VisuBericht {
   nichtAbgebildet: Map<string, number>;
   /** Bindungen, deren KO sich nicht auf einen Datenpunkt aufloesen liess. */
   unaufgeloesteBindungen: number;
+  /**
+   * Elementtypen, die NICHT vollstaendig abgebildet wurden — Grundlage des
+   * Migrations-Reports. Custom-Elemente mit fertigem Katalogeintrag (z. B.
+   * der Schiebeschalter 1004) stehen hier bewusst NICHT: sie sind erledigt.
+   */
+  fremdElemente: Array<{ controltyp: number; verwendungen: number; seiten: string[] }>;
+  /** Symbol-Glyphen aus der Panel-Schrift: Codepoint (hex) -> Verwendungen. */
+  glyphen: Array<{ codepoint: string; verwendungen: number }>;
   hinweise: string[];
 }
 
@@ -108,6 +116,13 @@ function entschluessleText(t: string): string {
 // Bitmaske: 1=Seitensteuerung, 2=Befehle, 4=KO2 setzen (Werte 0..7). Die
 // Seitensteuerung laeuft ueber gotopageid, die Befehle ueber editVisuCmdList.
 const AKT_KO2 = 4;
+
+/**
+ * Elementtypen, fuer die es eine echte Fachwerk-Entsprechung gibt. Alles
+ * andere landet im Migrations-Report als Posten, den der Betreiber klaeren
+ * muss. 0 = Gruppenknoten (uebersprungen), 1004 = Schiebeschalter (Katalog).
+ */
+const ABGEBILDETE_CONTROLTYPEN = new Set([0, 1, 13, 21, 1004]);
 
 // ---- Konvertierung ---------------------------------------------------------
 
@@ -226,6 +241,9 @@ export function konvertiereVisu(
 
   const seiten = new Map<string, VisuSeite>();
   let elementAnzahl = 0;
+  // Fremdelemente und Symbol-Glyphen einsammeln (Migrations-Report).
+  const fremd = new Map<number, { verwendungen: number; seiten: Set<string> }>();
+  const glyphZaehler = new Map<string, number>();
 
   for (const [pid, info] of seiteInfo) {
     const rohElemente = proSeite.get(pid) ?? [];
@@ -267,6 +285,22 @@ export function konvertiereVisu(
       // ABER nie aus einem Wertausdruck: aus "{floor(#*100/255)} %" wuerde der
       // Schluessel floor_100_255 — und den zeigt der Renderer als Beschriftung
       // an. Ein Formeltext ist kein Name.
+      // Fremdelemente fuer den Migrations-Report vormerken: alles, wofuer es
+      // keine echte Fachwerk-Entsprechung gibt (Custom-VSE mit Katalogeintrag
+      // wie 1004 zaehlen als erledigt).
+      if (!ABGEBILDETE_CONTROLTYPEN.has(controltyp)) {
+        const eintrag = fremd.get(controltyp) ?? { verwendungen: 0, seiten: new Set<string>() };
+        eintrag.verwendungen++;
+        eintrag.seiten.add(info.name);
+        fremd.set(controltyp, eintrag);
+      }
+      // Symbol-Glyphen zaehlen: sie brauchen eine Zuordnung, weil die
+      // Panel-Schrift nicht Teil des Exports ist.
+      for (const m of str(e, "text").matchAll(/&#x([0-9a-fA-F]+);?/g)) {
+        const cp = m[1]!.toUpperCase();
+        glyphZaehler.set(cp, (glyphZaehler.get(cp) ?? 0) + 1);
+      }
+
       const rohText2 = str(e, "text");
       const namensQuelle = rohText2.includes("{") ? "" : rohText2;
       const rohName = str(e, "name") || namensQuelle || `element_${id}`;
@@ -307,6 +341,16 @@ export function konvertiereVisu(
       gruppenknoten,
       nichtAbgebildet,
       unaufgeloesteBindungen,
+      fremdElemente: [...fremd.entries()]
+        .map(([controltyp, v]) => ({
+          controltyp,
+          verwendungen: v.verwendungen,
+          seiten: [...v.seiten].sort(),
+        }))
+        .sort((a, b) => b.verwendungen - a.verwendungen || a.controltyp - b.controltyp),
+      glyphen: [...glyphZaehler.entries()]
+        .map(([codepoint, verwendungen]) => ({ codepoint, verwendungen }))
+        .sort((a, b) => b.verwendungen - a.verwendungen || a.codepoint.localeCompare(b.codepoint)),
       hinweise,
     },
   };
