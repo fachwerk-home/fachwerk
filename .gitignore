@@ -31,3 +31,6 @@ _ingest/
 
 # Gebaute UI-Artefakte
 ui/dist/
+
+# Laufzeit-Zustand, wenn der Dienst im Repo-Verzeichnis gestartet wird
+daten/
