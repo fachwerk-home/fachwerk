@@ -26,6 +26,7 @@ body { overscroll-behavior: none; background: var(--fw-bg); }
 .canvas-rahmen { position: relative; flex: none; }
 .canvas { position: absolute; inset: 0 auto auto 0; overflow: hidden; transform-origin: top left; background: var(--fw-flaeche-2); border: 1px solid var(--fw-rand); box-shadow: var(--fw-schatten-m); }
 .visu-element { position: absolute; display: flex; align-items: center; justify-content: center; gap: var(--fw-s2); overflow: hidden; padding: var(--fw-s3); text-align: center; border: 1px solid var(--fw-rand-stark); border-radius: var(--fw-radius-l); background: var(--fw-flaeche); color: var(--fw-text); box-shadow: var(--fw-schatten-s); transition: translate var(--fw-wechsel), box-shadow var(--fw-wechsel), border-color var(--fw-wechsel); }
+.visu-element[data-preset="label"] { padding: 0; border-width: 0; border-radius: 0; background: transparent; box-shadow: none; }
 button.visu-element { width: auto; cursor: pointer; }
 button.visu-element:not(:disabled):hover { translate: 0 -1px; border-color: var(--fw-akzent); box-shadow: var(--fw-schatten-m); filter: none; }
 button.visu-element:not(:disabled):active { translate: 0 0; background: var(--fw-akzent-ruhig); }

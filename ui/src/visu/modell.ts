@@ -87,6 +87,14 @@ export interface ElementAnzeige {
 
 export type VisuAnzeigeKontext = "client" | "editor";
 
+export interface RenderElement {
+  renderKey: string;
+  seiteKey: string;
+  elementKey: string;
+  seite: VisuSeite;
+  element: VisuElement;
+}
+
 function elementText(element: VisuElement): string | undefined {
   return element.text && element.text.trim().length > 0 ? element.text : undefined;
 }
@@ -122,6 +130,35 @@ export function startSeite(
   return Object.keys(seiten)
     .filter((key) => seiten[key]?.typ === "seite")
     .sort()[0] ?? null;
+}
+
+export function renderElementeFuerSeite(
+  seiten: Record<string, VisuSeite>,
+  seiteKey: string,
+): RenderElement[] {
+  const seite = seiten[seiteKey];
+  if (!seite) return [];
+  const includeElemente = (seite.includes ?? []).flatMap((includeKey) => {
+    const include = seiten[includeKey];
+    if (include?.typ !== "include") return [];
+    return Object.entries(include.elemente).map(([elementKey, element]) => ({
+      renderKey: `${includeKey}:${elementKey}`,
+      seiteKey: includeKey,
+      elementKey,
+      seite: include,
+      element,
+    }));
+  });
+  return [
+    ...includeElemente,
+    ...Object.entries(seite.elemente).map(([elementKey, element]) => ({
+      renderKey: `${seiteKey}:${elementKey}`,
+      seiteKey,
+      elementKey,
+      seite,
+      element,
+    })),
+  ];
 }
 
 export function lesbarerName(key: string): string {
