@@ -152,7 +152,10 @@ function statisch(res: ServerResponse, wurzel: string, pfad: string): boolean {
   }
   res.writeHead(200, {
     "content-type": MIME[extname(datei).toLowerCase()] ?? "application/octet-stream",
-    "cache-control": datei.endsWith("index.html") ? "no-store" : "public, max-age=3600",
+    // JEDE HTML-Einstiegsseite ungecacht ausliefern, nicht nur index.html:
+    // die Seiten verweisen auf gehashte Bundles. Eine gecachte visu.html zeigt
+    // nach einem Update auf Dateinamen, die es nicht mehr gibt.
+    "cache-control": datei.endsWith(".html") ? "no-store" : "public, max-age=3600",
     ...SICHERHEITS_HEADER,
     "content-security-policy": CSP,
   });

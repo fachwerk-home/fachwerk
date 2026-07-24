@@ -174,7 +174,10 @@ function ElementInhalt({
     case "label":
       return <span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span>;
     case "wertanzeige":
-      return <><span class="element-name">{anzeige.label}</span><strong class="element-wert">{anzeige.wert || "—"}</strong></>;
+      // Etikett nur, wenn es gepflegt ist. Eine reine Messwert-Kachel traegt
+      // im Original oft gar keine Beschriftung (die steht als eigenes Label
+      // daneben) — der Schluessel-Fallback waere dort erfundene Zierde.
+      return <>{anzeige.hatText && <span class="element-name">{anzeige.label}</span>}<strong class="element-wert">{anzeige.wert || "—"}</strong></>;
     case "statusanzeige":
       return <><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</>;
     case "schalter":

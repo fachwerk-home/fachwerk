@@ -264,7 +264,12 @@ export function konvertiereVisu(
       if (designName) element.design = designName;
 
       // Element-Schluessel: sprechender Name, sonst Text, sonst element_<id>.
-      const rohName = str(e, "name") || str(e, "text") || `element_${id}`;
+      // ABER nie aus einem Wertausdruck: aus "{floor(#*100/255)} %" wuerde der
+      // Schluessel floor_100_255 — und den zeigt der Renderer als Beschriftung
+      // an. Ein Formeltext ist kein Name.
+      const rohText2 = str(e, "text");
+      const namensQuelle = rohText2.includes("{") ? "" : rohText2;
+      const rohName = str(e, "name") || namensQuelle || `element_${id}`;
       let key = slug(rohName);
       while (elemSlugs.has(key)) key = `${key}_${id}`;
       elemSlugs.add(key);
