@@ -1,5 +1,28 @@
 # GEMINI.md
 
+## SITZUNGSSTART — IMMER ZUERST, VOR ALLEM ANDEREN
+
+Dieses Verzeichnis ist häufig VERALTET (es ist nur dein Startpunkt, nicht
+deine Arbeitskopie). Bevor du irgendeine Datei liest oder auflistest:
+
+```
+git fetch origin
+git checkout --detach origin/main
+```
+
+Erst DANACH existieren die aktuellen Dateien für dich — insbesondere
+`docs/auftraege/`. **Wenn die dir genannte Auftragsdatei „fehlt", hast du
+diese zwei Befehle übersprungen. Führe sie aus und schau erneut nach,
+BEVOR du meldest, der Auftrag existiere nicht.**
+
+Gearbeitet wird NIE hier, sondern in einem eigenen Worktree (Befehle stehen
+in jedem Auftrag, Muster AUFTRAG-P5-13c.md § Arbeitsablauf):
+
+```
+git worktree add ../fachwerk-spur3-<auftrag> -b auftrag/<name> origin/main
+```
+
+
 **Bevor du irgendetwas tust: Lies `AGENTS.md` vollständig — sie ist bindend.**
 
 Kurzfassung der drei härtesten Regeln (Details und Begründung in AGENTS.md):
