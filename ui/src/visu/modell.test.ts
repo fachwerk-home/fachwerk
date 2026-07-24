@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { VisuElement, VisuSeite } from "../../../schema/src/visu.ts";
 import {
   designFuer,
+  elementAnzeige,
   formatierterWert,
   placementFuer,
   startSeite,
@@ -67,6 +68,40 @@ describe("Design und Format", () => {
       .toBe("42.7 °C");
     expect(formatierterWert("raum.temp", werte, { template: "{fixed(#,1)} / {fixed(#{aussen.temp},0)}" }))
       .toBe("21.4 / 8");
+  });
+});
+
+describe("Elementtext", () => {
+  const werte = new Map([["raum.temp", { wert: 21.37, format: { einheit: "°C", dezimalstellen: 1 } }]]);
+
+  it("priorisiert gesetzten Text vor dem lesbaren Schlüssel", () => {
+    const anzeige = elementAnzeige("raum_temp", { preset: "label", text: "Wohnzimmer" }, werte);
+    expect(anzeige).toMatchObject({ label: "Wohnzimmer", wert: "", hatText: true, hatWert: false });
+  });
+
+  it("ignoriert leeren Text und fällt auf den lesbaren Schlüssel zurück", () => {
+    const anzeige = elementAnzeige("raum_temp", { preset: "label", text: "   " }, werte);
+    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "", hatText: false, hatWert: false });
+  });
+
+  it("nutzt ohne Text den bisherigen lesbaren Schlüssel", () => {
+    const anzeige = elementAnzeige("raum_temp", { preset: "label" }, werte);
+    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "", hatText: false, hatWert: false });
+  });
+
+  it("behält bei Text und Display-Bindung Text als Label und Wert separat", () => {
+    const anzeige = elementAnzeige("raum_temp", { preset: "wertanzeige", text: "Innen", bindungen: { display: "raum.temp" } }, werte);
+    expect(anzeige).toMatchObject({ label: "Innen", wert: "21.4 °C", hatText: true, hatWert: true });
+  });
+
+  it("behält bei leerem Text und Display-Bindung den Wert separat", () => {
+    const anzeige = elementAnzeige("raum_temp", { preset: "wertanzeige", text: "", bindungen: { display: "raum.temp" } }, werte);
+    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "21.4 °C", hatText: false, hatWert: true });
+  });
+
+  it("behält ohne Text und mit Display-Bindung den Wert separat", () => {
+    const anzeige = elementAnzeige("raum_temp", { preset: "wertanzeige", bindungen: { display: "raum.temp" } }, werte);
+    expect(anzeige).toMatchObject({ label: "Raum temp", wert: "21.4 °C", hatText: false, hatWert: true });
   });
 });
 

@@ -77,6 +77,40 @@ export function formatierterWert(
   return formatiereWert(eintrag?.wert, format, (key) => werte.get(key)?.wert);
 }
 
+export interface ElementAnzeige {
+  label: string;
+  wert: string;
+  rohwert: unknown;
+  hatText: boolean;
+  hatWert: boolean;
+}
+
+function elementText(element: VisuElement): string | undefined {
+  return element.text && element.text.trim().length > 0 ? element.text : undefined;
+}
+
+export function elementAnzeige(
+  key: string,
+  element: VisuElement,
+  werte: ReadonlyMap<string, WertEintrag>,
+  placement?: VisuPlacement,
+): ElementAnzeige {
+  const wertKey = element.bindungen?.["display"] ?? element.bindungen?.["status"];
+  const wert = formatierterWert(wertKey, werte, element.format, placement?.format);
+  const rohwert = wertKey ? werte.get(wertKey)?.wert : undefined;
+  const text = elementText(element);
+  const label = text ?? lesbarerName(key);
+  return {
+    label,
+    wert: typeof rohwert === "boolean" && (wert === "true" || wert === "false")
+      ? (rohwert ? "An" : "Aus")
+      : wert,
+    rohwert,
+    hatText: text !== undefined,
+    hatWert: wertKey !== undefined,
+  };
+}
+
 export function startSeite(
   seiten: Record<string, VisuSeite>,
   gewuenscht?: string | null,

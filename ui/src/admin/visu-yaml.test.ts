@@ -37,6 +37,59 @@ describe("Visu-YAML", () => {
     );
   });
 
+  it("serialisiert Element-Text an der kanonischen Element-Position", () => {
+    const yaml = seiteZuYaml({
+      ...SEITE,
+      elemente: {
+        licht: {
+          ...(SEITE.elemente.licht! as VisuSeite["elemente"][string] & { text?: string }),
+          text: "Licht Sofa",
+        } as VisuSeite["elemente"][string],
+      },
+    });
+    expect(yaml).toContain(
+      "elemente:\n  licht:\n    preset: schalter\n    text: \"Licht Sofa\"\n    bindungen:\n",
+    );
+  });
+
+  it("bewahrt eine Seite mit Text beim unveränderten Load-Save-Pfad byte-identisch", () => {
+    const raw = [
+      "typ: seite",
+      "name: Wohnzimmer",
+      "basis: tablet",
+      "groessen:",
+      "  tablet:",
+      "    w: 1280",
+      "    h: 800",
+      "elemente:",
+      "  licht:",
+      "    preset: schalter",
+      "    text: \"Licht Sofa\"",
+      "    placements:",
+      "      tablet:",
+      "        x: 40",
+      "        y: 50",
+      "        w: 120",
+      "        h: 80",
+      "",
+    ].join("\n");
+    const seite = {
+      typ: "seite",
+      name: "Wohnzimmer",
+      basis: "tablet",
+      groessen: { tablet: { w: 1280, h: 800 } },
+      elemente: {
+        licht: {
+          preset: "schalter",
+          text: "Licht Sofa",
+          placements: { tablet: { x: 40, y: 50, w: 120, h: 80 } },
+        },
+      },
+    } as VisuSeite;
+    expect(inhaltZumSpeichern(seite, raw, false)).toBe(raw);
+    expect(seiteZuYaml(seite)).toBe(raw);
+  });
+
   it("serialisiert eine neue leere Seite ohne null-Container und lädt sie schema-gültig", () => {
     const seite: VisuSeite = {
       typ: "seite",

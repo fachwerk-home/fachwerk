@@ -11,7 +11,7 @@ import type {
   VisuWidget,
 } from "../../../schema/src/visu.ts";
 import { ApiFehler, api, type DatenpunktSicht } from "../lib/api.ts";
-import { designFuer, formatierterWert, lesbarerName, placementFuer, type WertEintrag } from "../visu/modell.ts";
+import { designFuer, elementAnzeige, lesbarerName, placementFuer } from "../visu/modell.ts";
 import {
   bestaetigeSeitenwechsel,
   dupliziereElemente,
@@ -92,16 +92,6 @@ function designStil(design: VisuDesign): JSX.CSSProperties {
     ...(design.rand?.radius !== undefined ? { borderRadius: design.rand.radius } : {}),
     ...(design.schriftgroesse !== undefined ? { fontSize: design.schriftgroesse } : {}),
   };
-}
-
-function elementText(key: string, element: VisuElement, werte: ReadonlyMap<string, WertEintrag>, placement: VisuPlacement): string {
-  const wertKey = element.bindungen?.display ?? element.bindungen?.status;
-  const wert = formatierterWert(wertKey, werte, element.format, placement.format);
-  if (element.preset === "navigation") return `${lesbarerName(key)} ->`;
-  if (element.preset === "schalter") return `${lesbarerName(key)} ${wert || "Aus"}`;
-  if (element.widget === "slider") return `${lesbarerName(key)} ${wert}`;
-  if (element.widget === "diagramm") return `${lesbarerName(key)} Verlauf`;
-  return wert || lesbarerName(key);
 }
 
 function typLabel(element: VisuElement): string {
@@ -195,6 +185,12 @@ function AuswahlEigenschaften({
     else delete e.bindungen[rolle];
     if (Object.keys(e.bindungen).length === 0) delete e.bindungen;
   });
+  const setText = (wert: string): void => aendere((entwurf) => {
+    const e = entwurf.elemente[key];
+    if (!e) return;
+    if (wert.trim().length > 0) e.text = wert;
+    else delete e.text;
+  });
   const setPlacement = (feld: keyof VisuPlacement, wert: number | boolean | undefined): void => aendere((entwurf) => {
     const p = materialisierePlacement(entwurf, key, breakpoint);
     if (!p) return;
@@ -229,6 +225,7 @@ function AuswahlEigenschaften({
       <h2>Eigenschaften</h2>
       <label>Element<input value={key} disabled /></label>
       <label>Typ<input value={typLabel(element)} disabled /></label>
+      <label>Text<input value={element.text ?? ""} onInput={(event) => setText((event.target as HTMLInputElement).value)} /></label>
       <label>Design
         <select value={element.design ?? ""} onChange={(event) => aendere((entwurf) => {
           const e = entwurf.elemente[key];
@@ -549,7 +546,16 @@ export function VisuEditor({ dps, darfSpeichern, darfAktivieren }: { dps: Datenp
                   }}
                 >
                   <span class="editor-element-typ">{typLabel(element)}</span>
-                  <strong>{elementText(key, element, werte, placement)}</strong>
+                  <strong>{(() => {
+                    const anzeige = elementAnzeige(key, element, werte, placement);
+                    if (element.widget === "diagramm") return `${anzeige.label} Verlauf`;
+                    if (element.widget === "slider") return `${anzeige.label} ${anzeige.wert}`.trim();
+                    if (element.preset === "navigation") return `${anzeige.label} ->`;
+                    if (element.preset === "schalter") return `${anzeige.label} ${anzeige.wert || "Aus"}`;
+                    if (element.preset === "wertanzeige") return `${anzeige.label} ${anzeige.wert || "—"}`;
+                    if (element.preset === "statusanzeige") return anzeige.hatWert ? `${anzeige.label} ${anzeige.wert || "—"}` : anzeige.label;
+                    return anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label;
+                  })()}</strong>
                   {gewaehlt && (
                     <button
                       class="editor-griff"
