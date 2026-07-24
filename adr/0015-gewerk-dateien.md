@@ -1,6 +1,11 @@
 # ADR-0015: Binärdateien im Gewerk (Schriften, Bilder)
 
-- **Status:** VORGESCHLAGEN (2026-07-24)
+- **Status:** AKZEPTIERT (Betreiber, 2026-07-24) — D-1 bis D-4 umgesetzt
+  (Verzeichnis, Namensbezug, Auslieferung, Hygiene-Regel). D-5 ist als
+  Backlog B-9 terminiert, nicht implementiert. Die Renderer-Hälfte
+  (`@font-face` + Schriftfamilie) liegt als `AUFTRAG-VISU-SCHRIFTEN.md` bei
+  Spur 2 — bis dahin sind die Dateien zwar im Gewerk und abrufbar, aber die
+  Symbole erscheinen noch als Ersatzzeichen.
 - **Datum:** 2026-07-24
 - **Kontext-Auslöser:** Visu-Import (P5-9). Die importierte Visu zeigt leere
   Kästchen statt Symbolen, weil die Symbol-Schrift des Panels nicht Teil des
