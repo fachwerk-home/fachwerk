@@ -9,7 +9,7 @@
  * Handler anhand der Scopes. Transport und Berechtigung bleiben getrennt.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readdirSync, statSync } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import { ANONYM, type Identitaet } from "./auth.ts";
 import { beantworte, type ApiKontext } from "./handler.ts";
@@ -149,6 +149,31 @@ function fremdeOrigin(req: IncomingMessage): boolean {
 
 /** Route der Gewerk-Beilagen (ADR-0015). */
 const PFAD_VISU_DATEI = "/api/visu/datei/";
+/** Route der Beilagen-LISTE. Bewusst ohne Schraegstrich am Ende, damit sie
+ *  sich nicht mit der Einzeldatei-Route ueberschneidet. */
+const PFAD_VISU_DATEIEN = "/api/visu/dateien";
+
+/**
+ * Beilagen eines Gewerks auflisten (Name + Groesse). Ein fehlendes oder
+ * unlesbares Verzeichnis ist KEIN Fehler, sondern eine leere Liste: ein Gewerk
+ * ohne Schriften ist der Normalfall. Verzeichnisse und versteckte Dateien
+ * bleiben draussen — ausgeliefert wird nur, was auch abrufbar ist.
+ */
+function listeBeilagen(verzeichnis: string | undefined): Array<{ name: string; groesse: number }> {
+  if (!verzeichnis) return [];
+  try {
+    return readdirSync(verzeichnis)
+      .filter((name) => !name.startsWith("."))
+      .map((name) => {
+        const s = statSync(join(verzeichnis, name));
+        return s.isFile() ? { name, groesse: s.size } : null;
+      })
+      .filter((e): e is { name: string; groesse: number } => e !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Ein Beilagen-Name ist ein reiner Dateiname — kein Pfad, kein Ausbruch.
@@ -267,6 +292,17 @@ export class ApiServer {
             json(res, 401, { fehler: "Anmeldung erforderlich" });
             return;
           }
+        }
+
+        // Beilagen AUFLISTEN (ADR-0015 D-3): der Client muss wissen, welche
+        // Schriften/Bilder es gibt — sonst muss er Dateiendungen raten.
+        if (methode === "GET" && pfad === PFAD_VISU_DATEIEN) {
+          if (!anfrager?.identitaet.scopes.includes("read")) {
+            json(res, 403, { fehler: "fehlender Scope: read" });
+            return;
+          }
+          json(res, 200, { dateien: listeBeilagen(this.#opts.visuDateien) });
+          return;
         }
 
         // Gewerk-Beilagen (ADR-0015 D-3): binaer, deshalb nicht im JSON-Handler.

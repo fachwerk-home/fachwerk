@@ -237,3 +237,49 @@ test("der Live-Kanal ist kein Hintereingang: ohne Nachweis kein Upgrade", async 
   expect(await wsVersuch(basis, `Cookie: ${SITZUNGS_COOKIE}=falsch\r\n`)).toBe("");
   expect(await wsVersuch(basis, `Cookie: ${SITZUNGS_COOKIE}=tok-anna\r\n`)).toContain("101");
 });
+
+// ---- Gewerk-Beilagen auflisten (ADR-0015 D-3) -------------------------------
+
+test("Beilagen-Liste nennt Name und Groesse, sortiert und ohne Verzeichnisse", async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "fachwerk-beilagen-"));
+  writeFileSync(join(dir, "KNX UF.ttf"), "abc");
+  writeFileSync(join(dir, "Alpha.woff2"), "de");
+  writeFileSync(join(dir, ".versteckt"), "x");
+  mkdirSync(join(dir, "unterordner"));
+
+  const server = new ApiServer(ktxAufbau(), { port: 0, visuDateien: dir, onMeldung: () => {} });
+  await server.starte();
+  laufende.push(server);
+  const antwort = await fetch(`http://127.0.0.1:${server.port}/api/visu/dateien`);
+  expect(antwort.status).toBe(200);
+  expect(await antwort.json()).toEqual({
+    dateien: [
+      { name: "Alpha.woff2", groesse: 2 },
+      { name: "KNX UF.ttf", groesse: 3 },
+    ],
+  });
+});
+
+test("ohne Beilagen-Verzeichnis ist die Liste leer, kein Fehler", async () => {
+  const basis = await starte();
+  const antwort = await fetch(`${basis}/api/visu/dateien`);
+  expect(antwort.status).toBe(200);
+  expect(await antwort.json()).toEqual({ dateien: [] });
+});
+
+test("die Beilagen-Liste braucht den Scope read", async () => {
+  const server = new ApiServer(ktxAufbau(), {
+    port: 0,
+    auth: { aktiv: true, identifiziere: () => ({ name: "x", art: "token", scopes: [] }) },
+    onMeldung: () => {},
+  });
+  await server.starte();
+  laufende.push(server);
+  const antwort = await fetch(`http://127.0.0.1:${server.port}/api/visu/dateien`, {
+    headers: { authorization: "Bearer egal" },
+  });
+  expect(antwort.status).toBe(403);
+});
