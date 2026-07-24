@@ -16,6 +16,8 @@ export interface WertEintrag {
   format?: WertFormat;
 }
 
+const SCHRIFT_ENDUNGEN = ["ttf", "woff2"] as const;
+
 /** Größter Breakpoint, der hineinpasst; auf schmaleren Geräten der kleinste. */
 export function waehleBreakpoint(seite: VisuSeite, breite: number): string {
   const passend = Object.entries(seite.groessen)
@@ -52,6 +54,51 @@ function mischeDesign(basis?: VisuDesign, override?: VisuDesign): VisuDesign {
     ...override,
     ...((basis?.rand || override?.rand) ? { rand: { ...basis?.rand, ...override?.rand } } : {}),
   };
+}
+
+function cssString(wert: string): string {
+  return wert.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"");
+}
+
+function schriftName(schriftart: string): string | null {
+  const name = schriftart.trim();
+  return name.length > 0 ? name : null;
+}
+
+export function schriftfamilieFuer(schriftart: string | undefined): string | undefined {
+  const name = schriftart ? schriftName(schriftart) : null;
+  return name ? `"${cssString(`Fachwerk Visu ${name}`)}"` : undefined;
+}
+
+export function schriftartenAusDesigns(designs: VisuDesigns): string[] {
+  const schriften = new Set<string>();
+  for (const design of Object.values(designs)) {
+    const name = design.schriftart ? schriftName(design.schriftart) : null;
+    if (name) schriften.add(name);
+  }
+  return [...schriften].sort((a, b) => a.localeCompare(b));
+}
+
+export function fontFaceCssFuerSchriften(schriftarten: readonly string[]): string {
+  const schriften = [...new Set(
+    schriftarten
+      .map((schriftart) => schriftName(schriftart))
+      .filter((schriftart): schriftart is string => Boolean(schriftart)),
+  )]
+    .sort((a, b) => a.localeCompare(b));
+  return schriften.map((schriftart) => {
+    const familie = schriftfamilieFuer(schriftart)!;
+    const quellen = SCHRIFT_ENDUNGEN.map((endung) => {
+      const datei = `${schriftart}.${endung}`;
+      const format = endung === "ttf" ? "truetype" : "woff2";
+      return `url("/api/visu/datei/${encodeURIComponent(datei)}") format("${format}")`;
+    }).join(", ");
+    return `@font-face { font-family: ${familie}; src: ${quellen}; font-display: swap; }`;
+  }).join("\n");
+}
+
+export function fontFaceCssFuerDesigns(designs: VisuDesigns): string {
+  return fontFaceCssFuerSchriften(schriftartenAusDesigns(designs));
 }
 
 /** Statusregeln wählen ein Override-Design; nicht gesetzte Felder fallen zurück. */
