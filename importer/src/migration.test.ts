@@ -66,3 +66,20 @@ test("migrationsReportAlsMarkdown liefert deterministische Tabellen", () => {
   expect(md).toContain("| ID | Name | Verwendungen | Fundstellen |");
   expect(md).toContain("| 42 | - | 1 | Garten |"); // fallback name for VSE
 });
+
+test("ein Pipe im Namen zerlegt die Tabelle nicht", () => {
+  // Namen kommen aus fremden Nutzdaten — ein | darin wuerde die Spalten
+  // verschieben und den Report still verfaelschen.
+  const report = ermittleMigrationsBedarf({
+    stubs: [{ functionId: 7, name: "A|B", eingaenge: 1, ausgaenge: 1, verwendungen: 1 }],
+    vse: [{ controltyp: 8, name: "X|Y", verwendungen: 1, seiten: ["Flur|Diele"] }],
+  });
+  const md = migrationsReportAlsMarkdown(report);
+  expect(md).toContain("| 7 | A\\|B | 1 |");
+  expect(md).toContain("| 8 | X\\|Y | 1 | Flur\\|Diele |");
+  // Jede Datenzeile hat exakt so viele Spalten wie ihr Kopf.
+  for (const zeile of md.split("\n").filter((z) => z.startsWith("| "))) {
+    const spalten = zeile.replaceAll("\\|", "").split("|").length;
+    expect(spalten === 7 || spalten === 6, zeile).toBe(true);
+  }
+});

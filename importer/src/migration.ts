@@ -82,6 +82,14 @@ export function ermittleMigrationsBedarf(eingabe: MigrationsEingabe): Migrations
   };
 }
 
+/**
+ * Zellinhalt für eine Markdown-Tabelle absichern: ein Pipe im Namen wuerde
+ * sonst die Spalten zerlegen und den Report still verfaelschen.
+ */
+function zelle(text: string): string {
+  return text.replaceAll("|", "\\|");
+}
+
 export function migrationsReportAlsMarkdown(report: MigrationsReport): string {
   let md = `${report.summe.lbs} Logikbausteine, ${report.summe.vse} Visuelemente brauchen eine Entscheidung\n\n`;
 
@@ -92,8 +100,8 @@ export function migrationsReportAlsMarkdown(report: MigrationsReport): string {
     md += `|---|---|---|---|---|\n`;
     for (const item of report.lbs) {
       const ports = `${item.eingaenge ?? 0}/${item.ausgaenge ?? 0}`;
-      const fundstellen = item.fundstellen.length > 0 ? item.fundstellen.join(", ") : "-";
-      const name = item.name || "-";
+      const fundstellen = item.fundstellen.length > 0 ? zelle(item.fundstellen.join(", ")) : "-";
+      const name = item.name ? zelle(item.name) : "-";
       md += `| ${item.id} | ${name} | ${item.verwendungen} | ${ports} | ${fundstellen} |\n`;
     }
     md += `\n`;
@@ -105,8 +113,8 @@ export function migrationsReportAlsMarkdown(report: MigrationsReport): string {
     md += `| ID | Name | Verwendungen | Fundstellen |\n`;
     md += `|---|---|---|---|\n`;
     for (const item of report.vse) {
-      const fundstellen = item.fundstellen.length > 0 ? item.fundstellen.join(", ") : "-";
-      const name = item.name || "-";
+      const fundstellen = item.fundstellen.length > 0 ? zelle(item.fundstellen.join(", ")) : "-";
+      const name = item.name ? zelle(item.name) : "-";
       md += `| ${item.id} | ${name} | ${item.verwendungen} | ${fundstellen} |\n`;
     }
     md += `\n`;
