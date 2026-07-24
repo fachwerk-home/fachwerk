@@ -38,3 +38,5 @@ export type {
   VisuKonvertierErgebnis,
   VisuBericht,
 } from "./visu.ts";
+export { ermittleMigrationsBedarf, migrationsReportAlsMarkdown } from "./migration.ts";
+export type { MigrationsPosten, MigrationsReport, MigrationsEingabe } from "./migration.ts";
