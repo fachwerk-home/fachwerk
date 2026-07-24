@@ -134,9 +134,11 @@ body { overflow: hidden; }
 
 .archiv-liste button {
   min-width: 0;
+  width: 100%;
   height: auto;
   display: grid;
   gap: 2px;
+  justify-items: stretch;
   padding: var(--fw-s2);
   text-align: left;
 }
@@ -144,9 +146,20 @@ body { overflow: hidden; }
 .archiv-liste strong,
 .archiv-liste span,
 .archiv-liste small {
+  min-width: 0;
+  max-width: 100%;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.archiv-liste strong {
+  color: var(--fw-text);
+}
+
+.archiv-liste button[aria-pressed="true"] strong {
+  color: var(--fw-akzent);
 }
 
 .archiv-liste span {

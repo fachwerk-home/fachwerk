@@ -547,7 +547,7 @@ export function VisuEditor({ dps, darfSpeichern, darfAktivieren }: { dps: Datenp
                 >
                   <span class="editor-element-typ">{typLabel(element)}</span>
                   <strong>{(() => {
-                    const anzeige = elementAnzeige(key, element, werte, placement);
+                    const anzeige = elementAnzeige("editor", key, element, werte, placement);
                     if (element.widget === "diagramm") return `${anzeige.label} Verlauf`;
                     if (element.widget === "slider") return `${anzeige.label} ${anzeige.wert}`.trim();
                     if (element.preset === "navigation") return `${anzeige.label} ->`;

@@ -19,7 +19,6 @@ import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
 import {
   designFuer,
   elementAnzeige,
-  lesbarerName,
   placementFuer,
   startSeite,
   waehleBreakpoint,
@@ -108,7 +107,7 @@ function ElementInhalt({
   design: VisuDesign;
   bedien: BedienKontext;
 }): ComponentChildren {
-  const anzeige = elementAnzeige(elementKey, element, werte, placement);
+  const anzeige = elementAnzeige("client", elementKey, element, werte, placement);
 
   if (element.widget === "slider") {
     const setKey = element.bindungen?.["set"];
@@ -411,7 +410,7 @@ function App() {
     setTimeout(() => setToasts((alt) => alt.filter((toast) => toast.id !== id)), 4_000);
   };
 
-  const markierePending = (schluessel: string, wert: Wert): void => {
+  const markierePending = (schluessel: string, wert: Wert, meldungsName: string): void => {
     const alt = pendingRef.current.get(schluessel);
     if (alt) clearTimeout(alt.timer);
     const timer = setTimeout(() => {
@@ -421,7 +420,7 @@ function App() {
         neu.delete(schluessel);
         return neu;
       });
-      zeigeToast(`Keine Rückmeldung für ${schluessel}`, "warn");
+      zeigeToast(`Keine Rückmeldung für ${meldungsName}`, "warn");
     }, 3_000);
     pendingRef.current.set(schluessel, { wert, timer });
     setPending((bisher) => new Set(bisher).add(schluessel));
@@ -450,8 +449,9 @@ function App() {
   const bediene = (elementKey: string, element: VisuElement, direkterWert?: Wert): void => {
     const setKey = element.bindungen?.["set"];
     if (!setKey) return;
+    const meldungsName = elementAnzeige("client", elementKey, element, werte).label || "Element";
     if (!bedien.darfBedienen) {
-      zeigeToast(`${lesbarerName(elementKey)}: Scope operate fehlt`, "warn");
+      zeigeToast(`${meldungsName}: Scope operate fehlt`, "warn");
       return;
     }
     const sperrgrund = gesperrt.get(setKey);
@@ -467,14 +467,14 @@ function App() {
       : (dp ? { art: "setzen" as const, wert: direkterWert } : { art: "nicht_moeglich" as const, grund: "Datenpunkt nicht geladen" });
     if (aktion.art === "nicht_moeglich") {
       if (dp?.protected) setGesperrt((alt) => new Map(alt).set(setKey, aktion.grund));
-      zeigeToast(`${lesbarerName(elementKey)}: ${aktion.grund}`, "warn");
+      zeigeToast(`${meldungsName}: ${aktion.grund}`, "warn");
       return;
     }
     if (!dp || !wertPasstZumDatenpunkt(aktion.wert, dp)) {
-      zeigeToast(`${lesbarerName(elementKey)}: Wert passt nicht zu ${dp?.typ ?? "Datenpunkt"}`, "warn");
+      zeigeToast(`${meldungsName}: Wert passt nicht zu ${dp?.typ ?? "Datenpunkt"}`, "warn");
       return;
     }
-    markierePending(setKey, aktion.wert);
+    markierePending(setKey, aktion.wert, meldungsName);
     void api.setzeDatenpunkt(setKey, aktion.wert)
       .then((antwort) => {
         if (antwort.hinweis) zeigeToast(antwort.hinweis, "info");
@@ -485,7 +485,7 @@ function App() {
         if (error instanceof ApiFehler && (error.status === 401 || error.status === 403)) {
           setGesperrt((alt) => new Map(alt).set(setKey, grund));
         }
-        zeigeToast(`${lesbarerName(elementKey)}: ${grund}`, "fehler");
+        zeigeToast(`${meldungsName}: ${grund}`, "fehler");
       });
   };
 

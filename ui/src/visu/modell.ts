@@ -85,11 +85,14 @@ export interface ElementAnzeige {
   hatWert: boolean;
 }
 
+export type VisuAnzeigeKontext = "client" | "editor";
+
 function elementText(element: VisuElement): string | undefined {
   return element.text && element.text.trim().length > 0 ? element.text : undefined;
 }
 
 export function elementAnzeige(
+  kontext: VisuAnzeigeKontext,
   key: string,
   element: VisuElement,
   werte: ReadonlyMap<string, WertEintrag>,
@@ -99,7 +102,7 @@ export function elementAnzeige(
   const wert = formatierterWert(wertKey, werte, element.format, placement?.format);
   const rohwert = wertKey ? werte.get(wertKey)?.wert : undefined;
   const text = elementText(element);
-  const label = text ?? lesbarerName(key);
+  const label = text ?? (kontext === "editor" ? lesbarerName(key) : "");
   return {
     label,
     wert: typeof rohwert === "boolean" && (wert === "true" || wert === "false")
