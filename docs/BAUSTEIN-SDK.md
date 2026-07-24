@@ -137,3 +137,18 @@ ein Manifest oder eine Zeile Baustein-Code anzufassen.
 
 Wer Bausteine aus fremder Quelle einsetzt, sollte sie lesen — so wie man ein
 Shell-Skript aus dem Internet liest, bevor man es ausfuehrt.
+
+## Beispiel: Wetter (zyklischer Abruf)
+
+Das Wetter-Beispiel (`examples/bausteine-wetter/`) zeigt den zyklischen Abruf per Timer und den Umgang mit strukturierten Array-Daten (Tagesvorhersagen). Es veranschaulicht ausserdem konfig-variable Ports in der Ausgabe (z. B. `tag1_max`, `tag2_max` abhaengig vom Parameter `tage`).
+
+**Tipp zur Visu:** Die WMO-Wettercodes (`wettercode`) der Open-Meteo API (0-99) koennen in der Visu-Konfiguration ueber eine `enum_map` lesbar gemacht werden:
+
+```yaml
+enum_map:
+  0: "Klar"
+  1: "Heiter"
+  2: "Wolkig"
+  3: "Bedeckt"
+  # ... weitere Codes ...
+```

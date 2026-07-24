@@ -1,0 +1,9 @@
+knoten:
+  wetter_1:
+    baustein: wetter
+    parameter:
+      breite: 48.13
+      laenge: 11.58
+kanten:
+  - von: wetter_1.temperatur
+    nach: dp:dummy.wetter_temp

@@ -1,0 +1,5 @@
+wetter_temp:
+  name: Wetter Temperatur
+  klasse: intern
+  typ: zahl
+  initial: 0
