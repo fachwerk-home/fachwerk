@@ -11,7 +11,14 @@ import type {
   VisuWidget,
 } from "../../../schema/src/visu.ts";
 import { ApiFehler, api, type DatenpunktSicht } from "../lib/api.ts";
-import { designFuer, elementAnzeige, lesbarerName, placementFuer } from "../visu/modell.ts";
+import {
+  designFuer,
+  elementAnzeige,
+  lesbarerName,
+  placementFuer,
+  schriftartenAusDesigns,
+  schriftfamilieFuer,
+} from "../visu/modell.ts";
 import {
   bestaetigeSeitenwechsel,
   dupliziereElemente,
@@ -88,6 +95,7 @@ function designStil(design: VisuDesign): JSX.CSSProperties {
   return {
     ...(design.hintergrund ? { background: design.hintergrund } : {}),
     ...(design.text ? { color: design.text } : {}),
+    ...(design.schriftart ? { fontFamily: schriftfamilieFuer(design.schriftart) } : {}),
     ...(design.rand?.farbe ? { borderColor: design.rand.farbe } : {}),
     ...(design.rand?.radius !== undefined ? { borderRadius: design.rand.radius } : {}),
     ...(design.schriftgroesse !== undefined ? { fontSize: design.schriftgroesse } : {}),
@@ -162,6 +170,8 @@ function AuswahlEigenschaften({
   const placement = key && element ? placementFuer(element, breakpoint, seite.basis) : undefined;
   const hatEigenesPlacement = Boolean(key && element?.placements?.[breakpoint]);
   const [dpFilter, setDpFilter] = useState("");
+  const schriftarten = schriftartenAusDesigns(designs);
+  const effektiveSchriftart = element?.design ? designs[element.design]?.schriftart?.trim() ?? "" : "";
   const datenpunkte = dps.filter((dp) =>
     !dpFilter
     || dp.schluessel.toLowerCase().includes(dpFilter.toLowerCase())
@@ -190,6 +200,14 @@ function AuswahlEigenschaften({
     if (!e) return;
     if (wert.trim().length > 0) e.text = wert;
     else delete e.text;
+  });
+  const setSchriftart = (schriftart: string): void => aendere((entwurf) => {
+    const e = entwurf.elemente[key];
+    if (!e || !schriftart) return;
+    const design = Object.entries(designs)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .find(([, eintrag]) => eintrag.schriftart?.trim() === schriftart)?.[0];
+    if (design) e.design = design;
   });
   const setPlacement = (feld: keyof VisuPlacement, wert: number | boolean | undefined): void => aendere((entwurf) => {
     const p = materialisierePlacement(entwurf, key, breakpoint);
@@ -236,6 +254,17 @@ function AuswahlEigenschaften({
         })}>
           <option value="">Kein Design</option>
           {Object.keys(designs).sort().map((design) => <option key={design} value={design}>{design}</option>)}
+        </select>
+      </label>
+      <label>Schriftart
+        <select
+          value={effektiveSchriftart}
+          disabled={schriftarten.length === 0}
+          title="Bis /api/visu/dateien existiert, stammen die Optionen aus den geladenen Designs."
+          onChange={(event) => setSchriftart((event.target as HTMLSelectElement).value)}
+        >
+          <option value="">{schriftarten.length === 0 ? "Keine Schriftarten im Gewerk" : "Keine Schriftart im Design"}</option>
+          {schriftarten.map((schriftart) => <option key={schriftart} value={schriftart}>{schriftart}</option>)}
         </select>
       </label>
       <label>Datenpunkt suchen<input value={dpFilter} placeholder="Name oder Schlüssel" onInput={(event) => setDpFilter((event.target as HTMLInputElement).value)} /></label>

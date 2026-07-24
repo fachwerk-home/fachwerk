@@ -19,8 +19,10 @@ import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
 import {
   designFuer,
   elementAnzeige,
+  fontFaceCssFuerDesigns,
   lesbarerName,
   placementFuer,
+  schriftfamilieFuer,
   startSeite,
   waehleBreakpoint,
   type WertEintrag,
@@ -69,6 +71,7 @@ function designStil(design: VisuDesign): JSX.CSSProperties {
   return {
     ...(design.hintergrund ? { background: design.hintergrund } : {}),
     ...(design.text ? { color: design.text } : {}),
+    ...(design.schriftart ? { fontFamily: schriftfamilieFuer(design.schriftart) } : {}),
     ...(design.schriftgroesse ? { fontSize: `${design.schriftgroesse}px` } : {}),
     ...(design.deckkraft !== undefined ? { opacity: design.deckkraft } : {}),
     ...(rand?.staerke !== undefined ? { borderWidth: `${rand.staerke}px` } : {}),
@@ -399,6 +402,17 @@ function App() {
       });
     return () => { aktiv = false; };
   }, [auth.art, authZaehler]);
+
+  useEffect(() => {
+    if (!visu) return;
+    const css = fontFaceCssFuerDesigns(visu.designs);
+    if (!css) return;
+    const style = document.createElement("style");
+    style.dataset["fachwerkVisuSchriften"] = "true";
+    style.textContent = css;
+    document.head.append(style);
+    return () => style.remove();
+  }, [visu]);
 
   useEffect(() => () => {
     for (const eintrag of pendingRef.current.values()) clearTimeout(eintrag.timer);

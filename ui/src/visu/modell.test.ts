@@ -3,6 +3,9 @@ import type { VisuElement, VisuSeite } from "../../../schema/src/visu.ts";
 import {
   designFuer,
   elementAnzeige,
+  fontFaceCssFuerDesigns,
+  schriftartenAusDesigns,
+  schriftfamilieFuer,
   formatierterWert,
   placementFuer,
   startSeite,
@@ -68,6 +71,33 @@ describe("Design und Format", () => {
       .toBe("42.7 °C");
     expect(formatierterWert("raum.temp", werte, { template: "{fixed(#,1)} / {fixed(#{aussen.temp},0)}" }))
       .toBe("21.4 / 8");
+  });
+});
+
+describe("Visu-Schriften", () => {
+  it("erzeugt Font-Face-Regeln mit kodiertem Dateinamen für Namen mit Leerzeichen", () => {
+    expect(fontFaceCssFuerDesigns({ symbol: { schriftart: "KNX UF" } })).toBe(
+      '@font-face { font-family: "Fachwerk Visu KNX UF"; src: url("/api/visu/datei/KNX%20UF.ttf") format("truetype"), url("/api/visu/datei/KNX%20UF.woff2") format("woff2"); font-display: swap; }',
+    );
+    expect(schriftfamilieFuer("KNX UF")).toBe('"Fachwerk Visu KNX UF"');
+  });
+
+  it("ignoriert fehlende oder leere Schriftarten", () => {
+    expect(fontFaceCssFuerDesigns({
+      standard: { text: "#eee" },
+      leer: { schriftart: "   " },
+    })).toBe("");
+    expect(schriftartenAusDesigns({ standard: { text: "#eee" } })).toEqual([]);
+  });
+
+  it("dedupliziert und sortiert mehrere Schriften", () => {
+    const designs = {
+      b: { schriftart: "Zeta" },
+      a: { schriftart: "Alpha" },
+      c: { schriftart: "Zeta" },
+    };
+    expect(schriftartenAusDesigns(designs)).toEqual(["Alpha", "Zeta"]);
+    expect(fontFaceCssFuerDesigns(designs).split("\n")).toHaveLength(2);
   });
 });
 
