@@ -81,3 +81,8 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-MIGRATIONS-REPORT.md | Gemini | ✅ gemergt (fe0988f); CLI-Verdrahtung (MIGRATION.md schreiben) offen |
 | AUFTRAG-VISU-SCHRIFTEN.md | Codex | 🔨 offen (@font-face + Schriftfamilie; ADR-0015) |
 | AUFTRAG-VISU-SKALIERUNG.md | Codex | 🔨 offen (aus B3: Seite auf Viewport skalieren) |
+| AUFTRAG-API-VISU-DATEIEN.md | Spur 1 (Opus) | offen (klein; Antwort auf Integrationswunsch: ja) |
+| AUFTRAG-ADR14-V3.md | Spur 1 (Opus) | offen (vor Start-Abschluss) |
+| AUFTRAG-BAUSTEIN-WETTER.md | Gemini | offen (sofort startbar) |
+| AUFTRAG-B9-SVG-ICONS.md | Codex | offen (nach VISU-SCHRIFTEN + SKALIERUNG) |
+| AUFTRAG-B7-ANIMATION.md | Spur 1 + Codex | offen (nice-to-have, NICHT abschlussrelevant) |
