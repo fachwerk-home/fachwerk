@@ -19,7 +19,7 @@ Gearbeitet wird NIE hier, sondern in einem eigenen Worktree (Befehle stehen
 in jedem Auftrag, Muster AUFTRAG-P5-13c.md § Arbeitsablauf):
 
 ```
-git worktree add ..achwerk-spur3-<auftrag> -b auftrag/<name> origin/main
+git worktree add ../fachwerk-spur3-<auftrag> -b auftrag/<name> origin/main
 ```
 
 
