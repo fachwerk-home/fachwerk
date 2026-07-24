@@ -41,6 +41,47 @@ FACHWERK_KNX_MODUS=beobachten \
 `FACHWERK_KNX_MODUS` leer/ungesetzt = normaler Betrieb (sendet). Nur der exakte Wert
 `beobachten` aktiviert den Nur-Lese-Modus.
 
+## Eigenes Gewerk auf den Host bringen (ohne SSH)
+
+Ein eigenes Gewerk gehört **nie** ins Repo oder Image: es enthält deine
+Gruppenadressen, Raumnamen und ggf. Schriften/Bilder mit fremder Lizenz
+(ADR-0015 D-4). Es kommt als Verzeichnis auf den Host und wird als Volume
+gemountet — dafür ist `docker-compose.gewerk.yml` da.
+
+**Packen** (auf dem Arbeitsrechner). Wichtig, wenn dort Windows läuft:
+
+```bash
+tar --owner=0 --group=0 --numeric-owner --mode='u=rwX,go=rX'     -czf fachwerk-gewerk.tar.gz -C <gewerk-verzeichnis> .
+```
+
+Ohne `--owner/--group` trägt das Archiv die Windows-UID (z. B. 197609). Beim
+Entpacken als `root` versucht GNU-tar, diesen Eigentümer zu setzen, und bricht
+ab: `Cannot change ownership to uid 197609 … Exiting with failure status`. Die
+Dateien sind dann zwar da, aber der Exit-Status ist ≠ 0 — in einer Deploy-Kette
+reißt das alles mit. Kontrolle: `tar -tvzf …` muss `0/0` zeigen.
+
+**Übertragen ohne SSH** — zwei erprobte Wege:
+
+- Über Proxmox: Archiv per Proxmox-UI in einen Storage laden, dann auf der
+  **Proxmox-Host**-Shell `pct push <CTID> <archiv> /root/fachwerk-gewerk.tar.gz`.
+- Über HTTP: auf dem Arbeitsrechner `python -m http.server 8899` im
+  Download-Ordner, auf dem Zielhost `curl -O http://<arbeitsrechner>:8899/…`.
+  Voraussetzung: die Firewall des Arbeitsrechners lässt den Port eingehend zu.
+
+**Auspacken** auf dem Host:
+
+```bash
+sudo mkdir -p /opt/fachwerk/gewerk
+sudo tar -xzf fachwerk-gewerk.tar.gz -C /opt/fachwerk/gewerk --no-same-owner
+```
+
+`--no-same-owner` ist die Notlösung für ein bereits übertragenes Archiv mit
+Fremd-UIDs — dann muss nichts neu übertragen werden.
+
+**Stack anlegen:** wie unten, aber Compose path `docker-compose.gewerk.yml` und
+`FACHWERK_KNX_HOST` = IP des KNX-IP-Routers. Liegt das Gewerk woanders als
+`/opt/fachwerk/gewerk`, zusätzlich `FACHWERK_GEWERK_HOST` setzen.
+
 ## Auf dem Portainer-Host deployen
 
 `docker-compose.beobachten.yml` fährt **nur** Fachwerk (kein Simulator), im
