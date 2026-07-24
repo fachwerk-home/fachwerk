@@ -4,6 +4,7 @@ const SEITEN_REIHENFOLGE = ["typ", "name", "basis", "groessen", "gruppen", "elem
 const ELEMENT_REIHENFOLGE = [
   "preset",
   "widget",
+  "text",
   "parameter",
   "bindungen",
   "gruppe",

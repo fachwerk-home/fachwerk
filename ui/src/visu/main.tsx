@@ -18,7 +18,7 @@ import { wertAusAktion, wertPasstZumDatenpunkt } from "./bedienen.ts";
 import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
 import {
   designFuer,
-  formatierterWert,
+  elementAnzeige,
   lesbarerName,
   placementFuer,
   startSeite,
@@ -108,29 +108,21 @@ function ElementInhalt({
   design: VisuDesign;
   bedien: BedienKontext;
 }): ComponentChildren {
-  const displayKey = element.bindungen?.["display"];
-  const statusKey = element.bindungen?.["status"];
-  const wertKey = displayKey ?? statusKey;
-  const text = formatierterWert(wertKey, werte, element.format, placement.format);
-  const rohwert = wertKey ? werte.get(wertKey)?.wert : undefined;
-  const anzeigeText = typeof rohwert === "boolean" && (text === "true" || text === "false")
-    ? (rohwert ? "An" : "Aus")
-    : text;
-  const name = lesbarerName(elementKey);
+  const anzeige = elementAnzeige(elementKey, element, werte, placement);
 
   if (element.widget === "slider") {
     const setKey = element.bindungen?.["set"];
     const min = typeof element.parameter?.["min"] === "number" ? element.parameter["min"] : 0;
     const max = typeof element.parameter?.["max"] === "number" ? element.parameter["max"] : 100;
     const entwurf = setKey ? bedien.slider.get(setKey) : undefined;
-    const zahl = entwurf ?? (typeof rohwert === "number" ? rohwert : min);
+    const zahl = entwurf ?? (typeof anzeige.rohwert === "number" ? anzeige.rohwert : min);
     const gesperrt = setKey ? bedien.gesperrt.get(setKey) : undefined;
     const deaktiviert = !setKey || !bedien.darfBedienen || gesperrt !== undefined;
     return (
       <div class="slider-inhalt">
-        <span>{name}</span>
+        <span>{anzeige.label}</span>
         <input
-          aria-label={name}
+          aria-label={anzeige.label}
           type="range"
           min={min}
           max={max}
@@ -154,39 +146,45 @@ function ElementInhalt({
             bedien.bediene(elementKey, element, zielwert);
           }}
         />
-        <strong>{anzeigeText}</strong>
+        <strong>{anzeige.wert}</strong>
       </div>
     );
   }
 
   if (element.widget === "diagramm") {
     return (
-      <Diagramm
-        archivId={diagrammArchiv(element)}
-        startStunden={diagrammStunden(element)}
-        liveNachricht={bedien.liveNachricht}
-        klasse="diagramm-visu"
-      />
+      <>
+        {/* Beschriftung nur, wenn sie gepflegt ist. Der Schlüssel-Fallback
+            waere hier eine NEUE Kopfzeile ueber jedem bestehenden Diagramm —
+            und ein technischer Schluessel ist genau das, was B8 loswird. */}
+        {anzeige.hatText && <span class="element-name">{anzeige.label}</span>}
+        <Diagramm
+          archivId={diagrammArchiv(element)}
+          startStunden={diagrammStunden(element)}
+          liveNachricht={bedien.liveNachricht}
+          klasse="diagramm-visu"
+        />
+      </>
     );
   }
 
   switch (element.preset) {
     case "symbol":
-      return <span class="symbol" aria-label={name}>{design.icon ?? (rohwert ? "●" : "○")}</span>;
+      return <span class="symbol" aria-label={anzeige.label}>{design.icon ?? (anzeige.hatText ? anzeige.label : anzeige.rohwert ? "●" : "○")}</span>;
     case "label":
-      return <span>{anzeigeText || name}</span>;
+      return <span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span>;
     case "wertanzeige":
-      return <><span class="element-name">{name}</span><strong class="element-wert">{anzeigeText || "—"}</strong></>;
+      return <><span class="element-name">{anzeige.label}</span><strong class="element-wert">{anzeige.wert || "—"}</strong></>;
     case "statusanzeige":
-      return <><span class="status-punkt" aria-hidden="true" /> <span>{anzeigeText || name}</span></>;
+      return <><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</>;
     case "schalter":
-      return <><span>{name}</span><strong>{anzeigeText || (rohwert ? "An" : "Aus")}</strong></>;
+      return <><span>{anzeige.label}</span><strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong></>;
     case "taster":
-      return <span>{name}</span>;
+      return <span>{anzeige.label}</span>;
     case "navigation":
-      return <span>{name} <span aria-hidden="true">→</span></span>;
+      return <span>{anzeige.label} <span aria-hidden="true">→</span></span>;
     default:
-      return <span>{anzeigeText || name}</span>;
+      return <span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span>;
   }
 }
 
