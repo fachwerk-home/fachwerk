@@ -223,6 +223,16 @@ export function konvertiereVisu(
     if (gr > 0) d.schriftgroesse = gr;
     const schrift = schriftName.get(slotZahl(roh, "s13"));
     if (schrift) d.schriftart = schrift;
+    // Textausrichtung (Spec s18: 1=links 2=zentriert 3=rechts 4=Blocksatz).
+    // In EDOMI ist links der Default (leer wie 1). Der Renderer soll ebenfalls
+    // links als Default nehmen; deshalb schreiben wir nur die ABWEICHUNGEN ins
+    // Design — sonst traegt jedes reine Farbdesign ein ueberfluessiges
+    // Textattribut. Das behebt den Befund „kreuz und quer" (Labels waren links,
+    // wurden aber zentriert dargestellt).
+    const ausrichtung = ({ 2: "zentriert", 3: "rechts", 4: "blocksatz" } as const)[
+      slotZahl(roh, "s18") as 2 | 3 | 4
+    ];
+    if (ausrichtung) d.textausrichtung = ausrichtung;
     const deck = Number(slot(roh, "s8"));
     if (Number.isFinite(deck) && deck > 0 && deck < 1) d.deckkraft = deck;
     const rb = slotZahl(roh, "s31");

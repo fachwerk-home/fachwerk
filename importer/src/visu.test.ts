@@ -207,3 +207,18 @@ test("Verlaeufe verlieren den -webkit-Praefix (Live-Rendering-Form)", () => {
     "linear-gradient(-90deg, #000 0%, #fff 100%)",
   );
 });
+
+test("Textausrichtung: nur Abweichungen von links landen im Design (Befund kreuz-und-quer)", () => {
+  const roh = fixture();
+  // Element 10 (Statusanzeige) bekommt s18=3 (rechts); ein zweites Design-Element
+  // ohne s18 bleibt ohne textausrichtung (Default links im Renderer).
+  const design = roh.editVisuElementDesign as Array<Record<string, unknown>>;
+  design[0]!["s18"] = "3";
+  design.push({ id: 2, targetid: 11, styletyp: 0, s14: "40" }); // Label ohne s18
+  const { seiten, designs } = konvertiereVisu(roh, gaKey);
+  const el = seiten.get("wohnzimmer")!.elemente;
+  const rechts = Object.values(el).find((x) => x.bindungen?.status === "wohnen.licht" && x.design);
+  expect(designs[rechts!.design!]!.textausrichtung).toBe("rechts");
+  const label = Object.values(el).find((x) => x.text === "Wohnzimmer" && x.design);
+  expect(designs[label!.design!]!.textausrichtung).toBeUndefined();
+});

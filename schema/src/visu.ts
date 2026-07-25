@@ -98,6 +98,8 @@ export interface VisuDesign {
   text?: string;
   /** Schriftfamilie aus visu/dateien/ (ADR-0015 D-2: Name, nie ein Pfad). */
   schriftart?: string;
+  /** Horizontale Textausrichtung. Fehlt sie, entscheidet der Renderer. */
+  textausrichtung?: "links" | "zentriert" | "rechts" | "blocksatz";
   icon?: string;
   schriftgroesse?: number;
   deckkraft?: number;

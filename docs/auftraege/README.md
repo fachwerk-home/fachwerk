@@ -86,3 +86,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-BAUSTEIN-WETTER.md | Gemini | offen (sofort startbar) |
 | AUFTRAG-B9-SVG-ICONS.md | Codex | offen (nach VISU-SCHRIFTEN + SKALIERUNG) |
 | AUFTRAG-B7-ANIMATION.md | Spur 1 + Codex | offen (nice-to-have, NICHT abschlussrelevant) |
+| AUFTRAG-VISU-NACHBESSERUNG-2.md | Codex | 🔨 offen (Icon-Optik, Textausrichtung; Import/Schema erledigt) |
