@@ -1,0 +1,43 @@
+# Gewerk aus einem Altanlagen-Export erzeugen — direkt auf dem Docker-Host.
+#
+# Damit entfaellt das "lokal importieren und dann irgendwie kopieren": Die
+# Exportdateien liegen auf dem Host, der Import laeuft im selben Container-Image
+# wie die Laufzeit, und das Gewerk landet sofort dort, wo der Betriebs-Stack es
+# erwartet.
+#
+# Vorbereitung auf dem Docker-Host:
+#   mkdir -p /opt/fachwerk/quellen
+#   # dort hineinlegen (Dateinamen egal, sie werden gefunden):
+#   #   - den Datenbank-Dump  (*.sql)
+#   #   - den Visu-Export     (*.tar bevorzugt — nur das Paket bringt
+#   #                          Schriften und Bilder mit; *.json geht auch)
+#
+# Portainer -> Stacks -> Add stack -> Repository:
+#   Repository URL:       https://github.com/fachwerk-home/fachwerk
+#   Repository reference: refs/heads/main
+#   Compose path:         docker-compose.import.yml
+#
+# Der Stack laeuft EINMAL durch und bleibt dann gestoppt (restart: "no").
+# Das Ergebnis steht im Container-Log: was konvertiert wurde, was der Betreiber
+# noch klaeren muss (auch als MIGRATION.md im Gewerk).
+#
+# Danach: den Betriebs-Stack (docker-compose.gewerk.yml) neu starten, damit er
+# das frische Gewerk laedt.
+#
+# ACHTUNG, das Ziel wird UEBERSCHRIEBEN: Wer im Gewerk von Hand nachgebessert
+# hat (oder mit dem Editor), verliert diese Aenderungen. Deshalb schreibt der
+# Import bewusst NICHT ins laufende Verzeichnis, sondern nach
+# /opt/fachwerk/gewerk-neu — vergleichen, dann uebernehmen.
+services:
+  import:
+    image: ghcr.io/fachwerk-home/fachwerk:latest
+    pull_policy: always
+    restart: "no"
+    command: ["import", "/quellen", "/gewerk"]
+    volumes:
+      # Exportdateien der Altanlage — nur lesend, sie sind das Original.
+      - ${FACHWERK_QUELLEN:-/opt/fachwerk/quellen}:/quellen:ro
+      # Zielverzeichnis. Absichtlich NICHT das laufende Gewerk (siehe oben).
+      - ${FACHWERK_GEWERK_NEU:-/opt/fachwerk/gewerk-neu}:/gewerk
+    environment:
+      TZ: ${TZ:-Europe/Berlin}

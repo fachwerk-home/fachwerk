@@ -4,7 +4,7 @@
  * (Baustein-Bedarf = Portierungs-Prioritäten). Stufe 2 (Logik-Graph) und
  * Stufe 3 (Visu) folgen.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   archiveZuYaml,
@@ -34,6 +34,39 @@ import {
   type StubInfo,
   type VisuExport,
 } from "@fachwerk/importer";
+
+/**
+ * Quellen aus einem Verzeichnis bestimmen. Damit reicht "leg die Dateien hier
+ * hinein" — der Aufrufer muss keine Dateinamen kennen. Genau das braucht ein
+ * Container-Lauf: der Visu-Export heisst beim Betreiber z. B.
+ * "ExportVisu2_Mobil (iPhone 14).tar", mit Leerzeichen und Klammern.
+ */
+export function findeQuellen(verzeichnis: string): {
+  dump?: string;
+  visu?: string;
+  meldungen: string[];
+} {
+  const meldungen: string[] = [];
+  const dateien = readdirSync(verzeichnis).sort();
+  const passend = (endungen: string[]): string[] =>
+    dateien.filter((d) => endungen.some((e) => d.toLowerCase().endsWith(e)));
+
+  const sqlDateien = passend([".sql"]);
+  // .tar bevorzugen: nur das Paket bringt Schriften und Bilder mit (ADR-0015).
+  const visuDateien = [...passend([".tar"]), ...passend([".json"])];
+
+  if (sqlDateien.length > 1) {
+    meldungen.push(`mehrere .sql-Dateien gefunden, nehme ${sqlDateien[0]}`);
+  }
+  if (visuDateien.length > 1) {
+    meldungen.push(`mehrere Visu-Exporte gefunden, nehme ${visuDateien[0]}`);
+  }
+  return {
+    ...(sqlDateien[0] !== undefined ? { dump: join(verzeichnis, sqlDateien[0]) } : {}),
+    ...(visuDateien[0] !== undefined ? { visu: join(verzeichnis, visuDateien[0]) } : {}),
+    meldungen,
+  };
+}
 
 export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): number {
   const sql = readFileSync(dumpPfad, "utf8");

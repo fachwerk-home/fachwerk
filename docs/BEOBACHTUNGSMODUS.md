@@ -43,6 +43,11 @@ FACHWERK_KNX_MODUS=beobachten \
 
 ## Eigenes Gewerk auf den Host bringen (ohne SSH)
 
+> **Bequemer:** Kommt das Gewerk aus einem Altanlagen-Export, muss es gar nicht
+> übertragen werden — der Import läuft direkt auf dem Host als eigener Stack.
+> Siehe `docs/IMPORT-AUF-DEM-HOST.md`. Der folgende Abschnitt beschreibt den
+> Weg für ein Gewerk, das anderswo entstanden ist.
+
 Ein eigenes Gewerk gehört **nie** ins Repo oder Image: es enthält deine
 Gruppenadressen, Raumnamen und ggf. Schriften/Bilder mit fremder Lizenz
 (ADR-0015 D-4). Es kommt als Verzeichnis auf den Host und wird als Volume

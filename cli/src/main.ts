@@ -117,13 +117,30 @@ switch (cmd) {
     const [dump, ziel] = [positional[0], positional[1]];
     if (!dump || !ziel) {
       console.error(
-        "Aufruf: fachwerk import <projekt-dump.sql> <ziel-verzeichnis> [--visu <exportVisu.json>]",
+        "Aufruf: fachwerk import <projekt-dump.sql|quellverzeichnis> <ziel-verzeichnis> [--visu <export>]",
       );
       process.exit(2);
     }
-    const { importiere } = await import("./import.ts");
+    const { importiere, findeQuellen } = await import("./import.ts");
+    // Ist das erste Argument ein VERZEICHNIS, werden die Quellen darin gesucht.
+    // Das macht den Container-Lauf moeglich, ohne Dateinamen zu kennen.
+    const { existsSync, statSync } = await import("node:fs");
+    let dumpPfad = dump;
+    if (existsSync(dump) && statSync(dump).isDirectory()) {
+      const quellen = findeQuellen(dump);
+      for (const m of quellen.meldungen) console.error(`HINWEIS: ${m}`);
+      if (!quellen.dump) {
+        console.error(`FEHLER: keine .sql-Datei in ${dump} gefunden.`);
+        process.exit(1);
+      }
+      dumpPfad = quellen.dump;
+      if (visuPfad === undefined) visuPfad = quellen.visu;
+      console.error(
+        `Quellen: ${dumpPfad}` + (visuPfad !== undefined ? ` + ${visuPfad}` : " (ohne Visu-Export)"),
+      );
+    }
     // --visu ist optional: ohne sie laeuft nur Stufe 1+2 wie bisher.
-    process.exit(importiere(dump, ziel, visuPfad));
+    process.exit(importiere(dumpPfad, ziel, visuPfad));
     break;
   }
 
