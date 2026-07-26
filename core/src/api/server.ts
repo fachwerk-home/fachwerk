@@ -149,6 +149,12 @@ function fremdeOrigin(req: IncomingMessage): boolean {
 
 /** Route der Gewerk-Beilagen (ADR-0015). */
 const PFAD_VISU_DATEI = "/api/visu/datei/";
+/** Upload-Route fuer Import-Quellen (binaer, eigener Deckel). */
+const PFAD_QUELLE = "/api/gewerk/quellen/";
+/** Groesse einer hochladbaren Quelldatei. Ein Visu-Paket liegt bei wenigen MB;
+ *  32 MB lassen Luft, ohne dass ein Dauersender den Speicher auffrisst. */
+const MAX_QUELLE = 32 * 1024 * 1024;
+
 /** Route der Beilagen-LISTE. Bewusst ohne Schraegstrich am Ende, damit sie
  *  sich nicht mit der Einzeldatei-Route ueberschneidet. */
 const PFAD_VISU_DATEIEN = "/api/visu/dateien";
@@ -327,6 +333,41 @@ export class ApiServer {
           return;
         }
 
+        // Quelldatei hochladen: BINAER und gross — laeuft deshalb nicht ueber
+        // den JSON-Body-Pfad (64 kB, UTF-8), sondern hier.
+        if (methode === "POST" && pfad.startsWith(PFAD_QUELLE)) {
+          const dienst = this.#ktx.importDienst;
+          if (!dienst) {
+            json(res, 501, { fehler: "Import nicht verfuegbar" });
+            return;
+          }
+          if (!anfrager?.identitaet.scopes.includes("write:gewerk")) {
+            json(res, 403, { fehler: "fehlender Scope: write:gewerk" });
+            return;
+          }
+          const name = decodeURIComponent(pfad.slice(PFAD_QUELLE.length));
+          if (!gueltigerDateiname(name)) {
+            json(res, 400, { fehler: "ungueltiger Dateiname" });
+            return;
+          }
+          this.#liesBinaer(req, (fehler, daten) => {
+            if (fehler !== null || !daten) {
+              json(res, fehler === "zu gross" ? 413 : 400, {
+                angenommen: false,
+                fehler: fehler === "zu gross" ? "Datei zu gross" : "Upload abgebrochen",
+              });
+              return;
+            }
+            const erg = dienst.lege(name, daten);
+            if (!erg.ok) {
+              json(res, erg.status, { angenommen: false, fehler: erg.grund });
+              return;
+            }
+            json(res, 200, { angenommen: true, name: erg.name, groesse: erg.groesse });
+          });
+          return;
+        }
+
         if (methode === "GET") {
           const antwort = beantworte(
             this.#ktx,
@@ -432,6 +473,36 @@ export class ApiServer {
         `${SITZUNGS_COOKIE}=${encodeURIComponent(k.token)}; HttpOnly; SameSite=Lax; Path=/; ` +
         `Max-Age=${maxAge}${this.#opts.cookieSecure ? "; Secure" : ""}`,
     };
+  }
+
+  /** Binaeren Body einsammeln (Upload). Eigener Deckel, siehe MAX_QUELLE. */
+  #liesBinaer(
+    req: IncomingMessage,
+    fertig: (fehler: "zu gross" | "kaputt" | null, daten?: Buffer) => void,
+  ): void {
+    const stuecke: Buffer[] = [];
+    let gesamt = 0;
+    let abgebrochen = false;
+    req.on("data", (stueck: Buffer) => {
+      if (abgebrochen) return;
+      gesamt += stueck.length;
+      if (gesamt > MAX_QUELLE) {
+        abgebrochen = true;
+        fertig("zu gross");
+        req.destroy();
+        return;
+      }
+      stuecke.push(stueck);
+    });
+    req.on("end", () => {
+      if (!abgebrochen) fertig(null, Buffer.concat(stuecke));
+    });
+    req.on("error", () => {
+      if (!abgebrochen) {
+        abgebrochen = true;
+        fertig("kaputt");
+      }
+    });
   }
 
   /**

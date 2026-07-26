@@ -11,7 +11,7 @@
  * Reload hinweg bestehen. Nur so kann ein Editor ein Gewerk aktivieren, ohne
  * die KNX-Verbindung abzureißen.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   ApiServer,
@@ -46,6 +46,7 @@ import {
   type Wert,
 } from "@fachwerk/core";
 import type { VisuDesigns, VisuSeite } from "@fachwerk/schema";
+import { findeQuellen as findeQuellen2, importiere } from "./import.ts";
 import { KnxTreiber } from "@fachwerk/driver-knx";
 import { MqttTreiber, textZuWert, wertZuText } from "@fachwerk/driver-mqtt";
 
@@ -62,6 +63,9 @@ function rohText(bytes: Uint8Array): string {
   }
   return `0x${hex} (${bytes.length} Byte)`;
 }
+
+/** Zeilentrenner fuer den gesammelten Import-Bericht. */
+const BERICHT_TRENNER = String.fromCharCode(10);
 
 /** Der beim Reload austauschbare Teil der Laufzeit (P5-10a). */
 interface Kern {
@@ -530,6 +534,100 @@ export async function run(dir: string): Promise<number> {
     aktiviere,
   };
 
+  /**
+   * Import ueber die API (Quellen hochladen, importieren, uebernehmen).
+   * Arbeitsbereich liegt im DATEN-Verzeichnis, nicht im Gewerk: Uploads und
+   * Zwischenstaende sind Laufzeitzustand, keine versionierte Definition.
+   * Bewusst zweischrittig — ein Import ueberschreibt alles.
+   */
+  const importDir = join(datenDir, "import");
+  const quellenDir = join(importDir, "quellen");
+  const neuesGewerkDir = join(importDir, "gewerk-neu");
+  const importDienst = {
+    lege(name: string, inhalt: Uint8Array) {
+      // Nur die Formate, die der Import wirklich verarbeitet — sonst sammelt
+      // sich hier Zeug an, das beim naechsten Lauf fuer Verwirrung sorgt.
+      if (!/\.(sql|tar|json)$/i.test(name)) {
+        return { ok: false as const, status: 415, grund: `nur .sql, .tar oder .json (nicht ${name})` };
+      }
+      try {
+        mkdirSync(quellenDir, { recursive: true });
+        writeFileSync(join(quellenDir, name), inhalt);
+        return { ok: true as const, name, groesse: inhalt.byteLength };
+      } catch (e) {
+        return { ok: false as const, status: 500, grund: e instanceof Error ? e.message : String(e) };
+      }
+    },
+    quellen() {
+      try {
+        return readdirSync(quellenDir)
+          .map((n) => ({ name: n, groesse: statSync(join(quellenDir, n)).size }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+      } catch {
+        return [];
+      }
+    },
+    entferne(name: string) {
+      if (name.includes("/") || name.includes("\\") || name.includes("..")) return { ok: false };
+      try {
+        rmSync(join(quellenDir, name));
+        return { ok: true };
+      } catch {
+        return { ok: false };
+      }
+    },
+    starte() {
+      const quellen = findeQuellen2(quellenDir);
+      if (!quellen.dump) {
+        return { ok: false as const, status: 400, grund: "keine .sql-Datei hochgeladen" };
+      }
+      // Der Importer schreibt nach stdout/stderr; fuer die Antwort sammeln wir
+      // die Ausgabe ein, damit der Bediener denselben Bericht sieht wie im Log.
+      const zeilen: string[] = [];
+      const alteLog = console.log;
+      const alteErr = console.error;
+      console.log = (...a: unknown[]): void => void zeilen.push(a.join(" "));
+      console.error = (...a: unknown[]): void => void zeilen.push(a.join(" "));
+      let code = 1;
+      try {
+        rmSync(neuesGewerkDir, { recursive: true, force: true });
+        mkdirSync(neuesGewerkDir, { recursive: true });
+        code = importiere(quellen.dump, neuesGewerkDir, quellen.visu);
+      } catch (e) {
+        zeilen.push(`FEHLER: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        console.log = alteLog;
+        console.error = alteErr;
+      }
+      const bericht = zeilen.join(BERICHT_TRENNER);
+      for (const z of zeilen) console.error(`[import] ${z}`);
+      return code === 0
+        ? { ok: true as const, bericht }
+        : { ok: false as const, status: 422, grund: bericht || "Import fehlgeschlagen" };
+    },
+    uebernimm() {
+      if (!existsSync(join(neuesGewerkDir, "gewerk.yaml"))) {
+        return { ok: false as const, status: 409, grund: "kein importiertes Gewerk vorhanden" };
+      }
+      try {
+        // Rueckweg behalten: der alte Stand bleibt als .alt liegen.
+        const alt = `${dir}.alt`;
+        rmSync(alt, { recursive: true, force: true });
+        cpSync(dir, alt, { recursive: true });
+        // Ersetzen statt Mischen: Reste eines groesseren Vorgaengers duerfen
+        // nicht stehenbleiben (geloeschte Seiten, alte Bausteine).
+        rmSync(dir, { recursive: true, force: true });
+        cpSync(neuesGewerkDir, dir, { recursive: true });
+      } catch (e) {
+        return { ok: false as const, status: 500, grund: e instanceof Error ? e.message : String(e) };
+      }
+      const erg = aktiviere();
+      return erg.ok
+        ? { ok: true as const, dauerMs: erg.dauerMs }
+        : { ok: false as const, status: 422, grund: erg.fehler.join(" | ") };
+    },
+  };
+
   // ---- HTTP-API + WebSocket (P5-2/P5-3) --------------------------------------
   const httpPort = Number(process.env["FACHWERK_HTTP_PORT"] ?? 8300);
   let api: ApiServer | null = null;
@@ -586,6 +684,7 @@ export async function run(dir: string): Promise<number> {
           return kern.archiv ?? undefined;
         },
         dateien,
+        importDienst,
         auth: authDienst,
         schreibenAktiv: authDienst.aktiv,
         bremse: new Schreibbremse({ grenze: Number.isFinite(schreiblimit) ? schreiblimit : 30 }),

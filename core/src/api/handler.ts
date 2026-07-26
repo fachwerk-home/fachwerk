@@ -60,6 +60,9 @@ export interface ApiKontext {
   /** Gewerk-Dateien lesen/schreiben + Reload (P5-10a); fehlt = Editor aus. */
   dateien?: GewerkDateien;
 
+  /** Import ueber die API; fehlt der Dienst, gibt es die Routen nicht. */
+  importDienst?: ImportDienst;
+
   /** Anmeldung (P5-12); fehlt sie, gibt es /api/login schlicht nicht. */
   auth?: AuthTor;
 }
@@ -92,6 +95,28 @@ export interface GewerkDateien {
   ): { ok: true; rel: string } | { ok: false; status: number; grund: string };
   /** Validiert das Gewerk und schaltet bei Erfolg atomar um. */
   aktiviere(): { ok: true; dauerMs: number } | { ok: false; fehler: string[] };
+}
+
+/**
+ * Import einer Altanlage ueber die API (Agent-first: alles, was die CLI kann,
+ * geht auch ueber die Schnittstelle). Die Umsetzung liegt in der Laufzeit —
+ * der Handler bleibt frei vom Importer, genau wie bei GewerkDateien.
+ *
+ * Bewusst ZWEISCHRITTIG: importieren erzeugt ein Gewerk NEBEN dem laufenden,
+ * uebernehmen schaltet um. Ein Import ueberschreibt alles, auch von Hand oder
+ * im Editor nachgebesserte Stellen — das darf kein einzelner Klick sein.
+ */
+export interface ImportDienst {
+  /** Hochgeladene Quelldatei ablegen (Dump oder Visu-Export). */
+  lege(name: string, inhalt: Uint8Array): { ok: true; name: string; groesse: number } | { ok: false; status: number; grund: string };
+  /** Was liegt bereit? */
+  quellen(): Array<{ name: string; groesse: number }>;
+  /** Eine bereitliegende Quelldatei entfernen. */
+  entferne(name: string): { ok: boolean };
+  /** Import aus den bereitliegenden Quellen — erzeugt ein Gewerk daneben. */
+  starte(): { ok: true; bericht: string } | { ok: false; status: number; grund: string };
+  /** Das zuletzt importierte Gewerk uebernehmen und aktivieren. */
+  uebernimm(): { ok: true; dauerMs: number } | { ok: false; status: number; grund: string };
 }
 
 export interface ApiAntwort {
@@ -414,6 +439,65 @@ export function beantworte(
     // Erst /api/gewerk/aktivieren schaltet um — sonst reisst ein halb
     // gespeicherter Editor-Stand die laufende Steuerung mit.
     return { status: 200, koerper: { angenommen: true, pfad: erg.rel, aktiviert: false } };
+  }
+
+  // ---- Import ueber die API (Quellen hochladen, importieren, uebernehmen) ----
+  if (methode === "POST" && pfad === "/api/gewerk/import") {
+    if (!ktx.importDienst) return { status: 501, koerper: { fehler: "Import nicht verfuegbar" } };
+    const tor = pruefeSchreibrecht(ktx, anfrager, "write:gewerk", "gewerk:import", null);
+    if (tor) return tor;
+    const erg = ktx.importDienst.starte();
+    const jetzt = (ktx.jetzt ?? Date.now)();
+    ktx.audit?.({
+      ts: jetzt,
+      schluessel: "gewerk:import",
+      wert: null,
+      quelle: "api",
+      angenommen: erg.ok,
+      ...(erg.ok ? {} : { grund: erg.grund }),
+      ...auditWer(anfrager, "write:gewerk"),
+    });
+    return erg.ok
+      ? { status: 200, koerper: { angenommen: true, bericht: erg.bericht } }
+      : { status: erg.status, koerper: { angenommen: false, fehler: erg.grund } };
+  }
+
+  if (methode === "POST" && pfad === "/api/gewerk/import/uebernehmen") {
+    if (!ktx.importDienst) return { status: 501, koerper: { fehler: "Import nicht verfuegbar" } };
+    // Uebernehmen schaltet das laufende Gewerk um — dafuer gilt derselbe
+    // Scope wie fuer jede andere Aktivierung.
+    const tor = pruefeSchreibrecht(ktx, anfrager, "activate:dev", "gewerk:import-uebernehmen", null);
+    if (tor) return tor;
+    const erg = ktx.importDienst.uebernimm();
+    const jetzt = (ktx.jetzt ?? Date.now)();
+    ktx.audit?.({
+      ts: jetzt,
+      schluessel: "gewerk:import-uebernehmen",
+      wert: null,
+      quelle: "api",
+      angenommen: erg.ok,
+      ...(erg.ok ? {} : { grund: erg.grund }),
+      ...auditWer(anfrager, "activate:dev"),
+    });
+    return erg.ok
+      ? { status: 200, koerper: { angenommen: true, dauerMs: erg.dauerMs } }
+      : { status: erg.status, koerper: { angenommen: false, fehler: erg.grund } };
+  }
+
+  if (methode === "DELETE" && pfad.startsWith("/api/gewerk/quellen/")) {
+    if (!ktx.importDienst) return { status: 501, koerper: { fehler: "Import nicht verfuegbar" } };
+    const tor = pruefeSchreibrecht(ktx, anfrager, "write:gewerk", "gewerk:quellen", null);
+    if (tor) return tor;
+    const name = decodeURIComponent(pfad.slice("/api/gewerk/quellen/".length));
+    return ktx.importDienst.entferne(name).ok
+      ? { status: 200, koerper: { entfernt: name } }
+      : { status: 404, koerper: { fehler: `nicht gefunden: ${name}` } };
+  }
+
+  if (methode === "GET" && pfad === "/api/gewerk/quellen") {
+    if (!darf("read")) return verweigert("read");
+    if (!ktx.importDienst) return { status: 501, koerper: { fehler: "Import nicht verfuegbar" } };
+    return { status: 200, koerper: { quellen: ktx.importDienst.quellen() } };
   }
 
   if (methode === "POST" && pfad === "/api/gewerk/aktivieren") {

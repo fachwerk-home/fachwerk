@@ -35,6 +35,13 @@ function ktxAufbau(): ApiKontext {
     knx: () => null,
     mqtt: () => null,
     schreibenAktiv: true,
+    importDienst: {
+      lege: () => ({ ok: true, name: "a.sql", groesse: 1 }),
+      quellen: () => [],
+      entferne: () => ({ ok: true }),
+      starte: () => ({ ok: true, bericht: "ok" }),
+      uebernimm: () => ({ ok: true, dauerMs: 1 }),
+    },
     dateien: {
       lies: () => ({ ok: true, inhalt: "x" }),
       schreibe: () => ({ ok: true, rel: "visu/a.yaml" }),
@@ -75,6 +82,15 @@ const ROUTEN: Route[] = [
     scope: "write:gewerk",
   },
   { methode: "POST", pfad: "/api/gewerk/aktivieren", koerper: {}, scope: "activate:dev" },
+  { methode: "GET", pfad: "/api/gewerk/quellen", scope: "read" },
+  { methode: "POST", pfad: "/api/gewerk/import", koerper: {}, scope: "write:gewerk" },
+  { methode: "DELETE", pfad: "/api/gewerk/quellen/a.sql", scope: "write:gewerk" },
+  {
+    methode: "POST",
+    pfad: "/api/gewerk/import/uebernehmen",
+    koerper: {},
+    scope: "activate:dev",
+  },
 ];
 
 const identitaet = (scopes: readonly Scope[]): Identitaet => ({

@@ -49,6 +49,25 @@ sudo mv /opt/fachwerk/gewerk-neu /opt/fachwerk/gewerk
 Danach den Betriebs-Stack (`docker-compose.gewerk.yml`) neu starten, damit er
 das frische Gewerk lädt.
 
+## Ohne Konsole: über die Oberfläche
+
+Dieselben Schritte gehen auch über die laufende Instanz — dann muss nichts auf
+den Host kopiert werden:
+
+```bash
+T="Authorization: Bearer <token>"; B=http://<host>:8300
+curl -X POST -H "$T" --data-binary @projekt-dump.sql   "$B/api/gewerk/quellen/projekt-dump.sql"
+curl -X POST -H "$T" --data-binary @visu-export.tar    "$B/api/gewerk/quellen/visu-export.tar"
+curl -X POST -H "$T" "$B/api/gewerk/import"              # erzeugt das Gewerk daneben
+curl -X POST -H "$T" "$B/api/gewerk/import/uebernehmen"  # ersetzt + aktiviert
+```
+
+Auch hier gilt der Zweischritt: `import` rührt das laufende Gewerk nicht an,
+erst `uebernehmen` schaltet um (und legt den Vorgänger als `<gewerk>.alt` ab).
+Der Menüpunkt „Import" in der Admin-UI benutzt genau diese Routen — er ist
+beauftragt (`docs/auftraege/AUFTRAG-UI-IMPORT.md`), bis dahin ist der Weg oben
+der bequemste ohne Dateikopiererei.
+
 ## Woher kommt der `.sql`-Dump?
 
 Der Visu-Export liefert das Export-Modul der Altanlage direkt. Der
