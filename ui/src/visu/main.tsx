@@ -63,8 +63,20 @@ function useViewport(): { w: number; h: number } {
   const [groesse, setGroesse] = useState(viewport);
   useEffect(() => {
     const aktualisiere = (): void => setGroesse(viewport());
+    // Direkt nach dem Mount NOCHMAL messen: hat das Fenster beim ersten Render
+    // noch keine Groesse (Hintergrund-Tab, PWA-Start, eingebettetes Panel),
+    // bliebe der Startwert sonst haengen — die Seite wird dann auf wenige
+    // Pixel skaliert und erholt sich erst beim naechsten Fenster-Resize.
+    aktualisiere();
     window.addEventListener("resize", aktualisiere);
-    return () => window.removeEventListener("resize", aktualisiere);
+    // Ein resize-Event feuert NICHT, wenn nur der Container seine Groesse
+    // aendert (Split-Ansicht, eingebettete Visu). Der Beobachter deckt das ab.
+    const beobachter = new ResizeObserver(aktualisiere);
+    beobachter.observe(document.documentElement);
+    return () => {
+      window.removeEventListener("resize", aktualisiere);
+      beobachter.disconnect();
+    };
   }, []);
   return groesse;
 }
@@ -226,9 +238,13 @@ function VisuElementAnsicht({
   const pending = setKey ? bedien.pending.has(setKey) : false;
   const hatSet = setKey !== undefined;
   const hatDesignKachel = design.hintergrund !== undefined || design.rand !== undefined;
-  const kachel = element.preset === "label"
-    ? false
-    : (element.preset === "taster" || element.preset === "schalter" ? hatDesignKachel : true);
+  // Presets, die im importierten Original "nackt" sind (Beschriftungen, Icon-
+  // Buttons): ihre Optik kommt AUSSCHLIESSLICH aus dem Design. Am Referenz-
+  // Panel hat keines der Navigations-Icons einen eigenen Hintergrund — der
+  // kommt dort von einem Rechteck darunter. Anzeige-Elemente (Status/Wert) und
+  // Widgets behalten die Standard-Kachel, sonst schweben sie ohne Kontur.
+  const ohneStandardKachel = new Set(["label", "taster", "schalter", "navigation", "symbol"]);
+  const kachel = ohneStandardKachel.has(element.preset ?? "") ? hatDesignKachel : true;
   const einzelSymbol = einzelnesPrivatesSymbol(element.text) || einzelnesPrivatesSymbol(design.icon);
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
