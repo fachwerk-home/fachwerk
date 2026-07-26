@@ -10,10 +10,23 @@ function regelFuer(selector: string): string {
 
 describe("Visu-CSS", () => {
   it("rendert Label-Presets ohne Standard-Kachel", () => {
-    const regel = regelFuer(".visu-element[data-preset=\"label\"]");
+    const regel = regelFuer(".visu-element[data-kachel=\"false\"]");
 
     expect(regel).toContain("border-width: 0");
     expect(regel).toContain("background: transparent");
     expect(regel).toContain("box-shadow: none");
+  });
+
+  it("rendert Visu-Elemente standardmäßig linksbündig", () => {
+    const regel = regelFuer(".visu-element");
+
+    expect(regel).toContain("justify-content: flex-start");
+    expect(regel).toContain("text-align: left");
+  });
+
+  it("lässt einzelne Symbol-Glyphen über ihre Box hinausragen", () => {
+    const regel = regelFuer(".visu-element[data-einzelsymbol=\"true\"]");
+
+    expect(regel).toContain("overflow: visible");
   });
 });

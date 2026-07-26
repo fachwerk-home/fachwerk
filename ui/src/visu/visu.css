@@ -25,10 +25,17 @@ body { overscroll-behavior: none; background: var(--fw-bg); }
 .visu-flaeche { min-width: 0; min-height: 0; display: grid; place-items: center; overflow: hidden; background-image: radial-gradient(color-mix(in srgb, var(--fw-rand) 72%, transparent) 0.7px, transparent 0.7px); background-size: 20px 20px; }
 .canvas-rahmen { position: relative; flex: none; }
 .canvas { position: absolute; inset: 0 auto auto 0; overflow: hidden; transform-origin: top left; background: var(--fw-flaeche-2); border: 1px solid var(--fw-rand); box-shadow: var(--fw-schatten-m); }
-.visu-element { position: absolute; display: flex; align-items: center; justify-content: center; gap: var(--fw-s2); overflow: hidden; padding: var(--fw-s3); text-align: center; border: 1px solid var(--fw-rand-stark); border-radius: var(--fw-radius-l); background: var(--fw-flaeche); color: var(--fw-text); box-shadow: var(--fw-schatten-s); transition: translate var(--fw-wechsel), box-shadow var(--fw-wechsel), border-color var(--fw-wechsel); }
-.visu-element[data-preset="label"] { padding: 0; border-width: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.visu-element { position: absolute; display: flex; align-items: center; justify-content: flex-start; gap: var(--fw-s2); overflow: hidden; padding: var(--fw-s3); text-align: left; border: 1px solid var(--fw-rand-stark); border-radius: var(--fw-radius-l); background: var(--fw-flaeche); color: var(--fw-text); box-shadow: var(--fw-schatten-s); transition: translate var(--fw-wechsel), box-shadow var(--fw-wechsel), border-color var(--fw-wechsel), background var(--fw-wechsel); }
+.visu-element[data-kachel="false"] { padding: 0; border-width: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.visu-element[data-einzelsymbol="true"] { overflow: visible; }
+.visu-element[data-einzelsymbol="true"] .symbol,
+.visu-element[data-einzelsymbol="true"] > span { overflow: visible; line-height: normal; }
+.visu-element[data-preset="label"] > span,
+.visu-element[data-preset="taster"] > span,
+.visu-element[data-preset="navigation"] > span { width: 100%; }
 button.visu-element { width: auto; cursor: pointer; }
 button.visu-element:not(:disabled):hover { translate: 0 -1px; border-color: var(--fw-akzent); box-shadow: var(--fw-schatten-m); filter: none; }
+button.visu-element[data-kachel="false"]:not(:disabled):hover { background: color-mix(in srgb, var(--fw-akzent-ruhig) 32%, transparent); border-color: transparent; box-shadow: none; }
 button.visu-element:not(:disabled):active { translate: 0 0; background: var(--fw-akzent-ruhig); }
 .visu-element-deaktiviert, .visu-element-deaktiviert:disabled { cursor: not-allowed; filter: saturate(0.6); }
 .visu-element-deaktiviert::after { content: "Gesperrt"; position: absolute; right: 5px; bottom: 4px; padding: 1px 5px; border-radius: 999px; background: color-mix(in srgb, var(--fw-flaeche-3) 88%, transparent); color: currentColor; font-size: 9px; line-height: 1.5; opacity: 0.82; }

@@ -17,6 +17,8 @@ export interface WertEintrag {
 }
 
 const SCHRIFT_ENDUNGEN = ["ttf", "woff2"] as const;
+const PRIVATBEREICH_START = 0xE000;
+const PRIVATBEREICH_ENDE = 0xF8FF;
 
 /** Größter Breakpoint, der hineinpasst; auf schmaleren Geräten der kleinste. */
 export function waehleBreakpoint(seite: VisuSeite, breite: number): string {
@@ -99,6 +101,28 @@ export function fontFaceCssFuerSchriften(schriftarten: readonly string[]): strin
 
 export function fontFaceCssFuerDesigns(designs: VisuDesigns): string {
   return fontFaceCssFuerSchriften(schriftartenAusDesigns(designs));
+}
+
+export function einzelnesPrivatesSymbol(text: string | undefined): boolean {
+  if (!text) return false;
+  const zeichen = [...text];
+  if (zeichen.length !== 1) return false;
+  const codepoint = zeichen[0]?.codePointAt(0);
+  return codepoint !== undefined
+    && codepoint >= PRIVATBEREICH_START
+    && codepoint <= PRIVATBEREICH_ENDE;
+}
+
+export function textausrichtungCss(
+  ausrichtung: VisuDesign["textausrichtung"] | undefined,
+): "left" | "center" | "right" | "justify" {
+  switch (ausrichtung) {
+    case "zentriert": return "center";
+    case "rechts": return "right";
+    case "blocksatz": return "justify";
+    case "links":
+    default: return "left";
+  }
 }
 
 /** Statusregeln wählen ein Override-Design; nicht gesetzte Felder fallen zurück. */
