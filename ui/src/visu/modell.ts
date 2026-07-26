@@ -19,6 +19,7 @@ export interface WertEintrag {
 const SCHRIFT_ENDUNGEN = ["ttf", "woff2"] as const;
 const PRIVATBEREICH_START = 0xE000;
 const PRIVATBEREICH_ENDE = 0xF8FF;
+const MAX_SEITEN_SKALIERUNG = 1.5;
 
 /** Größter Breakpoint, der hineinpasst; auf schmaleren Geräten der kleinste. */
 export function waehleBreakpoint(seite: VisuSeite, breite: number): string {
@@ -29,6 +30,21 @@ export function waehleBreakpoint(seite: VisuSeite, breite: number): string {
   return Object.entries(seite.groessen)
     .sort(([aKey, a], [bKey, b]) => a.w - b.w || aKey.localeCompare(bKey))[0]?.[0]
     ?? seite.basis;
+}
+
+/**
+ * Das importierte Panel ist auf eine feste Seitenbreite entworfen. Der Client
+ * skaliert deshalb nur aus der Breite heraus; die Hoehe folgt und scrollt.
+ * Hochskalieren ist erlaubt, aber gedeckelt, damit ein Tablet-Panel auf einem
+ * sehr breiten Monitor nicht absurd gross wird.
+ */
+export function seitenSkalierung(
+  seitenBreite: number | undefined,
+  viewportBreite: number,
+): number {
+  if (!seitenBreite || !Number.isFinite(seitenBreite) || seitenBreite <= 0) return 1;
+  if (!Number.isFinite(viewportBreite) || viewportBreite <= 0) return 1;
+  return Math.min(viewportBreite / seitenBreite, MAX_SEITEN_SKALIERUNG);
 }
 
 /** Eine partielle Geräte-Platzierung überschreibt die geerbte Basis feldweise. */

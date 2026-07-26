@@ -10,6 +10,7 @@ import {
   formatierterWert,
   placementFuer,
   renderElementeFuerSeite,
+  seitenSkalierung,
   startSeite,
   textausrichtungCss,
   waehleBreakpoint,
@@ -47,6 +48,23 @@ describe("Breakpoint und Placement", () => {
       format: { einheit: "°C", dezimalstellen: 0 },
     });
     expect(placementFuer(element, "desktop", "tablet")?.x).toBe(40);
+  });
+});
+
+describe("Seitenskalierung", () => {
+  it("skaliert schmale Viewports aus der Seitenbreite", () => {
+    expect(seitenSkalierung(1170, 390)).toBeCloseTo(1 / 3);
+  });
+
+  it("skaliert breite Viewports hoch, aber begrenzt absurd grosse Faktoren", () => {
+    expect(seitenSkalierung(1170, 1404)).toBeCloseTo(1.2);
+    expect(seitenSkalierung(1170, 3000)).toBe(1.5);
+  });
+
+  it("fällt bei fehlender oder ungültiger Breite auf 1:1 zurück", () => {
+    expect(seitenSkalierung(undefined, 390)).toBe(1);
+    expect(seitenSkalierung(0, 390)).toBe(1);
+    expect(seitenSkalierung(1170, 0)).toBe(1);
   });
 });
 
