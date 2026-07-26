@@ -79,11 +79,11 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-P5-UI-LOGIN.md | Codex | ✅ gemergt (5049a7b) |
 | AUFTRAG-B8-VISU-TEXT.md | Codex | ✅ gemergt (bff1320) |
 | AUFTRAG-MIGRATIONS-REPORT.md | Gemini | ✅ gemergt (fe0988f); CLI-Verdrahtung (MIGRATION.md schreiben) offen |
-| AUFTRAG-VISU-SCHRIFTEN.md | Codex | 🔨 offen (@font-face + Schriftfamilie; ADR-0015) |
-| AUFTRAG-VISU-SKALIERUNG.md | Codex | 🔨 offen (aus B3: Seite auf Viewport skalieren) |
+| AUFTRAG-VISU-SCHRIFTEN.md | Codex | ✅ gemergt (af3b2d9) |
+| AUFTRAG-VISU-SKALIERUNG.md | Codex | ✅ gemergt (e65742a) |
 | AUFTRAG-API-VISU-DATEIEN.md | Spur 1 (Opus) | ✅ erledigt (GET /api/visu/dateien, df989d4) |
 | AUFTRAG-ADR14-V3.md | Spur 1 (Opus) | ✅ erledigt (Pins + protected-Regel, direkt auf main) |
 | AUFTRAG-BAUSTEIN-WETTER.md | Gemini | offen (sofort startbar) |
 | AUFTRAG-B9-SVG-ICONS.md | Codex | offen (nach VISU-SCHRIFTEN + SKALIERUNG) |
 | AUFTRAG-B7-ANIMATION.md | Spur 1 + Codex | offen (nice-to-have, NICHT abschlussrelevant) |
-| AUFTRAG-VISU-NACHBESSERUNG-2.md | Codex | 🔨 offen (Icon-Optik, Textausrichtung; Import/Schema erledigt) |
+| AUFTRAG-VISU-NACHBESSERUNG-2.md | Codex | ✅ gemergt (03f51ca) |
