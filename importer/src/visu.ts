@@ -407,19 +407,27 @@ export function konvertiereVisu(
     seiten.set(info.slug, seite);
   }
 
-  // Einheitliche Leinwandbreite (B3): Das Altsystem entwirft eine Visu auf EINER
-  // Breite und laesst das Geraet die ganze Seite darauf skalieren (gesichertes
-  // Live-Rendering: viewport width=1170 — exakt die groesste Ausdehnung hier).
-  // Je Seite eine eigene Breite aus der Bounding-Box waere falsch: dann skaliert
-  // jede Seite anders und dieselbe Schriftgroesse wirkt unterschiedlich gross.
-  // Die Hoehe bleibt seitenweise, denn Seiten scrollen vertikal.
+  // Leinwandgroesse (B3, kalibriert am DEV-DOM): Das Altsystem entwirft eine
+  // Visu auf EINER Breite (viewport width=1170) und laesst das Geraet die ganze
+  // Seite darauf skalieren. Die Breite ist deshalb einheitlich.
+  //
+  // Die HOEHE kommt nicht aus den eigenen Elementen allein: die EDOMI-Seite ist
+  // so hoch wie ihr Inhalt EINSCHLIESSLICH der eingebundenen Seiten. Im
+  // Referenz-Panel spannt der Header-Hintergrund (bgSeite, 1170x2141 bei y=250)
+  // jede Seite auf 2391 auf — deshalb sind dort alle Seiten gleich hoch und es
+  // springt nichts. Wer nur die eigene Bounding-Box nimmt, bekommt je Seite eine
+  // andere Hoehe (Befund „Seiten springen") UND schneidet den eingebundenen
+  // Header ab. Also: Hoehe = max(eigene, Hoehe jeder eingebundenen Seite).
+  const eigeneHoehe = new Map<string, number>();
+  for (const [slug, s] of seiten) eigeneHoehe.set(slug, s.groessen["panel"]?.h ?? 1);
   const breiten = [...seiten.values()].map((s) => s.groessen["panel"]?.w ?? 1);
-  if (breiten.length > 0) {
-    const leinwand = Math.max(...breiten);
-    for (const s of seiten.values()) {
-      const g = s.groessen["panel"];
-      if (g) g.w = leinwand;
-    }
+  const leinwandBreite = breiten.length > 0 ? Math.max(...breiten) : 1;
+  for (const s of seiten.values()) {
+    const g = s.groessen["panel"];
+    if (!g) continue;
+    g.w = leinwandBreite;
+    const inklHoehen = (s.includes ?? []).map((k) => eigeneHoehe.get(k) ?? 0);
+    g.h = Math.max(g.h, ...inklHoehen);
   }
 
   return {

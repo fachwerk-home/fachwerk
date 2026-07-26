@@ -186,16 +186,25 @@ test("die erzeugten Seiten und Designs sind schema-konform", () => {
   }
 });
 
-test("alle Seiten einer Visu teilen sich EINE Leinwandbreite (B3)", () => {
-  // Das Altsystem entwirft auf einer Breite und skaliert die ganze Seite; je
-  // Seite eine eigene Breite liesse dieselbe Schriftgroesse unterschiedlich
-  // gross wirken. Die Hoehe bleibt seitenweise.
-  const { seiten } = seiteWz();
+test("alle Seiten teilen EINE Breite; die Hoehe umfasst eingebundene Seiten (B3)", () => {
+  // Kalibriert am DEV-DOM: EDOMI entwirft auf einer Breite (viewport 1170) und
+  // skaliert die ganze Seite. Die Hoehe umfasst die eingebundenen Seiten —
+  // im Referenz-Panel spannt der Header jede Seite gleich hoch auf, deshalb
+  // springt nichts. Ein hoher Header muss die einbindende Seite mitwachsen
+  // lassen, sonst wird er abgeschnitten.
+  const roh = fixture();
+  // Header (Seite 3) hoch machen: ein Element bis y=2000.
+  (roh.editVisuElement as Array<Record<string, unknown>>).push(
+    { id: 90, controltyp: 1, pageid: 3, xpos: 0, ypos: 250, xsize: 1170, ysize: 1750, text: "" },
+  );
+  const { seiten } = konvertiereVisu(roh, gaKey);
   const breiten = [...seiten.values()].map((s) => s.groessen["panel"]!.w);
   expect(new Set(breiten).size).toBe(1);
-  expect(breiten[0]).toBe(Math.max(...breiten));
-  const hoehen = [...seiten.values()].map((s) => s.groessen["panel"]!.h);
-  expect(new Set(hoehen).size).toBeGreaterThan(1);
+  // Wohnzimmer bindet den (nun hohen) Header ein -> uebernimmt dessen Hoehe.
+  expect(seiten.get("wohnzimmer")!.groessen["panel"]!.h).toBe(2000);
+  expect(seiten.get("header")!.groessen["panel"]!.h).toBe(2000);
+  // Details bindet nichts ein -> eigene Hoehe, nicht die des Headers.
+  expect(seiten.get("details")!.groessen["panel"]!.h).toBeLessThan(2000);
 });
 
 test("Verlaeufe verlieren den -webkit-Praefix (Live-Rendering-Form)", () => {
