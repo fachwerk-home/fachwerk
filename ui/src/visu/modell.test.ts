@@ -6,10 +6,12 @@ import {
   fontFaceCssFuerDesigns,
   schriftartenAusDesigns,
   schriftfamilieFuer,
+  einzelnesPrivatesSymbol,
   formatierterWert,
   placementFuer,
   renderElementeFuerSeite,
   startSeite,
+  textausrichtungCss,
   waehleBreakpoint,
 } from "./modell.ts";
 
@@ -99,6 +101,25 @@ describe("Visu-Schriften", () => {
     };
     expect(schriftartenAusDesigns(designs)).toEqual(["Alpha", "Zeta"]);
     expect(fontFaceCssFuerDesigns(designs).split("\n")).toHaveLength(2);
+  });
+});
+
+describe("Symbol- und Textausrichtungs-Helfer", () => {
+  it("erkennt genau ein Zeichen aus dem Unicode-Privatbereich als Symbol", () => {
+    expect(einzelnesPrivatesSymbol("\uE001")).toBe(true);
+    expect(einzelnesPrivatesSymbol("\uF8FF")).toBe(true);
+    expect(einzelnesPrivatesSymbol("A")).toBe(false);
+    expect(einzelnesPrivatesSymbol("\uE001\uE002")).toBe(false);
+    expect(einzelnesPrivatesSymbol(" \uE001")).toBe(false);
+    expect(einzelnesPrivatesSymbol(undefined)).toBe(false);
+  });
+
+  it("übersetzt Design-Textausrichtungen in CSS und nutzt links als Default", () => {
+    expect(textausrichtungCss(undefined)).toBe("left");
+    expect(textausrichtungCss("links")).toBe("left");
+    expect(textausrichtungCss("zentriert")).toBe("center");
+    expect(textausrichtungCss("rechts")).toBe("right");
+    expect(textausrichtungCss("blocksatz")).toBe("justify");
   });
 });
 
