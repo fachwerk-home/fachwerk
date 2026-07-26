@@ -23,6 +23,7 @@ import {
   placementFuer,
   renderElementeFuerSeite,
   schriftfamilieFuer,
+  seitenSkalierung,
   startSeite,
   waehleBreakpoint,
   type WertEintrag,
@@ -314,7 +315,7 @@ function SeitenCanvas({
   const breakpoint = waehleBreakpoint(seite, verfuegbar.w);
   const canvas = seite.groessen[breakpoint] ?? seite.groessen[seite.basis];
   if (!canvas) return <div class="visu-leer">Keine Canvas-Größe definiert.</div>;
-  const faktor = Math.min(verfuegbar.w / canvas.w, verfuegbar.h / canvas.h);
+  const faktor = seitenSkalierung(canvas.w, verfuegbar.w);
 
   return (
     <div class="canvas-rahmen" style={{ width: canvas.w * faktor, height: canvas.h * faktor }}>
