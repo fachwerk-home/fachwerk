@@ -64,9 +64,10 @@ curl -X POST -H "$T" "$B/api/gewerk/import/uebernehmen"  # ersetzt + aktiviert
 
 Auch hier gilt der Zweischritt: `import` rührt das laufende Gewerk nicht an,
 erst `uebernehmen` schaltet um (und legt den Vorgänger als `<gewerk>.alt` ab).
-Der Menüpunkt „Import" in der Admin-UI benutzt genau diese Routen — er ist
-beauftragt (`docs/auftraege/AUFTRAG-UI-IMPORT.md`), bis dahin ist der Weg oben
-der bequemste ohne Dateikopiererei.
+Der Menüpunkt **„Import"** in der Admin-UI benutzt genau diese Routen und ist
+der bequemste Weg: Dateien ablegen (Auswahl oder Ziehen-und-Ablegen),
+*Importieren*, Bericht lesen, *Übernehmen und aktivieren*. Der curl-Weg oben
+bleibt für Skripte und Agenten.
 
 ## Woher kommt der `.sql`-Dump?
 

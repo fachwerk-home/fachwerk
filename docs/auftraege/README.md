@@ -87,4 +87,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-B9-SVG-ICONS.md | Codex | offen (nach VISU-SCHRIFTEN + SKALIERUNG) |
 | AUFTRAG-B7-ANIMATION.md | Spur 1 + Codex | offen (nice-to-have, NICHT abschlussrelevant) |
 | AUFTRAG-VISU-NACHBESSERUNG-2.md | Codex | ✅ gemergt (03f51ca) |
-| AUFTRAG-UI-IMPORT.md | Codex | 🔨 offen (Menüpunkt Import; API fertig und getestet) |
+| AUFTRAG-UI-IMPORT.md | Codex | ✅ gemergt (Menüpunkt Import, End-zu-End geprüft) |
