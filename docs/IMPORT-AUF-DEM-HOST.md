@@ -49,6 +49,34 @@ sudo mv /opt/fachwerk/gewerk-neu /opt/fachwerk/gewerk
 Danach den Betriebs-Stack (`docker-compose.gewerk.yml`) neu starten, damit er
 das frische Gewerk lädt.
 
+## Schreibrechte einrichten — einmalig, sonst geht der Import nicht
+
+Fachwerk startet **ohne Schreibrechte**: solange kein Nutzer angelegt ist, ist
+jeder Besucher anonym und darf nur lesen. Der Menüpunkt „Import" ist dann
+sichtbar, aber die Knöpfe sind grau mit dem Hinweis *„Scope write:gewerk
+fehlt"*. Das ist kein Fehler, sondern die Voreinstellung — ein frisch
+gestartetes Fachwerk kann niemand von außen umbauen.
+
+Freischalten (einmal pro Anlage, im laufenden Container):
+
+```bash
+C=$(docker ps -qf name=fachwerk)
+printf 'DEIN-PASSWORT
+' | docker exec -i "$C" nutzer anlegen junig   --scopes read,operate,write:gewerk,activate:dev
+docker restart "$C"
+```
+
+Der Nutzer liegt in `/daten/nutzer.yaml` (benanntes Volume, übersteht Updates).
+Die vier Scopes bedeuten: lesen · schalten · Gewerk ändern · aktivieren. Wer
+nur zuschauen soll, bekommt `--scopes read` — das ist auch der Default-Gedanke:
+knapp anfangen, nachlegen.
+
+**Was sich damit ändert — vorher wissen:** ab dem ersten Nutzer ist die Auth
+scharf, und zwar für alles. Auch das Panel und das Handy verlangen dann eine
+Anmeldung. Das ist ein Login pro Gerät, danach hält das Cookie **30 Tage**.
+Wer das nicht will, importiert über den Portainer-Stack oben — der braucht
+keine Anmeldung, weil er gar nicht über die API geht.
+
 ## Ohne Konsole: über die Oberfläche
 
 Dieselben Schritte gehen auch über die laufende Instanz — dann muss nichts auf
@@ -109,6 +137,8 @@ Zufall, sondern die Liste oben.
 | `Dump enthält keine editKo-Tabelle` | falsche Datei oder Tabellen fehlen im Dump |
 | `Paket enthält keine Export-JSON` | das `.tar` ist kein Visu-Export |
 | `erzeugtes Gewerk ist nicht schema-konform` | Fehler im Importer — bitte melden, mit dem Log |
+| Knöpfe grau, „Scope write:gewerk fehlt" | kein Nutzer angelegt → Abschnitt „Schreibrechte einrichten" |
+| `EROFS: read-only file system` | Gewerk-Volume steht auf `:ro` — der aktuelle Compose-Stand mountet es beschreibbar |
 
 Der Import schreibt nur bei Erfolg ein vollständiges Gewerk; er prüft sein
 eigenes Ergebnis (`validate` plus Visu-Laden), bevor er OK meldet.
