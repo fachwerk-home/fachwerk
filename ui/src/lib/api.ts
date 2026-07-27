@@ -117,6 +117,21 @@ export interface GewerkAktivierenAntwort {
   fehler?: string[];
 }
 
+export interface ImportQuelle {
+  name: string;
+  groesse: number;
+}
+
+export interface ImportAntwort {
+  angenommen: boolean;
+  bericht: string;
+}
+
+export interface ImportUebernehmenAntwort {
+  angenommen: boolean;
+  dauerMs: number;
+}
+
 export interface TraceSchritt {
   knoten: string;
   eingaenge: Record<string, Wert | undefined>;
@@ -243,6 +258,22 @@ async function sende<T>(pfad: string, koerper: unknown): Promise<T> {
   return antwortKoerper as T;
 }
 
+async function sendeRoh<T>(pfad: string, koerper: BodyInit, methode = "POST"): Promise<T> {
+  const t = token();
+  const optionen: RequestInit = {
+    method: methode,
+    headers: t ? { authorization: `Bearer ${t}` } : {},
+  };
+  if (methode !== "DELETE") optionen.body = koerper;
+  const antwort = await fetch(pfad, optionen);
+  const antwortKoerper = await antwort.json().catch(() => ({})) as ApiFehlerDetails;
+  if (!antwort.ok) {
+    meldeAuthErforderlich(antwort.status);
+    throw new ApiFehler(antwort.status, antwort.statusText, pfad, antwortKoerper);
+  }
+  return antwortKoerper as T;
+}
+
 export const api = {
   login: (name: string, passwort: string) => sende<LoginAntwort>("/api/login", { name, passwort }),
   logout: () => sende<LogoutAntwort>("/api/logout", {}),
@@ -262,6 +293,13 @@ export const api = {
   schreibeGewerkDatei: (pfad: string, inhalt: string) =>
     sende<GewerkSchreibAntwort>("/api/gewerk/dateien", { pfad, inhalt }),
   aktiviereGewerk: () => sende<GewerkAktivierenAntwort>("/api/gewerk/aktivieren", {}),
+  importQuellen: () => hole<{ quellen: ImportQuelle[] }>("/api/gewerk/quellen"),
+  ladeImportQuelle: (name: string, datei: File) =>
+    sendeRoh<{ angenommen: true; name: string; groesse: number }>(`/api/gewerk/quellen/${encodeURIComponent(name)}`, datei),
+  entferneImportQuelle: (name: string) =>
+    sendeRoh<{ entfernt: string }>(`/api/gewerk/quellen/${encodeURIComponent(name)}`, new Uint8Array(), "DELETE"),
+  importiereGewerk: () => sende<ImportAntwort>("/api/gewerk/import", {}),
+  uebernehmeImport: () => sende<ImportUebernehmenAntwort>("/api/gewerk/import/uebernehmen", {}),
   archive: () => hole<{ anzahl: number; archive: ArchivEintrag[] }>("/api/archive"),
   archivSerie: (
     id: string,

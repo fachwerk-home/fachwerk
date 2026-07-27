@@ -23,9 +23,10 @@ import { Traces } from "./traces.tsx";
 import { Logik, type LetzterSchritt } from "./logik.tsx";
 import { Archive } from "./archive.tsx";
 import { VisuEditor } from "./visu-editor.tsx";
+import { ImportAnsicht } from "./import.tsx";
 
 const TRACE_LIMIT = 300;
-type Ansicht = "datenpunkte" | "traces" | "logik" | "archive" | "visu_editor";
+type Ansicht = "datenpunkte" | "traces" | "logik" | "archive" | "visu_editor" | "import";
 type WertNachricht = Extract<LiveNachricht, { art: "wert" }>;
 
 const thema = new URLSearchParams(location.search).get("theme");
@@ -78,6 +79,7 @@ const navigation: Array<{ id: Ansicht; icon: string; label: string; taste: strin
   { id: "logik", icon: "◇", label: "Logik", taste: "3" },
   { id: "archive", icon: "▤", label: "Archive", taste: "4" },
   { id: "visu_editor", icon: "▧", label: "Visu-Editor", taste: "5" },
+  { id: "import", icon: "⇪", label: "Import", taste: "6" },
 ];
 
 function Navigation({
@@ -228,6 +230,7 @@ function App() {
       if (event.key === "3") setAnsicht("logik");
       if (event.key === "4") setAnsicht("archive");
       if (event.key === "5") setAnsicht("visu_editor");
+      if (event.key === "6") setAnsicht("import");
     };
     window.addEventListener("keydown", tastatur);
     return () => window.removeEventListener("keydown", tastatur);
@@ -260,6 +263,9 @@ function App() {
   const ich = auth.ich;
   const darfGewerkSchreiben = hatScope(ich, "write:gewerk");
   const darfAktivieren = hatScope(ich, "activate:dev");
+  const ladeStatus = async (): Promise<void> => {
+    setStatus(await api.status());
+  };
 
   return (
     <div class="admin-shell">
@@ -273,6 +279,7 @@ function App() {
           <section hidden={ansicht !== "logik"} aria-label="Logik"><Logik gewerk={gewerk} dps={dps} schritte={schritte} escSignal={escSignal} darfSpeichern={darfGewerkSchreiben} darfAktivieren={darfAktivieren} /></section>
           <section hidden={ansicht !== "archive"} aria-label="Archive"><Archive archive={archive} liveNachricht={liveNachricht} /></section>
           <section hidden={ansicht !== "visu_editor"} aria-label="Visu-Editor"><VisuEditor dps={dps} darfSpeichern={darfGewerkSchreiben} darfAktivieren={darfAktivieren} /></section>
+          <section hidden={ansicht !== "import"} aria-label="Import"><ImportAnsicht darfSchreiben={darfGewerkSchreiben} darfAktivieren={darfAktivieren} onAktiviert={ladeStatus} /></section>
         </main>
       </div>
     </div>
