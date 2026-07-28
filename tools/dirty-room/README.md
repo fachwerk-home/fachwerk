@@ -84,6 +84,29 @@ die Teilergebnisse einzeln, oft brauchbarer als die geglättete Fassung.
 **Umlaute verstümmelt** (`Ã¤` statt `ä`) — das war ein Fehler des Skripts unter
 Windows und ist behoben; bei einem alten Ergebnis hilft nur ein neuer Lauf.
 
+## Vor der Weitergabe: auf Codereste prüfen
+
+```bash
+./pruefe.sh _ingest/visu-befehle.md
+```
+
+Der Prüfer meldet, **wo** etwas nach Quelltext aussieht — nie **was** dort
+steht. So kannst du die Stellen selbst ansehen und bereinigen, ohne dass der
+Inhalt auf dem Weg dorthin irgendwo landet.
+
+Die Grenze:
+
+| | Urteil |
+|---|---|
+| Feld-, Tabellen-, Spaltennamen (`cmdid1`, `editVisuCmdList`) | unbedenklich — Formatfakten |
+| Funktionsname als Fundstelle | erlaubt, für den Importer aber wertlos |
+| Beschreibung, **was** passiert | genau das ist gesucht |
+| Codezeilen, Fragmente, kopierte Kommentare | raus |
+
+Fehlalarme sind eingeplant — eine geschweifte Klammer steht auch mal in einer
+Beschreibung. Einmal zu viel hinsehen ist billiger als eine übersehene
+Codezeile.
+
 ## Das Ergebnis ist ein Entwurf, kein Befund
 
 Ein Modell, das ohne Beleg „sicher" schreibt, ist der teuerste Fehler in dieser
