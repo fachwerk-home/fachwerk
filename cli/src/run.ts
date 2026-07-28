@@ -12,8 +12,6 @@
  * die KNX-Verbindung abzureißen.
  */
 import {
-  accessSync,
-  constants,
   cpSync,
   existsSync,
   mkdirSync,
@@ -73,6 +71,43 @@ function rohText(bytes: Uint8Array): string {
     return `0x${hex} (${zahl})`;
   }
   return `0x${hex} (${bytes.length} Byte)`;
+}
+
+/**
+ * Kann in dieses Verzeichnis geschrieben werden? Gibt bei Misserfolg den Grund
+ * im Klartext zurueck, sonst null.
+ *
+ * Bewusst eine echte Schreibprobe statt access(W_OK): die beiden Ursachen im
+ * Docker-Betrieb sehen fuer den Bediener gleich aus, brauchen aber
+ * gegensaetzliche Abhilfe — ein schreibgeschuetzt eingehaengtes Volume (:ro am
+ * Mount) oder ein Verzeichnis, das dem falschen Nutzer gehoert. Nur der
+ * errno-Code unterscheidet sie, und eine Meldung, die in die falsche Richtung
+ * schickt, kostet mehr Zeit als gar keine.
+ */
+export function schreibprobe(zielDir: string): string | null {
+  const probe = join(zielDir, `.schreibprobe-${process.pid}`);
+  try {
+    writeFileSync(probe, "");
+    return null;
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "EROFS") {
+      return (
+        `${zielDir} ist schreibgeschuetzt eingehaengt (:ro). Im Docker-Betrieb: ` +
+        "den Stack mit dem AKTUELLEN docker-compose.gewerk.yml neu ausrollen " +
+        "(in Portainer: Pull latest commit mitgeben) — dort steht kein :ro mehr."
+      );
+    }
+    const uid = process.getuid?.();
+    return (
+      `${zielDir} ist fuer diesen Dienst nicht beschreibbar` +
+      (uid === undefined ? "" : ` (er laeuft als uid ${uid})`) +
+      `: ${code ?? "unbekannter Fehler"}. Gehoert das Verzeichnis dem falschen ` +
+      "Nutzer, hilft auf dem Host: sudo chown -R 1000:1000 <gewerk-verzeichnis>"
+    );
+  } finally {
+    rmSync(probe, { force: true });
+  }
 }
 
 /** Zeilentrenner fuer den gesammelten Import-Bericht. */
@@ -623,23 +658,10 @@ export async function run(dir: string): Promise<number> {
       if (!existsSync(join(neuesGewerkDir, "gewerk.yaml"))) {
         return { ok: false as const, status: 409, grund: "kein importiertes Gewerk vorhanden" };
       }
-      // Schreibrecht VORHER pruefen, sonst steht der Bediener vor einem nackten
-      // EACCES. Der haeufigste Fall: im Docker-Betrieb laeuft der Dienst als
-      // uid 1000, das Gewerk-Verzeichnis vom Host gehoert aber root.
-      try {
-        accessSync(dir, constants.W_OK);
-      } catch {
-        const uid = process.getuid?.();
-        return {
-          ok: false as const,
-          status: 500,
-          grund:
-            `${dir} ist fuer diesen Dienst nicht beschreibbar` +
-            (uid === undefined ? "" : ` (er laeuft als uid ${uid})`) +
-            ". Im Docker-Betrieb einmalig auf dem Host: " +
-            "sudo chown -R 1000:1000 <gewerk-verzeichnis>",
-        };
-      }
+      // Schreibbarkeit VORHER pruefen, sonst steht der Bediener vor einem
+      // nackten EACCES.
+      const hindernis = schreibprobe(dir);
+      if (hindernis) return { ok: false as const, status: 500, grund: hindernis };
       try {
         // Rueckweg behalten — im DATEN-Verzeichnis, nicht als Nachbar des
         // Gewerks: <dir>.alt waere im Container ein Pfad in der Schreibschicht

@@ -57,3 +57,25 @@ it("findeQuellen meldet, wenn es mehrere Kandidaten gibt", async () => {
   expect(q.meldungen.join(" ")).toContain("mehrere .sql");
 });
 });
+
+describe("Schreibprobe vor dem Uebernehmen", () => {
+  it("meldet nichts, wenn das Verzeichnis beschreibbar ist, und laesst nichts liegen", async () => {
+    const { schreibprobe } = await import("./run.ts");
+    const { mkdtempSync, readdirSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "fw-probe-"));
+    expect(schreibprobe(dir)).toBeNull();
+    // Die Probe raeumt hinter sich auf — sonst blieben Dateien im Gewerk zurueck.
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it("nennt bei fehlendem Verzeichnis den errno-Code statt nur zu scheitern", async () => {
+    const { schreibprobe } = await import("./run.ts");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const grund = schreibprobe(join(tmpdir(), "fw-gibt-es-nicht-4711", "tiefer"));
+    expect(grund).toContain("nicht beschreibbar");
+    expect(grund).toContain("ENOENT");
+  });
+});
