@@ -234,11 +234,18 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
         nameIndex.set(dp.name, nameIndex.has(dp.name) ? null : `${gruppe}.${key}`);
       }
     }
-    const visu = konvertiereVisu(
-      visuExport,
-      (ga) => gaIndex.get(ga),
-      (name) => nameIndex.get(name) ?? undefined,
-    );
+    // Typ je Datenpunkt: bedingte Designs vergleichen strikt, der
+    // Vergleichswert muss denselben Typ tragen wie der Datenpunkt.
+    const typIndex = new Map<string, string>();
+    for (const [gruppe, datei] of datenpunkte) {
+      for (const [key, def] of Object.entries(datei)) {
+        typIndex.set(`${gruppe}.${key}`, (def as Datenpunkt).typ);
+      }
+    }
+    const visu = konvertiereVisu(visuExport, (ga) => gaIndex.get(ga), {
+      nameKey: (name) => nameIndex.get(name) ?? undefined,
+      typVon: (schluessel) => typIndex.get(schluessel),
+    });
     if (visu.seiten.size > 0) {
       mkdirSync(join(ziel, "visu", "seiten"), { recursive: true });
       writeFileSync(join(ziel, "visu", "designs.yaml"), visuDesignsZuYaml(visu.designs), "utf8");

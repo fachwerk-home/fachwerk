@@ -9,10 +9,12 @@
  *   - text        = Beschriftung ODER Symbol-Glyph (B-8: eigenes Textfeld)
  *   - controltyp 1 (Universalelement): var3/var4 = Klick-Aktion,
  *     var15/var16 = zu sendender KO2-Wert, var11 = Symbolposition
- *   - Design-Slots s1..s48 je styletyp (0 Basis, 1 dynamisch): s5/s6 Groessen-
- *     zuschlag (Breite/Hoehe), s9 Hintergrundfarbe, s14 Schriftgroesse,
- *     s15 Textfarbe, s31 Rahmenbreite, s27 Rahmenfarbe, s23 Eckenradius,
- *     s8 Deckkraft.
+ *   - Design-Slots s1..s48 je styletyp: bei styletyp 1 (bedingtes Design)
+ *     tragen s1/s2 den Wertebereich der Bedingung, sonst gilt ueberall
+ *     s5/s6 Groessenzuschlag (Breite/Hoehe), s9 Hintergrundfarbe,
+ *     s14 Schriftgroesse, s15 Textfarbe, s31 Rahmenbreite, s27 Rahmenfarbe,
+ *     s23 Eckenradius, s8 Deckkraft. Ein bedingtes Design gilt, solange der
+ *     Wert des Steuer-KOs (gaid3) im Bereich s1..s2 liegt.
  *
  * Clean-Room: gelesen werden ausschliesslich NUTZDATEN des Betreibers; die
  * Spec stammt aus der Dirty-Room-Analyse und wurde vom Betreiber geprueft.
@@ -43,6 +45,20 @@ export interface VisuExport {
 }
 
 export type GaAufloesung = (ga: string) => string | undefined;
+
+/** Zusaetzliche Nachschlagewerke aus dem bereits erzeugten Gewerk. */
+export interface VisuAufloesung {
+  /**
+   * Interne KOs (ohne Busadresse) ueber ihren NAMEN aufloesen. Der Hauptimport
+   * legt fuer jedes interne KO einen Datenpunkt mit genau diesem Namen an.
+   */
+  nameKey?: (name: string) => string | undefined;
+  /**
+   * Typ eines Datenpunkts. Noetig fuer bedingte Designs: der Renderer
+   * vergleicht STRIKT, ein `1` trifft keinen bool-Datenpunkt mit `true`.
+   */
+  typVon?: (schluessel: string) => string | undefined;
+}
 
 export interface VisuKonvertierErgebnis {
   seiten: Map<string, VisuSeite>;
@@ -174,13 +190,9 @@ const ABGEBILDETE_CONTROLTYPEN = new Set([0, 1, 13, 21, 1004]);
 export function konvertiereVisu(
   visu: VisuExport,
   gaKey: GaAufloesung,
-  /**
-   * Aufloesung interner KOs (ohne Busadresse) ueber ihren NAMEN. Der
-   * Hauptimport legt fuer jedes interne KO einen Datenpunkt mit genau diesem
-   * Namen an — damit sind Merker in der Visu bindbar.
-   */
-  nameKey?: (name: string) => string | undefined,
+  opt: VisuAufloesung = {},
 ): VisuKonvertierErgebnis {
+  const { nameKey, typVon } = opt;
   const nichtAbgebildet = new Map<string, number>();
   const controltypVerteilung = new Map<number, number>();
   const hinweise: string[] = [];
@@ -238,8 +250,17 @@ export function konvertiereVisu(
 
   // Basis-Designs je Element (styletyp 0) aus editVisuElementDesign.
   const designRoh = new Map<number, Record<string, unknown>>();
+  // Bedingte Designs (styletyp 1): gelten, solange der Wert des Steuer-KOs im
+  // Bereich s1..s2 liegt. Ein Element kann mehrere davon haben.
+  const designBedingt = new Map<number, Record<string, unknown>[]>();
   for (const d of alsZeilen(visu.editVisuElementDesign)) {
-    if (num(d, "styletyp") === 0) designRoh.set(num(d, "targetid"), d);
+    const ziel = num(d, "targetid");
+    if (num(d, "styletyp") === 0) designRoh.set(ziel, d);
+    else if (num(d, "styletyp") === 1) {
+      const liste = designBedingt.get(ziel);
+      if (liste) liste.push(d);
+      else designBedingt.set(ziel, [d]);
+    }
   }
   // Design-VORLAGEN (editVisuElementDesignDef): die Elementzeile verweist per
   // defid darauf und laesst ihre eigenen Slots meist leer — die Werte stehen
@@ -269,6 +290,20 @@ export function konvertiereVisu(
     return num(e, feld) + (rohDesign ? slotZahl(rohDesign, slotName) : 0);
   };
 
+  /**
+   * Vergleichswert einer Design-Bedingung im Typ des Ziel-Datenpunkts. Der
+   * Renderer vergleicht mit ===; eine 1 traefe einen bool-Datenpunkt nie, der
+   * zur Laufzeit true fuehrt. Ist der Typ unbekannt, gewinnt die Zahl — das
+   * Altsystem vergleicht numerisch.
+   */
+  const bedingungsWert = (roh: string, dpSchluessel: string | undefined): string | number | boolean => {
+    const typ = dpSchluessel ? typVon?.(dpSchluessel) : undefined;
+    if (typ === "bool") return roh === "1" || roh.toLowerCase() === "true";
+    if (typ === "text") return roh;
+    const n = Number(roh);
+    return Number.isFinite(n) && roh.trim() !== "" ? n : roh;
+  };
+
   /** Slotwert mit Vorlagen-Kaskade: eigener Wert schlaegt Vorlage. */
   const slot = (roh: Record<string, unknown>, name: string): string => {
     const eigen = str(roh, name);
@@ -284,9 +319,7 @@ export function konvertiereVisu(
   // Design-Sammlung: gleiche Optik -> ein Design (dedupliziert).
   const designs: VisuDesigns = {};
   const designNachSignatur = new Map<string, string>();
-  const designFuer = (elementId: number): string | undefined => {
-    const roh = designRoh.get(elementId);
-    if (!roh) return undefined;
+  const designAus = (roh: Record<string, unknown>): string | undefined => {
     const d: VisuDesign = {};
     const bg = bgFarbe.get(slotZahl(roh, "s9"));
     if (bg) d.hintergrund = bg;
@@ -327,6 +360,10 @@ export function konvertiereVisu(
       designs[name] = d;
     }
     return name;
+  };
+  const designFuer = (elementId: number): string | undefined => {
+    const roh = designRoh.get(elementId);
+    return roh ? designAus(roh) : undefined;
   };
 
   // Seiten-Index (Slugs, Typen) — vor den Elementen (Navigationsziele).
@@ -417,6 +454,25 @@ export function konvertiereVisu(
 
       const designName = designFuer(id);
       if (designName) element.design = designName;
+
+      // Bedingte Designs: das Altsystem tauscht die Optik, sobald der Wert des
+      // Steuer-KOs (gaid3) in den Bereich s1..s2 faellt. Fachwerk kennt dafuer
+      // design_je_wert mit STRIKTEM Vergleich — deshalb muss der Vergleichswert
+      // den Typ des Ziel-Datenpunkts tragen, sonst trifft er nie.
+      const regeln: Array<{ wenn: string | number | boolean | null; design: string }> = [];
+      for (const rohD of designBedingt.get(id) ?? []) {
+        const von = str(rohD, "s1");
+        const bis = str(rohD, "s2");
+        if (von === "") continue;
+        if (von !== bis) {
+          zaehle("bedingtes Design mit Wertebereich (nur exakter Wert abgebildet)");
+          continue;
+        }
+        const name = designAus(rohD);
+        if (!name) continue;
+        regeln.push({ wenn: bedingungsWert(von, element.bindungen?.status), design: name });
+      }
+      if (regeln.length > 0) element.design_je_wert = regeln;
 
       // Element-Schluessel: sprechender Name, sonst Text, sonst element_<id>.
       // ABER nie aus einem Wertausdruck: aus "{floor(#*100/255)} %" wuerde der
@@ -634,6 +690,16 @@ function baueElement(
     widget = "slider";
     if (setKey) bindungen.set = setKey;
     if (statusKey) bindungen.display = statusKey;
+  } else if (controltyp === 12 || controltyp === 15) {
+    // Dimmer/RGB bzw. Colorpicker — kein direktes Fachwerk-Preset. Diese
+    // Pruefung steht VOR den allgemeinen Klick- und Anzeigeregeln: ein Regler
+    // bleibt ein Regler, auch wenn seine KOs aufloesbar sind. Sonst verschwaende
+    // er als scheinbar fertiger Taster oder als Statusanzeige mit rohem Wert —
+    // und der Betreiber verlaere den Hinweis, dass hier etwas nachzubauen ist.
+    preset = "label";
+    if (statusKey) bindungen.status = statusKey;
+    zaehle(`controltyp ${controltyp} (Farb-/Dimmerregler) noch nicht als Widget abgebildet`);
+    notizen.push(`controltyp ${controltyp}: Regler — im Editor nachbauen`);
   } else if (bindungen.set) {
     // Klickbares Element mit KO2 -> Taster (schickt einen festen Wert) bzw.
     // Schalter (kein fester Wert -> umschalten).
@@ -649,11 +715,6 @@ function baueElement(
     preset = text.includes("{") ? "wertanzeige" : "statusanzeige";
     bindungen.status = statusKey;
     if (preset === "wertanzeige") bindungen.display = statusKey;
-  } else if (controltyp === 12 || controltyp === 15) {
-    // Dimmer/RGB bzw. Colorpicker — kein direktes Fachwerk-Preset.
-    preset = "label";
-    zaehle(`controltyp ${controltyp} (Farb-/Dimmerregler) noch nicht als Widget abgebildet`);
-    notizen.push(`controltyp ${controltyp}: Regler — im Editor nachbauen`);
   } else if (controltyp === 1) {
     preset = "label";
   } else {

@@ -302,7 +302,7 @@ test("internes KO wird ueber den Namen aufgeloest", () => {
   elemente.push({ id: 20, controltyp: 1, pageid: 1, gaid: 370, xpos: 0, ypos: 400, xsize: 10, ysize: 10, text: "" });
   const nameKey = (n: string): string | undefined =>
     n === "SR_Kue_Spots_Status" ? "status.sr_kue_spots_status" : undefined;
-  const { seiten, bericht } = konvertiereVisu(roh, gaKey, nameKey);
+  const { seiten, bericht } = konvertiereVisu(roh, gaKey, { nameKey });
   const gebunden = Object.values(seiten.get("wohnzimmer")!.elemente).find(
     (e) => e.bindungen?.status === "status.sr_kue_spots_status",
   );
@@ -320,4 +320,67 @@ test("ohne Namensaufloesung bleibt das interne KO unaufgeloest (Verhalten wie bi
   });
   const { bericht } = konvertiereVisu(roh, gaKey);
   expect(bericht.unaufgeloesteBindungen).toBeGreaterThanOrEqual(1);
+});
+
+// ---- Bedingte Designs (styletyp 1) ----------------------------------------
+// Das Altsystem tauscht die Optik, sobald der Wert des Steuer-KOs (gaid3) in
+// den Bereich s1..s2 faellt. Fachwerk vergleicht STRIKT — der Vergleichswert
+// muss deshalb den Typ des Ziel-Datenpunkts tragen.
+
+test("styletyp 1 wird zu design_je_wert mit typrichtigem Vergleichswert", () => {
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 370, ga: "370", name: "Merker" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 22, controltyp: 1, pageid: 1, gaid3: 370, xpos: 0, ypos: 500, xsize: 40, ysize: 40, text: "X",
+  });
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 50, targetid: 22, styletyp: 1, s1: "11", s2: "11", s9: "1" },
+    { id: 51, targetid: 22, styletyp: 1, s1: "12", s2: "12", s15: "2" },
+  );
+  const { seiten } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) => (n === "Merker" ? "status.merker" : undefined),
+    typVon: () => "zahl",
+  });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.design_je_wert)!;
+  expect(el.bindungen?.status).toBe("status.merker");
+  expect(el.design_je_wert!.map((r) => r.wenn)).toEqual([11, 12]);
+});
+
+test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Schalter" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 23, controltyp: 1, pageid: 1, gaid3: 371, xpos: 0, ypos: 540, xsize: 40, ysize: 40, text: "Y",
+  });
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 52, targetid: 23, styletyp: 1, s1: "1", s2: "1", s9: "1" },
+  );
+  const { seiten } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) => (n === "Schalter" ? "status.schalter" : undefined),
+    typVon: () => "bool",
+  });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.design_je_wert)!;
+  expect(el.design_je_wert![0]!.wenn).toBe(true);
+});
+
+test("echter Wertebereich (s1 != s2) wird nicht geraten, sondern gemeldet", () => {
+  const roh = fixture();
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 24, controltyp: 1, pageid: 1, xpos: 0, ypos: 580, xsize: 40, ysize: 40, text: "Z",
+  });
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 53, targetid: 24, styletyp: 1, s1: "10", s2: "20", s9: "1" },
+  );
+  const { seiten, bericht } = konvertiereVisu(roh, gaKey);
+  expect(Object.values(seiten.get("wohnzimmer")!.elemente).some((e) => e.design_je_wert)).toBe(false);
+  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Wertebereich");
+});
+
+test("Regler (controltyp 12/15) bleibt gemeldet, auch wenn sein KO aufloesbar ist", () => {
+  const roh = fixture();
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 25, controltyp: 15, pageid: 1, gaid: 100, xpos: 0, ypos: 620, xsize: 40, ysize: 40, text: "",
+  });
+  const { bericht } = konvertiereVisu(roh, gaKey);
+  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Farb-/Dimmerregler");
 });
