@@ -16,6 +16,7 @@
         "schriftart": { "type": "string" },
         "textausrichtung": { "enum": ["links", "zentriert", "rechts", "blocksatz"] },
         "icon": { "type": "string" },
+        "beschriftung": { "type": "string" },
         "schriftgroesse": { "type": "number", "exclusiveMinimum": 0 },
         "deckkraft": { "type": "number", "minimum": 0, "maximum": 1 },
         "rand": {

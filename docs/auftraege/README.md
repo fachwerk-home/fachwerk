@@ -90,3 +90,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-UI-IMPORT.md | Codex | ✅ gemergt (Menüpunkt Import, End-zu-End geprüft) |
 | AUFTRAG-UI-IMPORT-2.md | Codex | ✅ gemergt (PR #16) |
 | AUFTRAG-VISU-NACHBESSERUNG-3.md | Codex | ✅ gemergt (PR #17) |
+| AUFTRAG-VISU-BESCHRIFTUNG.md | Codex | offen (s11: Text/Symbol wechselt mit dem Zustand) |

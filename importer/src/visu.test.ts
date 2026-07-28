@@ -384,3 +384,23 @@ test("Regler (controltyp 12/15) bleibt gemeldet, auch wenn sein KO aufloesbar is
   const { bericht } = konvertiereVisu(roh, gaKey);
   expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Farb-/Dimmerregler");
 });
+
+test("s11 wird zur Beschriftung — aber nur beim bedingten Design", () => {
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 372, ga: "372", name: "Zustand" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 26, controltyp: 1, pageid: 1, gaid3: 372, xpos: 0, ypos: 660, xsize: 40, ysize: 40, text: "OFF",
+  });
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    // Statisches Design mit s11: muss ignoriert werden (das Altsystem leert es).
+    { id: 54, targetid: 26, styletyp: 0, s9: "1", s11: "IGNORIEREN" },
+    { id: 55, targetid: 26, styletyp: 1, s1: "1", s2: "1", s11: "ON" },
+  );
+  const { seiten, designs } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) => (n === "Zustand" ? "status.zustand" : undefined),
+    typVon: () => "zahl",
+  });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.text === "OFF")!;
+  expect(designs[el.design!]!.beschriftung).toBeUndefined();
+  expect(designs[el.design_je_wert![0]!.design]!.beschriftung).toBe("ON");
+});

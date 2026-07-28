@@ -101,6 +101,13 @@ export interface VisuDesign {
   /** Horizontale Textausrichtung. Fehlt sie, entscheidet der Renderer. */
   textausrichtung?: "links" | "zentriert" | "rechts" | "blocksatz";
   icon?: string;
+  /**
+   * Beschriftung, die den `text` des Elements ERSETZT, solange dieses Design
+   * gilt. Gedacht fuer wertabhaengige Designs (`design_je_wert`): ein Schalter
+   * zeigt „Aus", im Zustand An aber „An". Entweder-oder, nie beides — ist sie
+   * gesetzt, kommt der Elementtext nicht zur Anzeige.
+   */
+  beschriftung?: string;
   schriftgroesse?: number;
   deckkraft?: number;
   rand?: VisuRand;

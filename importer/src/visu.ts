@@ -14,7 +14,9 @@
  *     s5/s6 Groessenzuschlag (Breite/Hoehe), s9 Hintergrundfarbe,
  *     s14 Schriftgroesse, s15 Textfarbe, s31 Rahmenbreite, s27 Rahmenfarbe,
  *     s23 Eckenradius, s8 Deckkraft. Ein bedingtes Design gilt, solange der
- *     Wert des Steuer-KOs (gaid3) im Bereich s1..s2 liegt.
+ *     Wert des Steuer-KOs (gaid3) im Bereich s1..s2 liegt. s11 ist dort KEIN
+ *     CSS, sondern ein Textueberschreiber: er ersetzt den Elementtext, solange
+ *     das bedingte Design gilt (bei styletyp 0 leert ihn das Altsystem).
  *
  * Clean-Room: gelesen werden ausschliesslich NUTZDATEN des Betreibers; die
  * Spec stammt aus der Dirty-Room-Analyse und wurde vom Betreiber geprueft.
@@ -319,8 +321,16 @@ export function konvertiereVisu(
   // Design-Sammlung: gleiche Optik -> ein Design (dedupliziert).
   const designs: VisuDesigns = {};
   const designNachSignatur = new Map<string, string>();
-  const designAus = (roh: Record<string, unknown>): string | undefined => {
+  const designAus = (roh: Record<string, unknown>, bedingt = false): string | undefined => {
     const d: VisuDesign = {};
+    // s11 ersetzt den Anzeigetext, solange das Design gilt — aber NUR bei
+    // bedingten Designs. Beim statischen Design leert das Altsystem den Slot
+    // nach der Vorlagen-Vererbung; eine Vorlage, die s11 fuer ein
+    // Bedingungs-Design mitbringt, darf den Grundtext nicht verdraengen.
+    if (bedingt) {
+      const beschriftung = entschluessleText(slot(roh, "s11"));
+      if (beschriftung !== "") d.beschriftung = beschriftung;
+    }
     const bg = bgFarbe.get(slotZahl(roh, "s9"));
     if (bg) d.hintergrund = bg;
     const tf = fgFarbe.get(slotZahl(roh, "s15"));
@@ -468,7 +478,7 @@ export function konvertiereVisu(
           zaehle("bedingtes Design mit Wertebereich (nur exakter Wert abgebildet)");
           continue;
         }
-        const name = designAus(rohD);
+        const name = designAus(rohD, true);
         if (!name) continue;
         regeln.push({ wenn: bedingungsWert(von, element.bindungen?.status), design: name });
       }
