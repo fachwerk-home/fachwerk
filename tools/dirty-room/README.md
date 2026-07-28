@@ -55,8 +55,34 @@ Vier Aufgaben, einzeln ausführbar: `befehle`, `controltypen`, `varfelder`,
    Ergebnis vorkommen. Fehlen sie, hat das Modell abgekürzt und du bekommst
    eine Warnung statt eines stillen Halbergebnisses.
 
-Stellschrauben: `KONTEXT` (Zeilen um einen Treffer, Standard 120),
-`MAX_ZEILEN` (Obergrenze je Anfrage, Standard 600).
+Stellschrauben:
+
+| Schalter | Zweck |
+|---|---|
+| `--endungen php,js` | welche Dateitypen durchsucht werden (Standard `php,js,inc,phtml,html`) |
+| `--behalte` | Zwischenstände aufheben statt löschen — für die Fehlersuche |
+| `KONTEXT=180` | Zeilen um einen Treffer (Standard 120) |
+| `MAX_ZEILEN=900` | Obergrenze je Anfrage (Standard 600) |
+
+## Wenn das Ergebnis nicht glaubwürdig ist
+
+**„Der Quellbaum enthält keine Informationen über …"** — das ist fast nie wahr,
+sondern meist eine zu enge Suche. Eine Visu läuft im Browser; was beim Klick
+passiert, steht dann in JavaScript, nicht in PHP. Prüfen:
+
+```bash
+./extrahiere.sh --aufgabe befehle --quelle /pfad --trocken
+```
+
+Zeigt der Trockenlauf nur `.php`-Dateien, obwohl im Baum `.js` liegt, war die
+Suche schuld. `--endungen` erweitern und neu.
+
+**Ergebnis wirkt zusammengestückelt** — dann lag es an der Zusammenführung.
+Mit `--behalte` laufen lassen und im Arbeitsverzeichnis nachsehen: dort stehen
+die Teilergebnisse einzeln, oft brauchbarer als die geglättete Fassung.
+
+**Umlaute verstümmelt** (`Ã¤` statt `ä`) — das war ein Fehler des Skripts unter
+Windows und ist behoben; bei einem alten Ergebnis hilft nur ein neuer Lauf.
 
 ## Das Ergebnis ist ein Entwurf, kein Befund
 
