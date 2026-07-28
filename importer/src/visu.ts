@@ -9,9 +9,10 @@
  *   - text        = Beschriftung ODER Symbol-Glyph (B-8: eigenes Textfeld)
  *   - controltyp 1 (Universalelement): var3/var4 = Klick-Aktion,
  *     var15/var16 = zu sendender KO2-Wert, var11 = Symbolposition
- *   - Design-Slots s1..s48 je styletyp (0 Basis, 1 dynamisch): s9 Hintergrund-
- *     farbe, s14 Schriftgroesse, s15 Textfarbe, s31 Rahmenbreite, s27 Rahmen-
- *     farbe, s23 Eckenradius, s8 Deckkraft.
+ *   - Design-Slots s1..s48 je styletyp (0 Basis, 1 dynamisch): s5/s6 Groessen-
+ *     zuschlag (Breite/Hoehe), s9 Hintergrundfarbe, s14 Schriftgroesse,
+ *     s15 Textfarbe, s31 Rahmenbreite, s27 Rahmenfarbe, s23 Eckenradius,
+ *     s8 Deckkraft.
  *
  * Clean-Room: gelesen werden ausschliesslich NUTZDATEN des Betreibers; die
  * Spec stammt aus der Dirty-Room-Analyse und wurde vom Betreiber geprueft.
@@ -230,6 +231,27 @@ export function konvertiereVisu(
   const designDef = new Map<number, Record<string, unknown>>();
   for (const d of alsZeilen(visu.editVisuElementDesignDef)) designDef.set(num(d, "id"), d);
 
+  /**
+   * Groesse eines Elements. Das Altsystem addiert zwei Summanden:
+   * `calc(<xsize>px + <s5>px)` — die Groesse am Element selbst und einen
+   * Zuschlag aus dem Design (s5 = Breite, s6 = Hoehe). Dynamisch dimensionierte
+   * Elemente lassen xsize/ysize auf 0 und bekommen ihre Groesse allein aus dem
+   * Design; wer nur xsize liest, macht daraus ein Element ohne Ausdehnung.
+   *
+   * Fehlt der Design-Slot, erzeugt das Altsystem den ungueltigen Ausdruck
+   * `calc(12px + px)`, worauf der Browser auf den reinen Elementwert
+   * zurueckfaellt — die Addition mit 0 bildet genau das ab.
+   */
+  const groesse = (
+    elementId: number,
+    e: Record<string, unknown>,
+    feld: "xsize" | "ysize",
+    slotName: "s5" | "s6",
+  ): number => {
+    const rohDesign = designRoh.get(elementId);
+    return num(e, feld) + (rohDesign ? slotZahl(rohDesign, slotName) : 0);
+  };
+
   /** Slotwert mit Vorlagen-Kaskade: eigener Wert schlaegt Vorlage. */
   const slot = (roh: Record<string, unknown>, name: string): string => {
     const eigen = str(roh, name);
@@ -363,8 +385,8 @@ export function konvertiereVisu(
       const id = num(e, "id");
       const x = num(e, "xpos");
       const y = num(e, "ypos");
-      const w = num(e, "xsize");
-      const h = num(e, "ysize");
+      const w = groesse(id, e, "xsize", "s5");
+      const h = groesse(id, e, "ysize", "s6");
       maxX = Math.max(maxX, x + w);
       maxY = Math.max(maxY, y + h);
 

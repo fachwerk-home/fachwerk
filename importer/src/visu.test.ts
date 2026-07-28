@@ -260,3 +260,28 @@ test("farbe laesst einfache Farben und radiale Verlaeufe unangetastet", () => {
   expect(farbe("rgb(4, 48, 80)")).toBe("rgb(4, 48, 80)");
   expect(farbe("-webkit-radial-gradient(circle, #a, #b)")).toBe("radial-gradient(circle, #a, #b)");
 });
+
+// ---- Dynamisch dimensionierte Elemente -------------------------------------
+// Das Altsystem addiert Elementgroesse und Design-Zuschlag: calc(<xsize>px +
+// <s5>px). Wer nur xsize liest, macht aus einem dynamisch dimensionierten
+// Element eines ohne Ausdehnung — beim Betreiber ein 1x1 Pixel grosser Knopf.
+
+test("Groesse kommt aus xsize PLUS Design-Slot s5/s6", () => {
+  const roh = fixture();
+  const elemente = roh.editVisuElement as Array<Record<string, unknown>>;
+  const el = elemente.find((e) => e["id"] === 10)!;
+  el["xsize"] = 0;
+  el["ysize"] = 0;
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push({
+    targetid: 10,
+    styletyp: 0,
+    s5: "211",
+    s6: "111",
+  });
+  const { seiten } = konvertiereVisu(roh, gaKey);
+  const platz = Object.values(seiten.get("wohnzimmer")!.elemente)
+    .map((e) => e.placements?.["panel"])
+    .find((p) => p?.w === 211);
+  expect(platz).toBeDefined();
+  expect(platz!.h).toBe(111);
+});
