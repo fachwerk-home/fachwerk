@@ -174,6 +174,12 @@ const ABGEBILDETE_CONTROLTYPEN = new Set([0, 1, 13, 21, 1004]);
 export function konvertiereVisu(
   visu: VisuExport,
   gaKey: GaAufloesung,
+  /**
+   * Aufloesung interner KOs (ohne Busadresse) ueber ihren NAMEN. Der
+   * Hauptimport legt fuer jedes interne KO einen Datenpunkt mit genau diesem
+   * Namen an — damit sind Merker in der Visu bindbar.
+   */
+  nameKey?: (name: string) => string | undefined,
 ): VisuKonvertierErgebnis {
   const nichtAbgebildet = new Map<string, number>();
   const controltypVerteilung = new Map<number, number>();
@@ -184,15 +190,26 @@ export function konvertiereVisu(
     nichtAbgebildet.set(grund, (nichtAbgebildet.get(grund) ?? 0) + 1);
   };
 
-  // KO-Id -> GA (aus der Visu-eigenen editKo-Tabelle).
+  // KO-Id -> GA und -> Name (aus der Visu-eigenen editKo-Tabelle).
   const koGa = new Map<number, string>();
-  for (const ko of alsZeilen(visu.editKo)) koGa.set(num(ko, "id"), str(ko, "ga"));
+  const koName = new Map<number, string>();
+  for (const ko of alsZeilen(visu.editKo)) {
+    koGa.set(num(ko, "id"), str(ko, "ga"));
+    koName.set(num(ko, "id"), str(ko, "name"));
+  }
 
   const aufloese = (koId: number): string | undefined => {
     if (koId === 0) return undefined;
     const ga = koGa.get(koId);
     if (ga === undefined) return undefined;
     if (!istGa(ga)) {
+      // Internes KO: keine Busadresse — aber der Hauptimport hat daraus einen
+      // internen Datenpunkt gemacht, der denselben Namen traegt. Ueber den
+      // Namen ist er eindeutig zu finden; das ist keine Rateoperation, sondern
+      // dieselbe Quelle. Ohne das verliert die Visu jede Bindung auf einen
+      // Merker — und genau daran haengen die dynamischen Anzeigen.
+      const key = nameKey?.(koName.get(koId) ?? "");
+      if (key !== undefined) return key;
       zaehle("Bindung auf internes KO (keine GA) nicht aufloesbar");
       unaufgeloesteBindungen++;
       return undefined;

@@ -285,3 +285,39 @@ test("Groesse kommt aus xsize PLUS Design-Slot s5/s6", () => {
   expect(platz).toBeDefined();
   expect(platz!.h).toBe(111);
 });
+
+// ---- Interne KOs (Merker) --------------------------------------------------
+// Interne KOs haben keine Busadresse. Der Hauptimport legt sie als interne
+// Datenpunkte mit demselben Namen an — ueber den Namen sind sie bindbar. Ohne
+// das verliert die Visu jede Bindung auf einen Merker.
+
+test("internes KO wird ueber den Namen aufgeloest", () => {
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({
+    id: 370,
+    ga: "370",
+    name: "SR_Kue_Spots_Status",
+  });
+  const elemente = roh.editVisuElement as Array<Record<string, unknown>>;
+  elemente.push({ id: 20, controltyp: 1, pageid: 1, gaid: 370, xpos: 0, ypos: 400, xsize: 10, ysize: 10, text: "" });
+  const nameKey = (n: string): string | undefined =>
+    n === "SR_Kue_Spots_Status" ? "status.sr_kue_spots_status" : undefined;
+  const { seiten, bericht } = konvertiereVisu(roh, gaKey, nameKey);
+  const gebunden = Object.values(seiten.get("wohnzimmer")!.elemente).find(
+    (e) => e.bindungen?.status === "status.sr_kue_spots_status",
+  );
+  expect(gebunden).toBeDefined();
+  // Nur das Fixture-KO 300 (ohne Namenstreffer) bleibt unaufgeloest — das neue
+  // KO 370 zaehlt NICHT mehr mit.
+  expect(bericht.nichtAbgebildet.get("Bindung auf internes KO (keine GA) nicht aufloesbar")).toBe(1);
+});
+
+test("ohne Namensaufloesung bleibt das interne KO unaufgeloest (Verhalten wie bisher)", () => {
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Merker" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 21, controltyp: 1, pageid: 1, gaid: 371, xpos: 0, ypos: 420, xsize: 10, ysize: 10, text: "",
+  });
+  const { bericht } = konvertiereVisu(roh, gaKey);
+  expect(bericht.unaufgeloesteBindungen).toBeGreaterThanOrEqual(1);
+});

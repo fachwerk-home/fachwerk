@@ -222,7 +222,23 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
         if (adresse) gaIndex.set(adresse, `${gruppe}.${key}`);
       }
     }
-    const visu = konvertiereVisu(visuExport, (ga) => gaIndex.get(ga));
+    // Interne KOs haben keine GA. Der Hauptimport hat sie als interne
+    // Datenpunkte angelegt — mit demselben Namen, den auch die Visu fuehrt.
+    // Ueber den Namen sind sie eindeutig bindbar; doppelte Namen bleiben
+    // bewusst unaufgeloest, statt das falsche Ziel zu treffen.
+    const nameIndex = new Map<string, string | null>();
+    for (const [gruppe, datei] of datenpunkte) {
+      for (const [key, def] of Object.entries(datei)) {
+        const dp = def as Datenpunkt;
+        if (dp.klasse !== "intern" || !dp.name) continue;
+        nameIndex.set(dp.name, nameIndex.has(dp.name) ? null : `${gruppe}.${key}`);
+      }
+    }
+    const visu = konvertiereVisu(
+      visuExport,
+      (ga) => gaIndex.get(ga),
+      (name) => nameIndex.get(name) ?? undefined,
+    );
     if (visu.seiten.size > 0) {
       mkdirSync(join(ziel, "visu", "seiten"), { recursive: true });
       writeFileSync(join(ziel, "visu", "designs.yaml"), visuDesignsZuYaml(visu.designs), "utf8");
