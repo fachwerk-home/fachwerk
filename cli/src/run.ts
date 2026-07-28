@@ -11,7 +11,18 @@
  * Reload hinweg bestehen. Nur so kann ein Editor ein Gewerk aktivieren, ohne
  * die KNX-Verbindung abzureißen.
  */
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  accessSync,
+  constants,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import {
   ApiServer,
@@ -543,6 +554,9 @@ export async function run(dir: string): Promise<number> {
   const importDir = join(datenDir, "import");
   const quellenDir = join(importDir, "quellen");
   const neuesGewerkDir = join(importDir, "gewerk-neu");
+  // Rueckweg nach dem Uebernehmen. Liegt bewusst im Daten-Verzeichnis: das ist
+  // im Docker-Betrieb ein benanntes Volume und uebersteht ein Redeploy.
+  const sicherungsDir = join(importDir, "gewerk-vorher");
   const importDienst = {
     lege(name: string, inhalt: Uint8Array) {
       // Nur die Formate, die der Import wirklich verarbeitet — sonst sammelt
@@ -609,14 +623,37 @@ export async function run(dir: string): Promise<number> {
       if (!existsSync(join(neuesGewerkDir, "gewerk.yaml"))) {
         return { ok: false as const, status: 409, grund: "kein importiertes Gewerk vorhanden" };
       }
+      // Schreibrecht VORHER pruefen, sonst steht der Bediener vor einem nackten
+      // EACCES. Der haeufigste Fall: im Docker-Betrieb laeuft der Dienst als
+      // uid 1000, das Gewerk-Verzeichnis vom Host gehoert aber root.
       try {
-        // Rueckweg behalten: der alte Stand bleibt als .alt liegen.
-        const alt = `${dir}.alt`;
-        rmSync(alt, { recursive: true, force: true });
-        cpSync(dir, alt, { recursive: true });
+        accessSync(dir, constants.W_OK);
+      } catch {
+        const uid = process.getuid?.();
+        return {
+          ok: false as const,
+          status: 500,
+          grund:
+            `${dir} ist fuer diesen Dienst nicht beschreibbar` +
+            (uid === undefined ? "" : ` (er laeuft als uid ${uid})`) +
+            ". Im Docker-Betrieb einmalig auf dem Host: " +
+            "sudo chown -R 1000:1000 <gewerk-verzeichnis>",
+        };
+      }
+      try {
+        // Rueckweg behalten — im DATEN-Verzeichnis, nicht als Nachbar des
+        // Gewerks: <dir>.alt waere im Container ein Pfad in der Schreibschicht
+        // (beim naechsten Redeploy weg) und liegt ausserdem im Wurzelverzeichnis,
+        // wo der Laufzeit-User gar nichts anlegen darf.
+        rmSync(sicherungsDir, { recursive: true, force: true });
+        cpSync(dir, sicherungsDir, { recursive: true });
         // Ersetzen statt Mischen: Reste eines groesseren Vorgaengers duerfen
-        // nicht stehenbleiben (geloeschte Seiten, alte Bausteine).
-        rmSync(dir, { recursive: true, force: true });
+        // nicht stehenbleiben (geloeschte Seiten, alte Bausteine). Geleert wird
+        // der INHALT — das Verzeichnis selbst ist im Docker-Betrieb ein
+        // Mountpunkt und laesst sich nicht entfernen.
+        for (const eintrag of readdirSync(dir)) {
+          rmSync(join(dir, eintrag), { recursive: true, force: true });
+        }
         cpSync(neuesGewerkDir, dir, { recursive: true });
       } catch (e) {
         return { ok: false as const, status: 500, grund: e instanceof Error ? e.message : String(e) };

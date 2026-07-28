@@ -10,6 +10,17 @@ Stack starten, fertig.
 sudo mkdir -p /opt/fachwerk/quellen /opt/fachwerk/gewerk-neu
 ```
 
+Und einmalig den Besitzer des Gewerk-Verzeichnisses setzen — der Dienst laeuft
+im Container als `uid 1000` (`USER node`), ein root-eigenes Verzeichnis kann er
+nicht beschreiben:
+
+```bash
+sudo chown -R 1000:1000 /opt/fachwerk/gewerk
+```
+
+Ohne das bleibt alles Lesende normal, aber Import-Uebernahme, Visu-Editor und
+Logik-Editor scheitern mit `EACCES`.
+
 ## Bei jedem Import — drei Schritte
 
 **1. Exportdateien nach `/opt/fachwerk/quellen` legen.** Die Dateinamen sind
@@ -95,7 +106,15 @@ curl -X POST -H "$T" "$B/api/gewerk/import/uebernehmen"  # ersetzt + aktiviert
 ```
 
 Auch hier gilt der Zweischritt: `import` rührt das laufende Gewerk nicht an,
-erst `uebernehmen` schaltet um (und legt den Vorgänger als `<gewerk>.alt` ab).
+erst `uebernehmen` schaltet um. Der Vorgänger wandert dabei nach
+`/daten/import/gewerk-vorher` — im benannten Volume, damit er ein Redeploy
+übersteht. Zurück geht es so:
+
+```bash
+C=$(docker ps -qf name=fachwerk)
+docker exec "$C" sh -c 'rm -rf /gewerk/* && cp -a /daten/import/gewerk-vorher/. /gewerk/'
+docker restart "$C"
+```
 Der Menüpunkt **„Import"** in der Admin-UI benutzt genau diese Routen und ist
 der bequemste Weg: Dateien ablegen (Auswahl oder Ziehen-und-Ablegen),
 *Importieren*, Bericht lesen, *Übernehmen und aktivieren*. Der curl-Weg oben
@@ -144,6 +163,7 @@ Zufall, sondern die Liste oben.
 | Knöpfe grau, „Scope write:gewerk fehlt" | kein Nutzer angelegt → Abschnitt „Schreibrechte einrichten" |
 | `EROFS: read-only file system` | Gewerk-Volume steht auf `:ro` — der aktuelle Compose-Stand mountet es beschreibbar |
 | `exec: "nutzer": executable file not found` | `node cli/src/main.ts` im docker-exec-Aufruf vergessen |
+| `EACCES ... nicht beschreibbar (uid 1000)` | Gewerk-Verzeichnis gehört root → `sudo chown -R 1000:1000` (siehe oben) |
 
 Der Import schreibt nur bei Erfolg ein vollständiges Gewerk; er prüft sein
 eigenes Ergebnis (`validate` plus Visu-Laden), bevor er OK meldet.

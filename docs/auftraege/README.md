@@ -88,3 +88,4 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-B7-ANIMATION.md | Spur 1 + Codex | offen (nice-to-have, NICHT abschlussrelevant) |
 | AUFTRAG-VISU-NACHBESSERUNG-2.md | Codex | ✅ gemergt (03f51ca) |
 | AUFTRAG-UI-IMPORT.md | Codex | ✅ gemergt (Menüpunkt Import, End-zu-End geprüft) |
+| AUFTRAG-UI-IMPORT-2.md | Codex | offen (2. Knopf wird übersehen; Rückfragetext falsch) |
