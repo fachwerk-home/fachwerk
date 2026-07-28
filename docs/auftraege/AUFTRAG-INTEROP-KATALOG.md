@@ -30,6 +30,17 @@ unvollständig:
 
 ---
 
+## Ausführung mit einem lokalen Modell
+
+Die vier Teile lassen sich mit `tools/dirty-room/extrahiere.sh` gegen einen
+eigenen Ollama-Host abarbeiten — ohne Kontingent, und die Daten verlassen das
+eigene Netz nicht. Das Skript sucht die Fundstellen selbst und legt dem Modell
+nur Ausschnitte vor; die Regeln unten stecken bereits darin. Siehe
+`tools/dirty-room/README.md`.
+
+Die Prompts unten bleiben trotzdem hier: sie sind die Vorlage, wenn jemand die
+Aufgabe von Hand oder mit einem anderen Werkzeug erledigt.
+
 ## Gemeinsame Regeln (gelten für ALLE vier Teilaufträge)
 
 ```
