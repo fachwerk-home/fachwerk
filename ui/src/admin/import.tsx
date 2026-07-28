@@ -96,7 +96,7 @@ export function ImportAnsicht({
       const antwort = await api.importiereGewerk();
       setBericht(antwort.bericht);
       setImportErfolgreich(true);
-      setMeldung({ ton: "ok", text: "Import abgeschlossen. Bericht prüfen, dann übernehmen." });
+      setMeldung({ ton: "ok", text: "Import abgeschlossen. Das laufende Gewerk ist noch unverändert; Übernehmen und aktivieren schaltet auf das importierte Gewerk um." });
     } catch (error) {
       setBericht(error instanceof ApiFehler ? fehlerText(error) : "");
       setMeldung({ ton: "fehler", text: fehlerText(error) });
@@ -107,7 +107,7 @@ export function ImportAnsicht({
 
   const uebernehmen = async (): Promise<void> => {
     const bestaetigt = window.confirm(
-      "Übernehmen und aktivieren ersetzt das laufende Gewerk. Der Vorgänger bleibt auf dem Host als <gewerk>.alt liegen. Fortfahren?",
+      "Übernehmen und aktivieren ersetzt das laufende Gewerk. Der Vorgänger bleibt im Daten-Volume unter /daten/import/gewerk-vorher erhalten; der Rückweg steht in docs/IMPORT-AUF-DEM-HOST.md. Fortfahren?",
     );
     if (!bestaetigt) return;
     setVorgang("uebernimmt");
@@ -115,7 +115,7 @@ export function ImportAnsicht({
     try {
       const antwort = await api.uebernehmeImport();
       await onAktiviert();
-      setMeldung({ ton: "ok", text: `Übernommen und aktiviert in ${antwort.dauerMs} ms.` });
+      setMeldung({ ton: "ok", text: `Import übernommen und aktiviert. Das laufende Gewerk wurde in ${antwort.dauerMs} ms umgeschaltet.` });
       setImportErfolgreich(false);
     } catch (error) {
       setMeldung({ ton: "fehler", text: fehlerText(error) });
@@ -139,7 +139,7 @@ export function ImportAnsicht({
         </div>
         <div class="import-aktionen">
           <button
-            class="primaer"
+            class={status.hauptAktion === "importieren" ? "primaer" : ""}
             disabled={!status.kannImportieren}
             title={status.importGrund}
             onClick={() => void importieren()}
@@ -147,6 +147,7 @@ export function ImportAnsicht({
             {vorgang === "importiert" ? "Import läuft …" : "Importieren"}
           </button>
           <button
+            class={status.hauptAktion === "uebernehmen" ? "primaer" : ""}
             disabled={!status.kannUebernehmen}
             title={status.uebernehmenGrund}
             onClick={() => void uebernehmen()}

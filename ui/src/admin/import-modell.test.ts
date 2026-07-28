@@ -31,4 +31,13 @@ describe("Import-Modell", () => {
     expect(importStatus({ darfSchreiben: true, darfAktivieren: true }, 1, "importiert", true))
       .toMatchObject({ kannUploaden: false, kannImportieren: false, kannUebernehmen: false });
   });
+
+  it("verschiebt die Hauptaktion nach erfolgreichem Import auf Übernehmen", () => {
+    expect(importStatus({ darfSchreiben: true, darfAktivieren: true }, 1, "bereit", false))
+      .toMatchObject({ hauptAktion: "importieren", kannImportieren: true, kannUebernehmen: false });
+    expect(importStatus({ darfSchreiben: true, darfAktivieren: true }, 1, "bereit", true))
+      .toMatchObject({ hauptAktion: "uebernehmen", kannImportieren: true, kannUebernehmen: true });
+    expect(importStatus({ darfSchreiben: true, darfAktivieren: false }, 1, "bereit", true))
+      .toMatchObject({ hauptAktion: "uebernehmen", kannUebernehmen: false, uebernehmenGrund: "Scope activate:dev fehlt" });
+  });
 });
