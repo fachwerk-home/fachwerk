@@ -35,11 +35,18 @@ KONTEXT="${KONTEXT:-120}"
 # Obergrenze je Anfrage in Zeilen. Modelle mit kleinem Fenster schneiden
 # STILL ab — lieber mehr Anfragen als stille Verluste.
 MAX_ZEILEN="${MAX_ZEILEN:-600}"
+# Welche Dateitypen durchsucht werden. NICHT nur PHP: eine Visu laeuft im
+# Browser, und was beim Klick passiert, steht dann in JavaScript. Wer hier zu
+# eng sucht, bekommt ein leeres Ergebnis und haelt es fuer eine Antwort.
+ENDUNGEN="${ENDUNGEN:-php,js,inc,phtml,html}"
+# Arbeitsverzeichnis nach dem Lauf aufheben (zur Fehlersuche).
+BEHALTE=0
 
 hilfe() {
   sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
   echo
   echo "Aufgaben: befehle | controltypen | varfelder | slots"
+  echo "Weitere Schalter: --endungen php,js  --behalte (Zwischenstaende aufheben)"
   exit "${1:-0}"
 }
 
@@ -50,7 +57,9 @@ while [ $# -gt 0 ]; do
     --host)    HOST="$2";    shift 2 ;;
     --modell)  MODELL="$2";  shift 2 ;;
     --ziel)    ZIEL="$2";    shift 2 ;;
-    --trocken) TROCKEN=1;    shift ;;
+    --trocken)  TROCKEN=1;   shift ;;
+    --behalte)  BEHALTE=1;   shift ;;
+    --endungen) ENDUNGEN="$2"; shift 2 ;;
     -h|--help) hilfe 0 ;;
     *) echo "Unbekannt: $1" >&2; hilfe 1 ;;
   esac
@@ -144,12 +153,22 @@ REGELN='HARTE REGELN
 
 # ---- Fundstellen sammeln -----------------------------------------------------
 echo "Suche in $QUELLE nach: $MUSTER" >&2
-mapfile -t DATEIEN < <(grep -rlE "$MUSTER" "$QUELLE" --include='*.php' 2>/dev/null | sort)
+IFS=',' read -ra _endungen <<< "$ENDUNGEN"
+INCL=(); for _e in "${_endungen[@]}"; do INCL+=(--include="*.${_e}"); done
+echo "Dateitypen: $ENDUNGEN" >&2
+mapfile -t DATEIEN < <(grep -rlE "$MUSTER" "$QUELLE" "${INCL[@]}" 2>/dev/null | sort)
 [ "${#DATEIEN[@]}" -gt 0 ] || { echo "Keine Treffer — stimmt --quelle?" >&2; exit 1; }
 echo "Dateien mit Treffern: ${#DATEIEN[@]}" >&2
 
 ARBEIT="$(mktemp -d)"
-trap 'rm -rf "$ARBEIT"' EXIT
+aufraeumen() {
+  if [ "$BEHALTE" -eq 1 ]; then
+    echo "Zwischenstaende liegen in: $ARBEIT" >&2
+  else
+    rm -rf "$ARBEIT"
+  fi
+}
+trap aufraeumen EXIT
 
 # Je Datei die Trefferzeilen zu Fenstern zusammenfassen (ueberlappende Bereiche
 # verschmelzen), damit ein Fallunterscheidungsblock nicht mitten entzweigeht.
@@ -200,6 +219,7 @@ baue_anfrage() {                        # $1 = Prompt-Datei -> JSON auf stdout
        '{model:$m, prompt:., stream:false, options:{temperature:0, num_ctx:16384}}' < "$1"
   else
     "$JSON" -c 'import json,sys
+sys.stdin.reconfigure(encoding="utf-8")
 print(json.dumps({"model": sys.argv[1], "prompt": sys.stdin.read(), "stream": False,
                   "options": {"temperature": 0, "num_ctx": 16384}}))' "$MODELL" < "$1"
   fi
@@ -210,6 +230,8 @@ lies_antwort() {                        # JSON auf stdin -> Text auf stdout
     jq -r 'if .error then ("Modell meldet: " + .error | halt_error(1)) else .response end'
   else
     "$JSON" -c 'import json,sys
+sys.stdin.reconfigure(encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8")
 try:
     d = json.load(sys.stdin)
 except ValueError:
@@ -277,7 +299,18 @@ if [ "$mit_befund" -le 1 ]; then
 else
   echo "Fuehre $mit_befund Teilergebnisse zusammen …" >&2
   {
-    echo "$REGELN"; echo
+    # BEWUSST NICHT die Regeln von oben: dort steht das Abbruchwort fuer den
+    # Fall, dass ein Ausschnitt nichts hergibt. Auf die Teilergebnisse
+    # angewandt macht es aus vorhandenen Befunden ein "keine Informationen
+    # gefunden" — beobachtet, und es sieht aus wie eine Antwort.
+    echo 'HARTE REGELN'
+    echo '1. KEIN Quellcode und kein Zitat daraus. Nur Verhalten und'
+    echo '   Feldbedeutungen.'
+    echo '2. Jede Zeile behaelt ihre Spalte Sicherheit (sicher/plausibel/unklar).'
+    echo '3. Deutsch, Markdown-Tabelle, keine Einleitung, kein Fazit.'
+    echo '4. Unten STEHEN Befunde. Antworte niemals damit, dass nichts'
+    echo '   gefunden wurde — deine Aufgabe ist allein das Zusammenfassen.'
+    echo
     echo 'AUFGABE'
     echo 'Unten stehen Teilergebnisse aus einzelnen Ausschnitten desselben'
     echo 'Systems. Mache daraus GENAU EINE Tabelle:'
@@ -291,6 +324,14 @@ else
     echo "TEILERGEBNISSE"; cat "$BEFUNDE"
   } > "$ARBEIT/merge.txt"
   frage_modell "$ARBEIT/merge.txt" > "$ZIEL"
+  # Sicherheitsnetz: liefert die Zusammenfuehrung keine Tabelle, waren die
+  # Teilergebnisse trotzdem da. Dann lieber die ungeschliffene Sammlung als
+  # ein glattes "nichts gefunden", das man fuer eine Antwort haelt.
+  if ! grep -q '|' "$ZIEL"; then
+    echo "WARNUNG: Zusammenfuehrung ergab keine Tabelle — nehme die" >&2
+    echo "         ungeschliffenen Teilergebnisse. Bitte selbst ordnen." >&2
+    cp "$BEFUNDE" "$ZIEL"
+  fi
 fi
 
 # ---- Vollstaendigkeitsprobe --------------------------------------------------
