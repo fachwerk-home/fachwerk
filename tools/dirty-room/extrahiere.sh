@@ -10,16 +10,20 @@
 # Es laeuft auf DEINER Maschine und spricht ausschliesslich mit DEINEM
 # Ollama-Host. Es schickt nichts sonstwohin.
 #
-# Aufruf:
-#   ./extrahiere.sh --aufgabe befehle --quelle /pfad/zur/altanlage \
-#                   --host http://192.168.11.50:11434 --modell qwen2.5-coder:32b
+# Aufruf (Windows/Git-Bash — Laufwerke werden als /c/... geschrieben,
+# "C:/Quellen/altanlage" geht auch, "C:\Quellen\..." nicht):
+#   ./extrahiere.sh --aufgabe befehle --quelle /c/Quellen/altanlage \
+#                   --host http://192.168.0.24:11434 --modell devstral:latest
 #
-# Erst schauen, was verschickt wuerde:
-#   ./extrahiere.sh --aufgabe befehle --quelle /pfad --trocken
+# Erst schauen, was verschickt wuerde — das kostet nichts:
+#   ./extrahiere.sh --aufgabe befehle --quelle /c/Quellen/altanlage --trocken
 set -euo pipefail
 
 HOST="${OLLAMA_HOST:-http://localhost:11434}"
-MODELL="${OLLAMA_MODELL:-qwen2.5-coder:14b}"
+# devstral hat sich in einer Probe als einziges Modell getraut, einen nicht
+# ermittelbaren Fall als "unklar" zu kennzeichnen statt ihn zu beschoenigen —
+# und es formuliert um, statt Quellkommentare woertlich zu uebernehmen.
+MODELL="${OLLAMA_MODELL:-devstral:latest}"
 QUELLE=""
 AUFGABE=""
 ZIEL=""
@@ -180,7 +184,15 @@ frage_modell() {                        # $1 = Prompt-Datei -> Antwort auf stdou
      < "$1" \
   | curl -sS -X POST "$HOST/api/generate" \
          -H 'content-type: application/json' --data-binary @- \
-  | jq -r 'if .error then ("Modell meldet: " + .error | halt_error(1)) else .response end'
+  | jq -r 'if .error then ("Modell meldet: " + .error | halt_error(1)) else .response end' \
+  | saeubere
+}
+
+# Denkmodelle stellen ihre Ueberlegung voran, manche Modelle rahmen die Antwort
+# in einen Codeblock. Beides gehoert nicht in eine Tabelle, die anschliessend
+# gelesen und weitergegeben wird.
+saeubere() {
+  sed -e '/<think>/,/<\/think>/d' -e '/^[[:space:]]*```[a-zA-Z]*[[:space:]]*$/d'
 }
 
 BEFUNDE="$ARBEIT/befunde.md"
