@@ -15,7 +15,8 @@ Disziplin — niemand muss sich merken, was er gerade nicht lesen darf.
 
 ## Voraussetzungen
 
-- `bash`, `curl`, `jq` (Debian/Ubuntu: `sudo apt install jq`)
+- `bash`, `curl` und **entweder** `jq` **oder** Python — was da ist, wird
+  benutzt. In der Git-Bash unter Windows gibt es kein `jq`; dort greift Python.
 - ein erreichbarer Ollama-Host mit einem Modell, das Code lesen kann
 
 ## Benutzung
@@ -67,3 +68,9 @@ Sicherheitsangabe.
 **Vor der Weitergabe durchlesen.** Alles mit `unklar` entweder selbst prüfen
 oder streichen. Und was der Importer nicht sicher weiß, rät er nicht — es
 landet im Migrations-Report, damit der Betreiber es sieht.
+
+Und `sicher` ist keine Garantie: in einem Probelauf hat das Modell für Spalten,
+zu denen der Ausschnitt gar nichts hergab, Zieltabellen wie `Tabelle1.ID`
+erfunden — und sie als `sicher` eingestuft. Ein Modell weiß nicht, was es nicht
+weiß. Deshalb ist der Lesedurchgang kein Feinschliff, sondern der Schritt, der
+über die Brauchbarkeit entscheidet.

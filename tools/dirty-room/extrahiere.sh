@@ -59,7 +59,23 @@ done
 [ -n "$AUFGABE" ] || { echo "FEHLER: --aufgabe fehlt" >&2; hilfe 1; }
 [ -n "$QUELLE" ]  || { echo "FEHLER: --quelle fehlt" >&2; hilfe 1; }
 [ -d "$QUELLE" ]  || { echo "FEHLER: $QUELLE ist kein Verzeichnis" >&2; exit 1; }
-command -v jq >/dev/null || { echo "FEHLER: jq fehlt (Debian/Ubuntu: sudo apt install jq)" >&2; exit 1; }
+# JSON-Werkzeug bestimmen. jq ist auf Linux ueblich, in der Git-Bash unter
+# Windows aber nicht vorhanden — dort ist Python da. Statt eines der beiden
+# vorauszusetzen, nimmt das Skript, was es findet. Achtung: unter Windows
+# EXISTIERT "python3" als Platzhalter des Stores, laesst sich aber nicht
+# ausfuehren — deshalb wird es zur Probe aufgerufen, nicht nur gesucht.
+if command -v jq >/dev/null 2>&1; then
+  JSON=jq
+elif command -v python3 >/dev/null 2>&1 && python3 -c '' >/dev/null 2>&1; then
+  JSON=python3
+elif command -v python >/dev/null 2>&1 && python -c '' >/dev/null 2>&1; then
+  JSON=python
+else
+  echo "FEHLER: weder jq noch Python gefunden." >&2
+  echo "  Debian/Ubuntu: sudo apt install jq" >&2
+  echo "  Windows:       winget install jqlang.jq   (oder Python installieren)" >&2
+  exit 1
+fi
 
 # ---- Aufgabendefinition ------------------------------------------------------
 # MUSTER  = wonach im Quellbaum gesucht wird (erweiterter regulaerer Ausdruck)
@@ -178,13 +194,37 @@ if [ "$TROCKEN" -eq 1 ]; then
 fi
 
 # ---- Ausschnitte einzeln vorlegen -------------------------------------------
+baue_anfrage() {                        # $1 = Prompt-Datei -> JSON auf stdout
+  if [ "$JSON" = jq ]; then
+    jq -Rs --arg m "$MODELL" \
+       '{model:$m, prompt:., stream:false, options:{temperature:0, num_ctx:16384}}' < "$1"
+  else
+    "$JSON" -c 'import json,sys
+print(json.dumps({"model": sys.argv[1], "prompt": sys.stdin.read(), "stream": False,
+                  "options": {"temperature": 0, "num_ctx": 16384}}))' "$MODELL" < "$1"
+  fi
+}
+
+lies_antwort() {                        # JSON auf stdin -> Text auf stdout
+  if [ "$JSON" = jq ]; then
+    jq -r 'if .error then ("Modell meldet: " + .error | halt_error(1)) else .response end'
+  else
+    "$JSON" -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except ValueError:
+    sys.stderr.write("Antwort war kein JSON — laeuft dort wirklich Ollama?\n"); sys.exit(1)
+if d.get("error"):
+    sys.stderr.write("Modell meldet: " + d["error"] + "\n"); sys.exit(1)
+sys.stdout.write(d.get("response", ""))'
+  fi
+}
+
 frage_modell() {                        # $1 = Prompt-Datei -> Antwort auf stdout
-  jq -Rs --arg m "$MODELL" \
-     '{model:$m, prompt:., stream:false, options:{temperature:0, num_ctx:16384}}' \
-     < "$1" \
+  baue_anfrage "$1" \
   | curl -sS -X POST "$HOST/api/generate" \
          -H 'content-type: application/json' --data-binary @- \
-  | jq -r 'if .error then ("Modell meldet: " + .error | halt_error(1)) else .response end' \
+  | lies_antwort \
   | saeubere
 }
 
@@ -198,6 +238,7 @@ saeubere() {
 BEFUNDE="$ARBEIT/befunde.md"
 : > "$BEFUNDE"
 i=0
+mit_befund=0
 for stueck in "$ARBEIT"/[0-9]*.txt; do
   i=$((i + 1))
   printf 'Ausschnitt %d/%d …' "$i" "$anzahl" >&2
@@ -207,10 +248,15 @@ for stueck in "$ARBEIT"/[0-9]*.txt; do
     echo "AUSSCHNITT AUS DEM QUELLBAUM"; echo '```'; cat "$stueck"; echo '```'
   } > "$ARBEIT/prompt.txt"
   if antwort=$(frage_modell "$ARBEIT/prompt.txt"); then
-    if [ "${antwort//[[:space:]]/}" = "KEINBEFUND" ]; then
+    # Manche Modelle haengen das Abbruchwort HINTER eine gefundene Tabelle.
+    # Deshalb die Zeile entfernen und schauen, ob noch etwas uebrig bleibt —
+    # sonst stuende sie mitten im Ergebnis.
+    kern=$(printf '%s\n' "$antwort" | sed '/^[[:space:]]*KEIN BEFUND[[:space:]]*$/Id')
+    if [ -z "${kern//[[:space:]]/}" ]; then
       echo " ohne Befund" >&2
     else
-      { echo "$antwort"; echo; } >> "$BEFUNDE"
+      { printf '%s\n' "$kern"; echo; } >> "$BEFUNDE"
+      mit_befund=$((mit_befund + 1))
       echo " ok" >&2
     fi
   else
@@ -221,22 +267,31 @@ done
 [ -s "$BEFUNDE" ] || { echo "Kein einziger Befund — Muster oder Modell pruefen." >&2; exit 1; }
 
 # ---- Zusammenfuehren ---------------------------------------------------------
-echo "Fuehre Teilergebnisse zusammen …" >&2
-{
-  echo "$REGELN"; echo
-  echo 'AUFGABE'
-  echo 'Unten stehen Teilergebnisse, die aus einzelnen Ausschnitten desselben'
-  echo 'Systems gewonnen wurden. Fuehre sie zu EINER Tabelle zusammen:'
-  echo '- Doppelte Eintraege verschmelzen, nicht wiederholen.'
-  echo '- Widersprechen sich zwei Teilergebnisse, nimm den Eintrag auf und'
-  echo '  setze seine Sicherheit auf unklar mit einem Wort zur Abweichung.'
-  echo '- Erfinde nichts hinzu, was in keinem Teilergebnis steht.'
-  echo
-  echo "TEILERGEBNISSE"; cat "$BEFUNDE"
-} > "$ARBEIT/merge.txt"
-
 mkdir -p "$(dirname "$ZIEL")"
-frage_modell "$ARBEIT/merge.txt" > "$ZIEL"
+if [ "$mit_befund" -le 1 ]; then
+  # Nur ein Ausschnitt hat etwas geliefert — es gibt nichts zu verschmelzen.
+  # Ein Zusammenfuehr-Durchgang wuerde hier bloss dieselben Angaben in
+  # mehreren Tabellen wiederholen (beobachtet).
+  echo "Ein einzelner Befund — Zusammenfuehren entfaellt." >&2
+  cp "$BEFUNDE" "$ZIEL"
+else
+  echo "Fuehre $mit_befund Teilergebnisse zusammen …" >&2
+  {
+    echo "$REGELN"; echo
+    echo 'AUFGABE'
+    echo 'Unten stehen Teilergebnisse aus einzelnen Ausschnitten desselben'
+    echo 'Systems. Mache daraus GENAU EINE Tabelle:'
+    echo '- Eine einzige Tabelle, keine zweite daneben. Wiederhole dieselben'
+    echo '  Angaben NICHT noch einmal in anderer Aufteilung.'
+    echo '- Je Eintrag genau eine Zeile; doppelte Eintraege verschmelzen.'
+    echo '- Widersprechen sich zwei Teilergebnisse, nimm den Eintrag auf und'
+    echo '  setze seine Sicherheit auf unklar mit einem Wort zur Abweichung.'
+    echo '- Erfinde nichts hinzu, was in keinem Teilergebnis steht.'
+    echo
+    echo "TEILERGEBNISSE"; cat "$BEFUNDE"
+  } > "$ARBEIT/merge.txt"
+  frage_modell "$ARBEIT/merge.txt" > "$ZIEL"
+fi
 
 # ---- Vollstaendigkeitsprobe --------------------------------------------------
 echo >&2
