@@ -11,6 +11,7 @@ export interface ImportStatus {
   kannUploaden: boolean;
   kannImportieren: boolean;
   kannUebernehmen: boolean;
+  hauptAktion: "importieren" | "uebernehmen";
   uploadGrund?: string;
   importGrund?: string;
   uebernehmenGrund?: string;
@@ -46,6 +47,7 @@ export function importStatus(
     kannUploaden,
     kannImportieren,
     kannUebernehmen,
+    hauptAktion: importErfolgreich ? "uebernehmen" : "importieren",
     ...(kannUploaden ? {} : { uploadGrund: rechte.darfSchreiben ? "Vorgang läuft" : "Scope write:gewerk fehlt" }),
     ...(kannImportieren ? {} : {
       importGrund: !rechte.darfSchreiben
