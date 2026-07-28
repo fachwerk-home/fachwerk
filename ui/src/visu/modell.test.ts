@@ -3,11 +3,13 @@ import type { VisuElement, VisuSeite } from "../../../schema/src/visu.ts";
 import {
   designFuer,
   elementAnzeige,
+  fachwerkKachelFuer,
   fontFaceCssFuerDesigns,
   schriftartenAusDesigns,
   schriftfamilieFuer,
   einzelnesPrivatesSymbol,
   formatierterWert,
+  navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
   seitenSkalierung,
@@ -138,6 +140,30 @@ describe("Symbol- und Textausrichtungs-Helfer", () => {
     expect(textausrichtungCss("zentriert")).toBe("center");
     expect(textausrichtungCss("rechts")).toBe("right");
     expect(textausrichtungCss("blocksatz")).toBe("justify");
+  });
+
+  it("zeigt Navigationspfeile nur bei reinem Text ohne eigenes Bild", () => {
+    expect(navigationZeigtPfeil("Wohnzimmer", {})).toBe(true);
+    expect(navigationZeigtPfeil("", {})).toBe(false);
+    expect(navigationZeigtPfeil("\uE001", {})).toBe(false);
+    expect(navigationZeigtPfeil("Wohnzimmer", { schriftart: "Panel Icons" })).toBe(false);
+    expect(navigationZeigtPfeil("Wohnzimmer", { icon: "\uE001" })).toBe(false);
+  });
+});
+
+describe("Fachwerk-Kachel", () => {
+  it("zeichnet keine Standard-Kachel über Elemente mit eigener Fläche", () => {
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { hintergrund: "#123456" })).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { staerke: 1 } })).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { farbe: "#abcdef" } })).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { radius: 0 } })).toBe(false);
+  });
+
+  it("behält das bisherige Standardverhalten für Elemente ohne eigene Fläche", () => {
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, {})).toBe(true);
+    expect(fachwerkKachelFuer({ widget: "slider" }, {})).toBe(true);
+    expect(fachwerkKachelFuer({ preset: "navigation" }, {})).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "symbol" }, {})).toBe(false);
   });
 });
 

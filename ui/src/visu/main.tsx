@@ -20,7 +20,9 @@ import {
   designFuer,
   elementAnzeige,
   einzelnesPrivatesSymbol,
+  fachwerkKachelFuer,
   fontFaceCssFuerDesigns,
+  navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
   schriftfamilieFuer,
@@ -204,7 +206,7 @@ function ElementInhalt({
     case "taster":
       return <span>{anzeige.label}</span>;
     case "navigation":
-      return <span>{anzeige.label} <span aria-hidden="true">→</span></span>;
+      return <span>{anzeige.label}{navigationZeigtPfeil(anzeige.label, design) && <> <span aria-hidden="true">→</span></>}</span>;
     default:
       return <span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span>;
   }
@@ -237,14 +239,7 @@ function VisuElementAnsicht({
   const sperrgrund = setKey ? bedien.gesperrt.get(setKey) : undefined;
   const pending = setKey ? bedien.pending.has(setKey) : false;
   const hatSet = setKey !== undefined;
-  const hatDesignKachel = design.hintergrund !== undefined || design.rand !== undefined;
-  // Presets, die im importierten Original "nackt" sind (Beschriftungen, Icon-
-  // Buttons): ihre Optik kommt AUSSCHLIESSLICH aus dem Design. Am Referenz-
-  // Panel hat keines der Navigations-Icons einen eigenen Hintergrund — der
-  // kommt dort von einem Rechteck darunter. Anzeige-Elemente (Status/Wert) und
-  // Widgets behalten die Standard-Kachel, sonst schweben sie ohne Kontur.
-  const ohneStandardKachel = new Set(["label", "taster", "schalter", "navigation", "symbol"]);
-  const kachel = ohneStandardKachel.has(element.preset ?? "") ? hatDesignKachel : true;
+  const kachel = fachwerkKachelFuer(element, design);
   const einzelSymbol = einzelnesPrivatesSymbol(element.text) || einzelnesPrivatesSymbol(design.icon);
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
