@@ -62,9 +62,13 @@ Freischalten (einmal pro Anlage, im laufenden Container):
 ```bash
 C=$(docker ps -qf name=fachwerk)
 printf 'DEIN-PASSWORT
-' | docker exec -i "$C" nutzer anlegen junig   --scopes read,operate,write:gewerk,activate:dev
+' | docker exec -i "$C" node cli/src/main.ts   nutzer anlegen junig --scopes read,operate,write:gewerk,activate:dev
 docker restart "$C"
 ```
+
+Das `node cli/src/main.ts` davor muss sein: `docker exec` startet das Kommando
+direkt und geht **nicht** durch den ENTRYPOINT des Images — ein blosses
+`docker exec ... nutzer anlegen` endet in `executable file not found`.
 
 Der Nutzer liegt in `/daten/nutzer.yaml` (benanntes Volume, übersteht Updates).
 Die vier Scopes bedeuten: lesen · schalten · Gewerk ändern · aktivieren. Wer
@@ -139,6 +143,7 @@ Zufall, sondern die Liste oben.
 | `erzeugtes Gewerk ist nicht schema-konform` | Fehler im Importer — bitte melden, mit dem Log |
 | Knöpfe grau, „Scope write:gewerk fehlt" | kein Nutzer angelegt → Abschnitt „Schreibrechte einrichten" |
 | `EROFS: read-only file system` | Gewerk-Volume steht auf `:ro` — der aktuelle Compose-Stand mountet es beschreibbar |
+| `exec: "nutzer": executable file not found` | `node cli/src/main.ts` im docker-exec-Aufruf vergessen |
 
 Der Import schreibt nur bei Erfolg ein vollständiges Gewerk; er prüft sein
 eigenes Ergebnis (`validate` plus Visu-Laden), bevor er OK meldet.
