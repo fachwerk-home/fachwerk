@@ -404,3 +404,54 @@ test("s11 wird zur Beschriftung — aber nur beim bedingten Design", () => {
   expect(designs[el.design!]!.beschriftung).toBeUndefined();
   expect(designs[el.design_je_wert![0]!.design]!.beschriftung).toBe("ON");
 });
+
+// ---- Klick-Befehle (editVisuCmdList) ---------------------------------------
+// cmd 2 schreibt einen festen Wert, cmd 4 schaltet um, cmd 6 schaltet um und
+// liest den Zustand an einem ANDEREN KO ab — auf dem Bus die Regel, weil
+// Stellen und Melden getrennte Adressen haben.
+
+test("cmd 4 wird ein Umschalter am Ziel-KO selbst", () => {
+  const roh = fixture();
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 30, controltyp: 1, pageid: 1, var3: 2, xpos: 0, ypos: 700, xsize: 40, ysize: 40, text: "T",
+  });
+  (roh.editVisuCmdList as Array<Record<string, unknown>>).push({
+    id: 1, targetid: 30, cmd: 4, cmdid1: 100, cmdvalue1: "1",
+  });
+  const el = Object.values(konvertiereVisu(roh, gaKey).seiten.get("wohnzimmer")!.elemente)
+    .find((e) => e.text === "T")!;
+  expect(el.bindungen?.set).toBe("wohnen.licht");
+  expect(el.aktionen!.kurz).toEqual({ art: "umschalten" });
+});
+
+test("cmd 6 nimmt den Ein-Wert und ein getrenntes Status-KO", () => {
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 200, ga: "1/0/9" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 31, controltyp: 1, pageid: 1, var3: 2, xpos: 0, ypos: 740, xsize: 40, ysize: 40, text: "D",
+  });
+  (roh.editVisuCmdList as Array<Record<string, unknown>>).push({
+    id: 2, targetid: 31, cmd: 6, cmdid1: 100, cmdid2: 200, cmdvalue1: "20",
+  });
+  const gaKey2 = (ga: string): string | undefined =>
+    ga === "1/0/2" ? "wohnen.licht" : ga === "1/0/9" ? "wohnen.licht_status" : undefined;
+  const el = Object.values(konvertiereVisu(roh, gaKey2).seiten.get("wohnzimmer")!.elemente)
+    .find((e) => e.text === "D")!;
+  expect(el.aktionen!.kurz).toEqual({
+    art: "umschalten",
+    ein: 20,
+    status: "wohnen.licht_status",
+  });
+});
+
+test("unbekannter Befehl wird gemeldet statt geraten", () => {
+  const roh = fixture();
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 32, controltyp: 1, pageid: 1, var3: 2, xpos: 0, ypos: 780, xsize: 40, ysize: 40, text: "X",
+  });
+  (roh.editVisuCmdList as Array<Record<string, unknown>>).push({
+    id: 3, targetid: 32, cmd: 17, cmdid1: 100,
+  });
+  const { bericht } = konvertiereVisu(roh, gaKey);
+  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("cmd 17");
+});

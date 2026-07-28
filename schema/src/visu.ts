@@ -43,7 +43,22 @@ export interface VisuPlacement {
   format?: WertFormat;
 }
 export type VisuAktion =
-  | { art: "umschalten" }
+  | {
+      art: "umschalten";
+      /**
+       * Wert fuer den EIN-Zustand. Fehlt er, wird schlicht zwischen wahr und
+       * falsch gewechselt. Gesetzt wird er gebraucht, wenn „ein" nicht 1 heisst
+       * — ein Dimmer, der auf 20 % geht, ist kein bool.
+       */
+      ein?: string | number | boolean;
+      /**
+       * Datenpunkt, dessen Wert ueber ein/aus entscheidet. Fehlt er, gilt der
+       * Datenpunkt, auf den geschrieben wird. Getrennt noetig, wenn Stellen und
+       * Melden auf verschiedenen Adressen liegen — auf dem Bus die Regel, nicht
+       * die Ausnahme.
+       */
+      status?: string;
+    }
   | { setze: string | number | boolean | null }
   | { seite: string }
   | { popup: string };

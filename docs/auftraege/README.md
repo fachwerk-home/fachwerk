@@ -91,4 +91,5 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-UI-IMPORT-2.md | Codex | ✅ gemergt (PR #16) |
 | AUFTRAG-VISU-NACHBESSERUNG-3.md | Codex | ✅ gemergt (PR #17) |
 | AUFTRAG-VISU-BESCHRIFTUNG.md | Codex | offen (s11: Text/Symbol wechselt mit dem Zustand) |
-| AUFTRAG-INTEROP-KATALOG.md | Dirty Room (LLM) | offen (4 Teile: controltypen, Befehle, var-Felder, Slot-Kodierungen) |
+| AUFTRAG-INTEROP-KATALOG.md | Dirty Room (LLM) | Teil 2 (Befehle) erledigt und umgesetzt; Teile 1, 3, 4 offen |
+| AUFTRAG-VISU-UMSCHALTEN.md | Codex | offen (Umschalter mit Ein-Wert und getrennter Statusquelle) |

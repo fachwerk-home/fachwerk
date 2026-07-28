@@ -643,21 +643,42 @@ function baueElement(
     }
   }
 
-  // „Befehle" (var3-Bit 2): die eigentliche Aktion der Symbol-Tasten. cmd 2 =
-  // setze KO auf einen Wert. cmdid1 = Ziel-KO, cmdvalue1 = Wert. Hier bekommen
-  // Rollladen-Auf/Ab/Stopp erst ihre Funktion.
+  // „Befehle" (var3-Bit 2): die eigentliche Aktion der Symbol-Tasten. Immer
+  // gilt: cmdid1 = Ziel-KO, cmdvalue1 = Wert. Hier bekommen Rollladen-Auf/Ab/
+  // Stopp und die Umschalter erst ihre Funktion.
+  //
+  //   cmd 2  festen Wert schreiben
+  //   cmd 4  umschalten; Ein-Wert aus cmdvalue1, Zustand am Ziel-KO selbst
+  //   cmd 6  umschalten; Zustand aber an einem ANDEREN KO (cmdid2) ablesen —
+  //          auf dem Bus die Regel: Stellen und Melden liegen getrennt.
   for (const c of cmds) {
     const cmd = num(c, "cmd");
-    if (cmd === 2) {
-      const key = aufloese(num(c, "cmdid1"));
-      if (key && aktionen.kurz === undefined) {
-        setKey = key;
-        bindungen.set = key;
-        aktionen.kurz = { setze: alsWert(str(c, "cmdvalue1")) };
+    const key = cmd === 2 || cmd === 4 || cmd === 6 ? aufloese(num(c, "cmdid1")) : undefined;
+    if (key === undefined) {
+      if (cmd !== 2 && cmd !== 4 && cmd !== 6) {
+        zaehle(`Element-Befehl cmd ${cmd} nicht abgebildet`);
+        notizen.push(`Klick-Befehl cmd ${cmd} noch nicht abgebildet`);
       }
-    } else {
-      zaehle(`Element-Befehl cmd ${cmd} nicht abgebildet`);
-      notizen.push(`Klick-Befehl cmd ${cmd} noch nicht abgebildet`);
+      continue;
+    }
+    if (aktionen.kurz !== undefined) continue;
+    setKey = key;
+    bindungen.set = key;
+    if (cmd === 2) {
+      aktionen.kurz = { setze: alsWert(str(c, "cmdvalue1")) };
+      continue;
+    }
+    const ein = alsWert(str(c, "cmdvalue1"));
+    const statusKo = cmd === 6 ? aufloese(num(c, "cmdid2")) : undefined;
+    aktionen.kurz = {
+      art: "umschalten",
+      // Ein Ein-Wert von „wahr" ist der Normalfall und braucht keine Angabe;
+      // ein Dimmer, der auf 20 Prozent geht, sehr wohl.
+      ...(ein === true ? {} : { ein }),
+      ...(statusKo ? { status: statusKo } : {}),
+    };
+    if (cmd === 6 && !statusKo) {
+      notizen.push("Umschalter: Status-KO nicht aufloesbar — schaltet am Ziel-KO selbst");
     }
   }
 

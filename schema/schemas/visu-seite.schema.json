@@ -109,7 +109,11 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["art"],
-          "properties": { "art": { "enum": ["umschalten"] } }
+          "properties": {
+            "art": { "enum": ["umschalten"] },
+            "ein": { "$ref": "#/$defs/wert" },
+            "status": { "$ref": "#/$defs/schluessel" }
+          }
         },
         {
           "type": "object",
