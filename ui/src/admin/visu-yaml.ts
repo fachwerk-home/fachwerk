@@ -5,6 +5,7 @@ const ELEMENT_REIHENFOLGE = [
   "preset",
   "widget",
   "text",
+  "symbol",
   "parameter",
   "bindungen",
   "gruppe",

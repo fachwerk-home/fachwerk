@@ -46,6 +46,12 @@ describe("Visu-Editor-Modell", () => {
     expect(seite.elemente[key]?.placements?.tablet?.x).toBe(30);
   });
 
+  it("legt Symbol-Palette-Elemente mit eingebautem SVG-Symbol an", () => {
+    const { seite, key } = fuegeElementEin(SEITE, { art: "preset", preset: "symbol" }, "tablet", 31, 44, 10);
+    expect(key).toBe("symbol");
+    expect(seite.elemente[key]?.symbol).toBe("licht_an");
+  });
+
   it("dupliziert Elemente mit neuem Schlüssel und Versatz", () => {
     const { seite, keys } = dupliziereElemente(SEITE, ["licht"], "tablet", 10);
     expect(keys).toEqual(["licht_kopie"]);

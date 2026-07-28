@@ -32,6 +32,51 @@ export type VisuPreset =
   | "symbol"
   | "navigation";
 export type VisuWidget = "slider" | "diagramm";
+export type VisuSymbolName =
+  | "alarm"
+  | "anwesenheit"
+  | "diagramm"
+  | "einstellungen"
+  | "etage"
+  | "fenster_gekippt"
+  | "fenster_offen"
+  | "fenster_zu"
+  | "glocke"
+  | "haus"
+  | "heizung"
+  | "info"
+  | "jalousie"
+  | "licht_an"
+  | "licht_aus"
+  | "licht_dimmer"
+  | "luftfeuchte"
+  | "luefter"
+  | "minus"
+  | "mond"
+  | "pfeil_hoch"
+  | "pfeil_links"
+  | "pfeil_rechts"
+  | "pfeil_runter"
+  | "plus"
+  | "regen"
+  | "rollo_ab"
+  | "rollo_auf"
+  | "rollo_position"
+  | "rollo_stopp"
+  | "raum"
+  | "schloss_offen"
+  | "schloss_zu"
+  | "szene"
+  | "sonne"
+  | "steckdose"
+  | "temperatur"
+  | "thermostat"
+  | "timer"
+  | "tuer_offen"
+  | "tuer_zu"
+  | "uhr"
+  | "wind"
+  | "wolken";
 
 export interface VisuGroesse { w: number; h: number }
 export interface VisuPlacement {
@@ -56,6 +101,8 @@ export interface VisuElement {
    * Werte laufen weiter ueber bindungen + format.
    */
   text?: string;
+  /** Eingebauter Fachwerk-SVG-Symbolname (B-9), renderer-seitig currentColor. */
+  symbol?: VisuSymbolName;
   parameter?: Record<string, unknown>;
   bindungen?: Record<string, string>;
   gruppe?: string;

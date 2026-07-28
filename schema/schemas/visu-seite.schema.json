@@ -138,6 +138,7 @@
         "preset": { "enum": ["taster", "schalter", "statusanzeige", "wertanzeige", "label", "symbol", "navigation"] },
         "widget": { "enum": ["slider", "diagramm"] },
         "text": { "type": "string" },
+        "symbol": { "$ref": "#/$defs/symbol" },
         "parameter": { "type": "object" },
         "bindungen": {
           "type": "object",
@@ -169,6 +170,54 @@
       "allOf": [
         { "if": { "required": ["preset"] }, "then": { "not": { "required": ["parameter"] } } },
         { "if": { "required": ["widget"] }, "then": { "required": ["parameter"] } }
+      ]
+    },
+    "symbol": {
+      "enum": [
+        "alarm",
+        "anwesenheit",
+        "diagramm",
+        "einstellungen",
+        "etage",
+        "fenster_gekippt",
+        "fenster_offen",
+        "fenster_zu",
+        "glocke",
+        "haus",
+        "heizung",
+        "info",
+        "jalousie",
+        "licht_an",
+        "licht_aus",
+        "licht_dimmer",
+        "luftfeuchte",
+        "luefter",
+        "minus",
+        "mond",
+        "pfeil_hoch",
+        "pfeil_links",
+        "pfeil_rechts",
+        "pfeil_runter",
+        "plus",
+        "regen",
+        "rollo_ab",
+        "rollo_auf",
+        "rollo_position",
+        "rollo_stopp",
+        "raum",
+        "schloss_offen",
+        "schloss_zu",
+        "szene",
+        "sonne",
+        "steckdose",
+        "temperatur",
+        "thermostat",
+        "timer",
+        "tuer_offen",
+        "tuer_zu",
+        "uhr",
+        "wind",
+        "wolken"
       ]
     }
   }

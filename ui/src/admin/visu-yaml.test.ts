@@ -52,6 +52,29 @@ describe("Visu-YAML", () => {
     );
   });
 
+  it("serialisiert SVG-Symbole kanonisch nach dem Text und validiert die Enum", () => {
+    const seite: VisuSeite = {
+      ...SEITE,
+      elemente: {
+        licht: {
+          ...SEITE.elemente.licht!,
+          text: "Licht",
+          symbol: "licht_an",
+        },
+      },
+    };
+    const yaml = seiteZuYaml(seite);
+    expect(yaml).toContain(
+      "elemente:\n  licht:\n    preset: schalter\n    text: Licht\n    symbol: licht_an\n    bindungen:\n",
+    );
+    expect(validateVisuSeite(seite)).toBe(true);
+    const ungueltig = {
+      ...seite,
+      elemente: { licht: { ...seite.elemente.licht!, symbol: "glitzer" } },
+    } as unknown as VisuSeite;
+    expect(validateVisuSeite(ungueltig)).toBe(false);
+  });
+
   it("bewahrt eine Seite mit Text beim unveränderten Load-Save-Pfad byte-identisch", () => {
     const raw = [
       "typ: seite",

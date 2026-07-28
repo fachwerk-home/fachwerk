@@ -8,6 +8,7 @@ import type {
   VisuPlacement,
   VisuPreset,
   VisuSeite,
+  VisuSymbolName,
   VisuWidget,
 } from "../../../schema/src/visu.ts";
 import { ApiFehler, api, type DatenpunktSicht } from "../lib/api.ts";
@@ -33,6 +34,7 @@ import {
   type PaletteTyp,
 } from "./visu-editor-modell.ts";
 import { inhaltZumSpeichern } from "./visu-yaml.ts";
+import { VISU_SYMBOL_LABELS, VISU_SYMBOL_NAMEN, VisuIcon } from "../visu/icons.tsx";
 
 const PALETTE: Array<{ label: string; typ: PaletteTyp }> = [
   { label: "Taster", typ: { art: "preset", preset: "taster" } },
@@ -170,6 +172,7 @@ function AuswahlEigenschaften({
   const placement = key && element ? placementFuer(element, breakpoint, seite.basis) : undefined;
   const hatEigenesPlacement = Boolean(key && element?.placements?.[breakpoint]);
   const [dpFilter, setDpFilter] = useState("");
+  const [symbolFilter, setSymbolFilter] = useState("");
   const schriftarten = schriftartenAusDesigns(designs);
   const effektiveSchriftart = element?.design ? designs[element.design]?.schriftart?.trim() ?? "" : "";
   const datenpunkte = dps.filter((dp) =>
@@ -177,6 +180,12 @@ function AuswahlEigenschaften({
     || dp.schluessel.toLowerCase().includes(dpFilter.toLowerCase())
     || dp.name.toLowerCase().includes(dpFilter.toLowerCase()),
   ).slice(0, 40);
+  const symbole = VISU_SYMBOL_NAMEN.filter((symbol) => {
+    const filter = symbolFilter.trim().toLowerCase();
+    return !filter
+      || symbol.includes(filter)
+      || VISU_SYMBOL_LABELS[symbol].toLowerCase().includes(filter);
+  });
 
   if (!key || !element || !placement) {
     return (
@@ -200,6 +209,12 @@ function AuswahlEigenschaften({
     if (!e) return;
     if (wert.trim().length > 0) e.text = wert;
     else delete e.text;
+  });
+  const setSymbol = (symbol: VisuSymbolName | ""): void => aendere((entwurf) => {
+    const e = entwurf.elemente[key];
+    if (!e) return;
+    if (symbol) e.symbol = symbol;
+    else delete e.symbol;
   });
   const setSchriftart = (schriftart: string): void => aendere((entwurf) => {
     const e = entwurf.elemente[key];
@@ -244,6 +259,29 @@ function AuswahlEigenschaften({
       <label>Element<input value={key} disabled /></label>
       <label>Typ<input value={typLabel(element)} disabled /></label>
       <label>Text<input value={element.text ?? ""} onInput={(event) => setText((event.target as HTMLInputElement).value)} /></label>
+      <label>Symbol suchen<input value={symbolFilter} placeholder="Name oder Motiv" onInput={(event) => setSymbolFilter((event.target as HTMLInputElement).value)} /></label>
+      <div class="editor-symbol-picker" role="group" aria-label="Symbol wählen">
+        <button
+          class={!element.symbol ? "gewaehlt" : ""}
+          title="Kein Symbol"
+          aria-pressed={!element.symbol}
+          onClick={() => setSymbol("")}
+        >
+          ×
+        </button>
+        {symbole.map((symbol) => (
+          <button
+            key={symbol}
+            class={element.symbol === symbol ? "gewaehlt" : ""}
+            title={`${VISU_SYMBOL_LABELS[symbol]} (${symbol})`}
+            aria-label={VISU_SYMBOL_LABELS[symbol]}
+            aria-pressed={element.symbol === symbol}
+            onClick={() => setSymbol(symbol)}
+          >
+            <VisuIcon name={symbol} dekorativ />
+          </button>
+        ))}
+      </div>
       <label>Design
         <select value={element.design ?? ""} onChange={(event) => aendere((entwurf) => {
           const e = entwurf.elemente[key];
@@ -575,6 +613,7 @@ export function VisuEditor({ dps, darfSpeichern, darfAktivieren }: { dps: Datenp
                   }}
                 >
                   <span class="editor-element-typ">{typLabel(element)}</span>
+                  {element.symbol && <VisuIcon name={element.symbol} dekorativ />}
                   <strong>{(() => {
                     const anzeige = elementAnzeige("editor", key, element, werte, placement);
                     if (element.widget === "diagramm") return `${anzeige.label} Verlauf`;
