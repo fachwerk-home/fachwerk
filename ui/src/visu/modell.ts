@@ -20,6 +20,7 @@ const SCHRIFT_ENDUNGEN = ["ttf", "woff2"] as const;
 const PRIVATBEREICH_START = 0xE000;
 const PRIVATBEREICH_ENDE = 0xF8FF;
 const MAX_SEITEN_SKALIERUNG = 1.5;
+const PRESETS_OHNE_STANDARD_KACHEL = new Set(["label", "taster", "schalter", "navigation", "symbol"]);
 
 /** Größter Breakpoint, der hineinpasst; auf schmaleren Geräten der kleinste. */
 export function waehleBreakpoint(seite: VisuSeite, breite: number): string {
@@ -127,6 +128,23 @@ export function einzelnesPrivatesSymbol(text: string | undefined): boolean {
   return codepoint !== undefined
     && codepoint >= PRIVATBEREICH_START
     && codepoint <= PRIVATBEREICH_ENDE;
+}
+
+export function navigationZeigtPfeil(label: string, design: VisuDesign): boolean {
+  return label.trim().length > 0
+    && !einzelnesPrivatesSymbol(label)
+    && !einzelnesPrivatesSymbol(design.icon)
+    && !schriftName(design.schriftart ?? "");
+}
+
+export function fachwerkKachelFuer(element: VisuElement, design: VisuDesign): boolean {
+  const rand = design.rand;
+  const hatEigeneFlaeche = design.hintergrund !== undefined
+    || rand?.staerke !== undefined
+    || rand?.farbe !== undefined
+    || rand?.radius !== undefined;
+  if (hatEigeneFlaeche) return false;
+  return !PRESETS_OHNE_STANDARD_KACHEL.has(element.preset ?? "");
 }
 
 export function textausrichtungCss(
