@@ -9,7 +9,7 @@
  */
 import { expect, test } from "vitest";
 import { validateVisuDesigns, validateVisuSeite } from "@fachwerk/schema";
-import { konvertiereVisu, type VisuExport } from "./visu.ts";
+import { farbe, konvertiereVisu, type VisuExport } from "./visu.ts";
 
 function fixture(): VisuExport {
   return {
@@ -207,13 +207,15 @@ test("alle Seiten teilen EINE Breite; die Hoehe umfasst eingebundene Seiten (B3)
   expect(seiten.get("details")!.groessen["panel"]!.h).toBeLessThan(2000);
 });
 
-test("Verlaeufe verlieren den -webkit-Praefix (Live-Rendering-Form)", () => {
+test("Verlaeufe kommen in heutiger Syntax MIT umgerechnetem Winkel an", () => {
   const roh = fixture();
   (roh.editVisuBGcol as Array<Record<string, unknown>>)[0]!["color"] =
     "-webkit-linear-gradient(-90deg, #000 0%, #fff 100%)";
   const { seiten } = konvertiereVisu(roh, gaKey);
+  // Nicht -90deg: die praefigierte Syntax misst den Winkel anders. Ein blosses
+  // Streichen des Praefix drehte jeden Verlauf um 90 Grad.
   expect(seiten.get("wohnzimmer")!.hintergrund).toBe(
-    "linear-gradient(-90deg, #000 0%, #fff 100%)",
+    "linear-gradient(180deg, #000 0%, #fff 100%)",
   );
 });
 
@@ -230,4 +232,31 @@ test("Textausrichtung: nur Abweichungen von links landen im Design (Befund kreuz
   expect(designs[rechts!.design!]!.textausrichtung).toBe("rechts");
   const label = Object.values(el).find((x) => x.text === "Wohnzimmer" && x.design);
   expect(designs[label!.design!]!.textausrichtung).toBeUndefined();
+});
+
+// ---- Verlaufsrichtung: alte vs. heutige Syntax ------------------------------
+// Belegt am DOM des Altsystems: die Trennlinien im Kopfbereich laufen dort von
+// oben nach unten. Wuerde man nur das Praefix streichen, liefen sie quer — der
+// 12px schmale Strich saehe dann wie ein breites Band aus statt wie eine Linie.
+
+test("farbe dreht -90deg auf 180deg (oben nach unten)", () => {
+  expect(farbe("-webkit-linear-gradient(-90deg, rgb(2,39,66) 40%, rgb(23,94,144) 50%)")).toBe(
+    "linear-gradient(180deg, rgb(2,39,66) 40%, rgb(23,94,144) 50%)",
+  );
+});
+
+test("farbe dreht 90deg auf 0deg (unten nach oben)", () => {
+  expect(farbe("-webkit-linear-gradient(90deg, #fff 0%, #000 100%)")).toBe(
+    "linear-gradient(0deg, #fff 0%, #000 100%)",
+  );
+});
+
+test("farbe kehrt Schluesselwoerter um: alt nennt den Start, neu das Ziel", () => {
+  expect(farbe("-webkit-linear-gradient(left, #a, #b)")).toBe("linear-gradient(to right, #a, #b)");
+  expect(farbe("-webkit-linear-gradient(top, #a, #b)")).toBe("linear-gradient(to bottom, #a, #b)");
+});
+
+test("farbe laesst einfache Farben und radiale Verlaeufe unangetastet", () => {
+  expect(farbe("rgb(4, 48, 80)")).toBe("rgb(4, 48, 80)");
+  expect(farbe("-webkit-radial-gradient(circle, #a, #b)")).toBe("radial-gradient(circle, #a, #b)");
 });

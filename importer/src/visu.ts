@@ -91,13 +91,47 @@ function str(z: Record<string, unknown>, spalte: string): string {
 }
 
 /**
- * Farbwert der Palette normalisieren: der Export speichert Verlaeufe mit
- * `-webkit-`-Praefix, das Live-Rendering des Altsystems gibt sie ohne Praefix
- * aus (gleicher Winkel, belegt am gesicherten Rendering). Wir uebernehmen die
- * Live-Form — sonst sieht der Betreiber etwas anderes als bisher.
+ * Winkel der alten, praefigierten Verlaufssyntax in die heutige uebersetzen.
+ *
+ * Die beiden Syntaxen zaehlen GEGENLAEUFIG und von verschiedenen Nullpunkten:
+ * `-webkit-linear-gradient(0deg)` zeigt nach rechts und dreht gegen den
+ * Uhrzeigersinn, `linear-gradient(0deg)` zeigt nach oben und dreht mit ihm.
+ * Daraus wird `neu = 90 - alt`. Die Schluesselwoerter nennen im alten Dialekt
+ * den START, im neuen das ZIEL — sie kehren sich also um.
  */
-function farbe(roh: string): string {
-  return roh.replace(/-webkit-(linear-gradient|radial-gradient)/g, "$1");
+function verlaufsRichtung(alt: string): string {
+  const grad = /^(-?\d+(?:\.\d+)?)deg$/.exec(alt.trim());
+  if (grad) {
+    const neu = ((90 - Number(grad[1])) % 360 + 360) % 360;
+    return `${neu}deg`;
+  }
+  const gegenteil: Record<string, string> = {
+    left: "to right",
+    right: "to left",
+    top: "to bottom",
+    bottom: "to top",
+  };
+  const worte = alt.trim().toLowerCase().split(/\s+/);
+  const ziel = worte.map((w) => gegenteil[w]?.replace("to ", "")).filter(Boolean);
+  return ziel.length > 0 ? `to ${ziel.join(" ")}` : alt;
+}
+
+/**
+ * Farbwert der Palette normalisieren. Der Export speichert Verlaeufe in der
+ * alten `-webkit-`-Syntax. Das Praefix nur wegzustreichen ist FALSCH — die
+ * praefigierte Form misst den Winkel anders, jeder Verlauf kaeme dabei um 90
+ * Grad gedreht heraus (belegt am DOM des Altsystems: ein `-90deg`-Verlauf
+ * laeuft dort von oben nach unten, ohne Praefix liefe er von rechts nach
+ * links). Deshalb wird der Winkel mit umgerechnet.
+ */
+export function farbe(roh: string): string {
+  return roh.replace(
+    /-webkit-(linear-gradient|radial-gradient)\(\s*([^,]+),/g,
+    (_treffer, art: string, richtung: string) =>
+      art === "linear-gradient"
+        ? `linear-gradient(${verlaufsRichtung(richtung)},`
+        : `radial-gradient(${richtung},`,
+  );
 }
 
 function istGa(ga: string): boolean {
