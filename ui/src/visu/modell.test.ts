@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { VisuElement, VisuSeite } from "../../../schema/src/visu.ts";
 import {
+  beschriftungFuerElement,
   designFuer,
   elementAnzeige,
   fachwerkKachelFuer,
@@ -85,6 +86,51 @@ describe("Design und Format", () => {
     });
   });
 
+  it("nutzt die Beschriftung des geltenden wertabhängigen Designs statt Elementtext", () => {
+    const element: VisuElement = {
+      preset: "schalter",
+      text: "OFF",
+      design: "standard",
+      design_je_wert: [{ wenn: true, design: "an" }],
+      bindungen: { status: "licht" },
+    };
+    const design = designFuer(element, {
+      standard: { text: "#eee" },
+      an: { text: "#000", beschriftung: "ON" },
+    }, true);
+    expect(beschriftungFuerElement(element, design)).toBe("ON");
+    expect(elementAnzeige("client", "licht", element, new Map([["licht", { wert: true }]]), undefined, design))
+      .toMatchObject({ label: "ON", hatText: true });
+  });
+
+  it("fällt bei geltender Regel ohne Beschriftung auf den Elementtext zurück", () => {
+    const element: VisuElement = {
+      preset: "label",
+      text: "OFF",
+      design: "standard",
+      design_je_wert: [{ wenn: true, design: "an" }],
+    };
+    const design = designFuer(element, {
+      standard: { text: "#eee" },
+      an: { text: "#000" },
+    }, true);
+    expect(beschriftungFuerElement(element, design)).toBe("OFF");
+  });
+
+  it("fällt ohne geltende Regel auf den Elementtext zurück", () => {
+    const element: VisuElement = {
+      preset: "label",
+      text: "OFF",
+      design: "standard",
+      design_je_wert: [{ wenn: true, design: "an" }],
+    };
+    const design = designFuer(element, {
+      standard: { text: "#eee" },
+      an: { text: "#000", beschriftung: "ON" },
+    }, false);
+    expect(beschriftungFuerElement(element, design)).toBe("OFF");
+  });
+
   it("nutzt die Core-Kaskade für Datenpunkt, Element und Placement", () => {
     const werte = new Map([
       ["raum.temp", { wert: 21.37, format: { einheit: "°C", dezimalstellen: 2 } }],
@@ -132,6 +178,13 @@ describe("Symbol- und Textausrichtungs-Helfer", () => {
     expect(einzelnesPrivatesSymbol("\uE001\uE002")).toBe(false);
     expect(einzelnesPrivatesSymbol(" \uE001")).toBe(false);
     expect(einzelnesPrivatesSymbol(undefined)).toBe(false);
+  });
+
+  it("behandelt eine Private-Use-Beschriftung als Symbol", () => {
+    const element: VisuElement = { preset: "symbol", text: "OFF" };
+    const beschriftung = beschriftungFuerElement(element, { beschriftung: "\uE001" });
+    expect(beschriftung).toBe("\uE001");
+    expect(einzelnesPrivatesSymbol(beschriftung)).toBe(true);
   });
 
   it("übersetzt Design-Textausrichtungen in CSS und nutzt links als Default", () => {

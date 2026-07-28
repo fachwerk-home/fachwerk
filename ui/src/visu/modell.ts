@@ -204,17 +204,22 @@ function elementText(element: VisuElement): string | undefined {
   return element.text && element.text.trim().length > 0 ? element.text : undefined;
 }
 
+export function beschriftungFuerElement(element: VisuElement, design?: VisuDesign): string | undefined {
+  return design?.beschriftung ?? elementText(element);
+}
+
 export function elementAnzeige(
   kontext: VisuAnzeigeKontext,
   key: string,
   element: VisuElement,
   werte: ReadonlyMap<string, WertEintrag>,
   placement?: VisuPlacement,
+  design?: VisuDesign,
 ): ElementAnzeige {
   const wertKey = element.bindungen?.["display"] ?? element.bindungen?.["status"];
   const wert = formatierterWert(wertKey, werte, element.format, placement?.format);
   const rohwert = wertKey ? werte.get(wertKey)?.wert : undefined;
-  const text = elementText(element);
+  const text = beschriftungFuerElement(element, design);
   const label = text ?? (kontext === "editor" ? lesbarerName(key) : "");
   return {
     label,
