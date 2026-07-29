@@ -41,6 +41,26 @@ nur Ausschnitte vor; die Regeln unten stecken bereits darin. Siehe
 Die Prompts unten bleiben trotzdem hier: sie sind die Vorlage, wenn jemand die
 Aufgabe von Hand oder mit einem anderen Werkzeug erledigt.
 
+## Ausführung mit einem Agenten, der selbst Dateien liest
+
+Ein Editor-Agent (Cursor, Continue, Aider …) braucht das Zerteilen nicht — er
+sucht selbst. Dann gelten dieselben Prompts, nur ohne den Satz über
+Ausschnitte. Drei Regeln kommen hinzu, und die erste ist die wichtigste:
+
+1. **Nur den Quellordner öffnen.** Niemals Altanlage und Fachwerk im selben
+   Arbeitsbereich. Sonst kann der Agent Quelltext direkt in Fachwerk-Dateien
+   schreiben — dann ist die Trennung nicht mehr theoretisch verletzt, sondern
+   tatsächlich.
+2. **Ergebnis außerhalb ablegen**, erst nach `pruefe.sh` und eigener Durchsicht
+   nach `_ingest/` kopieren.
+3. **Nur lesen.** Änderungen am Quellbaum sind nicht Teil der Aufgabe; wo es
+   geht, den Agenten auf einen Lesemodus stellen.
+
+Läuft der Agent auf demselben Anbieter wie die Fachwerk-Seite, ist die Trennung
+nur noch eine zwischen Sitzungen statt zwischen Anbietern. Das trägt, ist aber
+schwächer als ein harter Schnitt — eine bewusste Entscheidung, keine
+Nebensache.
+
 ## Gemeinsame Regeln (gelten für ALLE vier Teilaufträge)
 
 ```
