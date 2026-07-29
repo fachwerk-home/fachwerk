@@ -669,7 +669,13 @@ function baueElement(
       continue;
     }
     const ein = alsWert(str(c, "cmdvalue1"));
-    const statusKo = cmd === 6 ? aufloese(num(c, "cmdid2")) : undefined;
+    // Woran wird der Zustand abgelesen? cmd 6 nennt ein eigenes KO, cmd 4
+    // meint das Ziel selbst. Bei cmd 4 muss das AUSDRUECKLICH dastehen: das
+    // Element traegt oft schon eine status-Bindung fuer die Anzeige (aus
+    // gaid3), und die Rueckfallkette des Renderers wuerde die nehmen. Dann
+    // liest der Umschalter einen anderen Datenpunkt als den, auf den er
+    // schreibt — und schaltet nie zurueck.
+    const statusKo = cmd === 6 ? aufloese(num(c, "cmdid2")) : key;
     aktionen.kurz = {
       art: "umschalten",
       // Ein Ein-Wert von „wahr" ist der Normalfall und braucht keine Angabe;

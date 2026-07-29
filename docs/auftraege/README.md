@@ -84,12 +84,12 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-API-VISU-DATEIEN.md | Spur 1 (Opus) | ✅ erledigt (GET /api/visu/dateien, df989d4) |
 | AUFTRAG-ADR14-V3.md | Spur 1 (Opus) | ✅ erledigt (Pins + protected-Regel, direkt auf main) |
 | AUFTRAG-BAUSTEIN-WETTER.md | Gemini | offen (sofort startbar) |
-| AUFTRAG-B9-SVG-ICONS.md | Codex | offen (nach VISU-SCHRIFTEN + SKALIERUNG) |
+| AUFTRAG-B9-SVG-ICONS.md | Codex | ✅ gemergt (PR #19) |
 | AUFTRAG-B7-ANIMATION.md | Spur 1 + Codex | offen (nice-to-have, NICHT abschlussrelevant) |
 | AUFTRAG-VISU-NACHBESSERUNG-2.md | Codex | ✅ gemergt (03f51ca) |
 | AUFTRAG-UI-IMPORT.md | Codex | ✅ gemergt (Menüpunkt Import, End-zu-End geprüft) |
 | AUFTRAG-UI-IMPORT-2.md | Codex | ✅ gemergt (PR #16) |
 | AUFTRAG-VISU-NACHBESSERUNG-3.md | Codex | ✅ gemergt (PR #17) |
-| AUFTRAG-VISU-BESCHRIFTUNG.md | Codex | offen (s11: Text/Symbol wechselt mit dem Zustand) |
+| AUFTRAG-VISU-BESCHRIFTUNG.md | Codex | ✅ gemergt (PR #18) |
 | AUFTRAG-INTEROP-KATALOG.md | Dirty Room (LLM) | Teil 2 (Befehle) erledigt und umgesetzt; Teile 1, 3, 4 offen |
-| AUFTRAG-VISU-UMSCHALTEN.md | Codex | offen (Umschalter mit Ein-Wert und getrennter Statusquelle) |
+| AUFTRAG-VISU-UMSCHALTEN.md | Codex | ✅ gemergt (PR #20) |

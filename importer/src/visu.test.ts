@@ -421,7 +421,10 @@ test("cmd 4 wird ein Umschalter am Ziel-KO selbst", () => {
   const el = Object.values(konvertiereVisu(roh, gaKey).seiten.get("wohnzimmer")!.elemente)
     .find((e) => e.text === "T")!;
   expect(el.bindungen?.set).toBe("wohnen.licht");
-  expect(el.aktionen!.kurz).toEqual({ art: "umschalten" });
+  // status zeigt AUSDRUECKLICH auf das Ziel. Ohne das nimmt der Renderer seine
+  // Rueckfallkette und liest die Anzeige-Bindung — dann schaltet der Knopf
+  // beim zweiten Druecken nicht zurueck (am laufenden Panel beobachtet).
+  expect(el.aktionen!.kurz).toEqual({ art: "umschalten", status: "wohnen.licht" });
 });
 
 test("cmd 6 nimmt den Ein-Wert und ein getrenntes Status-KO", () => {
