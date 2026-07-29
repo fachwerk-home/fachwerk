@@ -54,6 +54,7 @@ export function standardElement(typ: PaletteTyp, breakpoint: string, x: number, 
       element.bindungen = { display: "wohnen.zaehler" };
     } else if (typ.preset === "statusanzeige" || typ.preset === "symbol") {
       element.bindungen = { status: "wohnen.licht" };
+      if (typ.preset === "symbol") element.symbol = "licht_an";
     } else if (typ.preset === "navigation") {
       element.aktionen = { kurz: { seite: "zentrale" } };
     }

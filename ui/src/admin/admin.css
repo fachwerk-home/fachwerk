@@ -373,6 +373,37 @@ body { overflow: hidden; }
   width: 100%;
 }
 
+.editor-symbol-picker {
+  max-height: 150px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: var(--fw-s1);
+  padding: var(--fw-s1);
+  border: 1px solid var(--fw-rand);
+  border-radius: var(--fw-radius-s);
+  background: var(--fw-flaeche-2);
+}
+
+.editor-symbol-picker button {
+  min-height: 32px;
+  padding: var(--fw-s1);
+}
+
+.editor-symbol-picker button.gewaehlt {
+  border-color: var(--fw-akzent);
+  color: var(--fw-akzent);
+  background: var(--fw-akzent-ruhig);
+}
+
+.editor-symbol-picker .visu-svg-icon,
+.editor-element .visu-svg-icon {
+  width: 1.4em;
+  height: 1.4em;
+  justify-self: center;
+  color: currentColor;
+}
+
 .editor-check {
   grid-template-columns: auto 1fr;
   align-items: center;

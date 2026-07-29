@@ -16,6 +16,7 @@ import { LoginAnsicht } from "../lib/login.tsx";
 import { Diagramm } from "../lib/diagramm.tsx";
 import { statusSchluesselFuerAktion, wertAusAktion, wertPasstZumDatenpunkt } from "./bedienen.ts";
 import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
+import { VisuIcon } from "./icons.tsx";
 import {
   designFuer,
   elementAnzeige,
@@ -115,6 +116,11 @@ function diagrammStunden(element: VisuElement): number {
   return typeof stunden === "number" && Number.isFinite(stunden) && stunden > 0 ? stunden : 24;
 }
 
+function MitSymbol({ element, label, children }: { element: VisuElement; label: string; children: ComponentChildren }) {
+  if (!element.symbol) return <>{children}</>;
+  return <><VisuIcon name={element.symbol} dekorativ={Boolean(label)} />{children}</>;
+}
+
 function ElementInhalt({
   elementKey,
   element,
@@ -192,24 +198,26 @@ function ElementInhalt({
 
   switch (element.preset) {
     case "symbol":
-      return <span class="symbol" aria-label={anzeige.label}>{design.icon ?? (anzeige.hatText ? anzeige.label : anzeige.rohwert ? "●" : "○")}</span>;
+      return element.symbol
+        ? <span class="symbol" aria-label={anzeige.label || undefined}><VisuIcon name={element.symbol} dekorativ={Boolean(anzeige.label)} /></span>
+        : <span class="symbol" aria-label={anzeige.label}>{design.icon ?? (anzeige.hatText ? anzeige.label : anzeige.rohwert ? "●" : "○")}</span>;
     case "label":
-      return <span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span>;
+      return <MitSymbol element={element} label={anzeige.label}><span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span></MitSymbol>;
     case "wertanzeige":
       // Etikett nur, wenn es gepflegt ist. Eine reine Messwert-Kachel traegt
       // im Original oft gar keine Beschriftung (die steht als eigenes Label
       // daneben) — der Schluessel-Fallback waere dort erfundene Zierde.
-      return <>{anzeige.hatText && <span class="element-name">{anzeige.label}</span>}<strong class="element-wert">{anzeige.wert || "—"}</strong></>;
+      return <MitSymbol element={element} label={anzeige.label}><>{anzeige.hatText && <span class="element-name">{anzeige.label}</span>}<strong class="element-wert">{anzeige.wert || "—"}</strong></></MitSymbol>;
     case "statusanzeige":
-      return <><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</>;
+      return <MitSymbol element={element} label={anzeige.label}><><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</></MitSymbol>;
     case "schalter":
-      return <><span>{anzeige.label}</span><strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong></>;
+      return <MitSymbol element={element} label={anzeige.label}><><span>{anzeige.label}</span><strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong></></MitSymbol>;
     case "taster":
-      return <span>{anzeige.label}</span>;
+      return <MitSymbol element={element} label={anzeige.label}><span>{anzeige.label}</span></MitSymbol>;
     case "navigation":
-      return <span>{anzeige.label}{navigationZeigtPfeil(anzeige.label, design) && <> <span aria-hidden="true">→</span></>}</span>;
+      return <MitSymbol element={element} label={anzeige.label}><span>{anzeige.label}{navigationZeigtPfeil(anzeige.label, design) && <> <span aria-hidden="true">→</span></>}</span></MitSymbol>;
     default:
-      return <span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span>;
+      return <MitSymbol element={element} label={anzeige.label}><span>{anzeige.hatText ? anzeige.label : anzeige.wert || anzeige.label}</span></MitSymbol>;
   }
 }
 
