@@ -19,6 +19,7 @@ import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
 import {
   designFuer,
   elementAnzeige,
+  beschriftungFuerElement,
   einzelnesPrivatesSymbol,
   fachwerkKachelFuer,
   fontFaceCssFuerDesigns,
@@ -129,7 +130,7 @@ function ElementInhalt({
   design: VisuDesign;
   bedien: BedienKontext;
 }): ComponentChildren {
-  const anzeige = elementAnzeige("client", elementKey, element, werte, placement);
+  const anzeige = elementAnzeige("client", elementKey, element, werte, placement, design);
 
   if (element.widget === "slider") {
     const setKey = element.bindungen?.["set"];
@@ -240,7 +241,7 @@ function VisuElementAnsicht({
   const pending = setKey ? bedien.pending.has(setKey) : false;
   const hatSet = setKey !== undefined;
   const kachel = fachwerkKachelFuer(element, design);
-  const einzelSymbol = einzelnesPrivatesSymbol(element.text) || einzelnesPrivatesSymbol(design.icon);
+  const einzelSymbol = einzelnesPrivatesSymbol(beschriftungFuerElement(element, design)) || einzelnesPrivatesSymbol(design.icon);
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
     top: placement.y ?? 0,
@@ -501,7 +502,10 @@ function App() {
   const bediene = (elementKey: string, element: VisuElement, direkterWert?: Wert): void => {
     const setKey = element.bindungen?.["set"];
     if (!setKey) return;
-    const meldungsName = elementAnzeige("client", elementKey, element, werte).label || "Element";
+    const designStatusKey = element.bindungen?.["status"];
+    const designStatus = designStatusKey ? werte.get(designStatusKey)?.wert : undefined;
+    const design = visu ? designFuer(element, visu.designs, designStatus) : undefined;
+    const meldungsName = elementAnzeige("client", elementKey, element, werte, undefined, design).label || "Element";
     if (!bedien.darfBedienen) {
       zeigeToast(`${meldungsName}: Scope operate fehlt`, "warn");
       return;
@@ -512,6 +516,8 @@ function App() {
       return;
     }
     const dp = datenpunkte.get(setKey);
+    // Die Aktionsfassung gewinnt: sie beachtet zusaetzlich aktion.status und
+    // faellt sonst auf genau dieselbe Kette zurueck.
     const statusKey = statusSchluesselFuerAktion(element, setKey);
     const statusWert = werte.get(statusKey)?.wert;
     const aktion = direkterWert === undefined
