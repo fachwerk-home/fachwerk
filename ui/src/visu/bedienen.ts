@@ -11,6 +11,20 @@ export function schreibAktion(element: VisuElement): VisuAktion | undefined {
   );
 }
 
+export function statusSchluesselFuerAktion(element: VisuElement, zielSchluessel: string): string {
+  const aktion = schreibAktion(element);
+  if (aktion && "art" in aktion && aktion.art === "umschalten" && aktion.status) return aktion.status;
+  return element.bindungen?.["status"] ?? element.bindungen?.["display"] ?? zielSchluessel;
+}
+
+function istAus(wert: unknown): boolean {
+  if (wert === false || wert === 0 || wert === "") return true;
+  if (wert === null || wert === undefined) return true;
+  if (typeof wert === "number" && !Number.isFinite(wert)) return true;
+  if (!["string", "number", "boolean"].includes(typeof wert)) return true;
+  return false;
+}
+
 export function wertAusAktion(
   element: VisuElement,
   datenpunkt: DatenpunktSicht | undefined,
@@ -26,6 +40,9 @@ export function wertAusAktion(
   }
 
   if (aktion && "art" in aktion && aktion.art === "umschalten") {
+    if (aktion.ein !== undefined) {
+      return { art: "setzen", wert: istAus(statusWert) ? aktion.ein : typeof aktion.ein === "number" ? 0 : false };
+    }
     if (datenpunkt.typ === "bool") return { art: "setzen", wert: statusWert !== true };
     if (datenpunkt.typ === "zahl") return { art: "setzen", wert: statusWert === 0 ? 1 : 0 };
     return { art: "nicht_moeglich", grund: "Text-Datenpunkte können nicht umgeschaltet werden" };
