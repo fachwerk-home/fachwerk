@@ -435,13 +435,22 @@ test("cmd 6 nimmt den Ein-Wert und ein getrenntes Status-KO", () => {
   });
   const gaKey2 = (ga: string): string | undefined =>
     ga === "1/0/2" ? "wohnen.licht" : ga === "1/0/9" ? "wohnen.licht_status" : undefined;
-  const el = Object.values(konvertiereVisu(roh, gaKey2).seiten.get("wohnzimmer")!.elemente)
-    .find((e) => e.text === "D")!;
+  const seiten = konvertiereVisu(roh, gaKey2).seiten;
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.text === "D")!;
   expect(el.aktionen!.kurz).toEqual({
     art: "umschalten",
     ein: 20,
     status: "wohnen.licht_status",
   });
+  // UND die Seite muss schema-konform bleiben. Ohne diese Zeile faellt nur auf,
+  // dass die Bedeutung stimmt — nicht, dass die Laufzeit sie annimmt. Genau so
+  // ist ein falscher Schema-Verweis fuer status durchgerutscht und hat beim
+  // Laden zwei ganze Seiten verschluckt.
+  for (const [name, seite] of seiten) {
+    if (!validateVisuSeite(seite)) {
+      throw new Error(`${name}: ${JSON.stringify(validateVisuSeite.errors)}`);
+    }
+  }
 });
 
 test("unbekannter Befehl wird gemeldet statt geraten", () => {

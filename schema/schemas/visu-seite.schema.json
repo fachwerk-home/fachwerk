@@ -34,6 +34,7 @@
   },
   "$defs": {
     "schluessel": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "datenpunkt": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$" },
     "groesse": {
       "type": "object",
       "additionalProperties": false,
@@ -112,7 +113,7 @@
           "properties": {
             "art": { "enum": ["umschalten"] },
             "ein": { "$ref": "#/$defs/wert" },
-            "status": { "$ref": "#/$defs/schluessel" }
+            "status": { "$ref": "#/$defs/datenpunkt" }
           }
         },
         {
