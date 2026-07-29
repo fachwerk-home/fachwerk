@@ -14,7 +14,7 @@ import { ApiFehler, api, setzeAuthErforderlichHandler, verbindeLive, type Datenp
 import { hatScope, type AuthStatus } from "../lib/auth.ts";
 import { LoginAnsicht } from "../lib/login.tsx";
 import { Diagramm } from "../lib/diagramm.tsx";
-import { wertAusAktion, wertPasstZumDatenpunkt } from "./bedienen.ts";
+import { statusSchluesselFuerAktion, wertAusAktion, wertPasstZumDatenpunkt } from "./bedienen.ts";
 import { ladeVisuDaten, type VisuAntwort } from "./client.ts";
 import {
   designFuer,
@@ -512,7 +512,7 @@ function App() {
       return;
     }
     const dp = datenpunkte.get(setKey);
-    const statusKey = element.bindungen?.["status"] ?? element.bindungen?.["display"] ?? setKey;
+    const statusKey = statusSchluesselFuerAktion(element, setKey);
     const statusWert = werte.get(statusKey)?.wert;
     const aktion = direkterWert === undefined
       ? wertAusAktion(element, dp, statusWert)
