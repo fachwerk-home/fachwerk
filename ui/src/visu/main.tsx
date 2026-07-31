@@ -27,13 +27,12 @@ import {
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
-  schriftfamilieFuer,
   seitenSkalierung,
   startSeite,
-  textausrichtungCss,
   waehleBreakpoint,
   type WertEintrag,
 } from "./modell.ts";
+import { designStil } from "./design.ts";
 
 type LiveStatus = "verbindet" | "verbunden" | "getrennt";
 type LiveWert = Extract<LiveNachricht, { art: "wert" }>;
@@ -83,21 +82,6 @@ function useViewport(): { w: number; h: number } {
     };
   }, []);
   return groesse;
-}
-
-function designStil(design: VisuDesign): JSX.CSSProperties {
-  const rand = design.rand;
-  return {
-    textAlign: textausrichtungCss(design.textausrichtung),
-    ...(design.hintergrund ? { background: design.hintergrund } : {}),
-    ...(design.text ? { color: design.text } : {}),
-    ...(design.schriftart ? { fontFamily: schriftfamilieFuer(design.schriftart) } : {}),
-    ...(design.schriftgroesse ? { fontSize: `${design.schriftgroesse}px` } : {}),
-    ...(design.deckkraft !== undefined ? { opacity: design.deckkraft } : {}),
-    ...(rand?.staerke !== undefined ? { borderWidth: `${rand.staerke}px` } : {}),
-    ...(rand?.farbe ? { borderColor: rand.farbe } : {}),
-    ...(rand?.radius !== undefined ? { borderRadius: `${rand.radius}px` } : {}),
-  };
 }
 
 function navigationsAktion(element: VisuElement): VisuAktion | undefined {

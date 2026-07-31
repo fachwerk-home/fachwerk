@@ -210,6 +210,9 @@ describe("Fachwerk-Kachel", () => {
     expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { staerke: 1 } })).toBe(false);
     expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { farbe: "#abcdef" } })).toBe(false);
     expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { radius: 0 } })).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { bild: "hintergrund.png" })).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { schatten: { x: 1, y: 2 } })).toBe(false);
+    expect(fachwerkKachelFuer({ preset: "wertanzeige" }, { rand: { radien: { ol: 4 } } })).toBe(false);
   });
 
   it("behält das bisherige Standardverhalten für Elemente ohne eigene Fläche", () => {
