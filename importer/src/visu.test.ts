@@ -467,3 +467,38 @@ test("unbekannter Befehl wird gemeldet statt geraten", () => {
   const { bericht } = konvertiereVisu(roh, gaKey);
   expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("cmd 17");
 });
+
+// ---- Vollstaendige Design-Slots ---------------------------------------------
+// Von 25 im Bestand belegten Slots wertete der Import 13 aus. Der Rest ist das,
+// was designgesteuerte Elemente ausmacht: Schnitt, Schatten, Rahmenmuster,
+// Innenabstand, Ecken. Ohne sie sieht ein Schiebeschalter aus wie ein Knopf.
+
+test("Schnitt, Abstand, Schatten, Rahmenmuster und Bild kommen ins Design", () => {
+  const roh = fixture();
+  (roh.editVisuImg as unknown) = [{ id: 7, suffix: "png" }];
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>)[0] = {
+    id: 1, targetid: 10, styletyp: 0,
+    s9: "1", s15: "2",
+    s16: "2", s17: "2", s12: "6", s10: "7",
+    s3: "4", s4: "-2",
+    s19: "1", s20: "2", s21: "3", s22: "2",
+    s31: "2", s27: "3", s32: "3",
+    s33: "0", s34: "2", s35: "5", s36: "1", s37: "2", s38: "2",
+    s23: "10", s24: "10", s25: "4", s26: "4",
+  };
+  const { seiten, designs } = konvertiereVisu(roh, gaKey);
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.design)!;
+  const d = designs[el.design!]!;
+  expect(d.schriftstil).toBe("kursiv");
+  expect(d.schriftstaerke).toBe("fett");
+  expect(d.polsterung).toBe(6);
+  expect(d.bild).toBe("img-7.png");
+  expect(d.versatz).toEqual({ x: 4, y: -2 });
+  expect(d.textschatten).toEqual({ x: 1, y: 2, unschaerfe: 3, farbe: "#ffffff" });
+  expect(d.schatten).toEqual({ x: 0, y: 2, unschaerfe: 5, ueberstand: 1, farbe: "#ffffff", innen: true });
+  expect(d.rand?.muster).toBe("striche");
+  // Ecken ungleich -> je Ecke; gleiche Ecken bleiben die einfache Form.
+  expect(d.rand?.radien).toEqual({ ol: 10, or: 10, ur: 4, ul: 4 });
+  expect(d.rand?.radius).toBeUndefined();
+  expect(validateVisuDesigns(designs)).toBe(true);
+});

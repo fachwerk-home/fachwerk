@@ -3,29 +3,187 @@
   "$id": "https://fachwerk.dev/schemas/visu-designs.schema.json",
   "title": "Benannte Visu-Designs (visu/designs.yaml)",
   "type": "object",
-  "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
-  "additionalProperties": { "$ref": "#/$defs/design" },
+  "propertyNames": {
+    "pattern": "^[a-z][a-z0-9_]*$"
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/design"
+  },
   "$defs": {
     "design": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "hintergrund": { "type": "string" },
-        "text": { "type": "string" },
-        "schriftart": { "type": "string" },
-        "textausrichtung": { "enum": ["links", "zentriert", "rechts", "blocksatz"] },
-        "icon": { "type": "string" },
-        "beschriftung": { "type": "string" },
-        "schriftgroesse": { "type": "number", "exclusiveMinimum": 0 },
-        "deckkraft": { "type": "number", "minimum": 0, "maximum": 1 },
+        "hintergrund": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "schriftart": {
+          "type": "string"
+        },
+        "textausrichtung": {
+          "enum": [
+            "links",
+            "zentriert",
+            "rechts",
+            "blocksatz"
+          ]
+        },
+        "icon": {
+          "type": "string"
+        },
+        "beschriftung": {
+          "type": "string"
+        },
+        "schriftgroesse": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "deckkraft": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "rand": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "staerke": { "type": "number", "minimum": 0 },
-            "farbe": { "type": "string" },
-            "radius": { "type": "number", "minimum": 0 }
+            "staerke": {
+              "type": "number",
+              "minimum": 0
+            },
+            "farbe": {
+              "type": "string"
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "muster": {
+              "enum": [
+                "linie",
+                "punkte",
+                "striche"
+              ]
+            },
+            "farben": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "links": {
+                  "type": "string"
+                },
+                "oben": {
+                  "type": "string"
+                },
+                "rechts": {
+                  "type": "string"
+                },
+                "unten": {
+                  "type": "string"
+                }
+              }
+            },
+            "radien": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "ol": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "or": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "ur": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "ul": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "bild": {
+          "type": "string"
+        },
+        "schriftstil": {
+          "enum": [
+            "normal",
+            "kursiv"
+          ]
+        },
+        "schriftstaerke": {
+          "enum": [
+            "normal",
+            "fett"
+          ]
+        },
+        "polsterung": {
+          "type": "number",
+          "minimum": 0
+        },
+        "versatz": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          }
+        },
+        "schatten": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "unschaerfe": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ueberstand": {
+              "type": "number"
+            },
+            "farbe": {
+              "type": "string"
+            },
+            "innen": {
+              "type": "boolean"
+            }
+          }
+        },
+        "textschatten": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "unschaerfe": {
+              "type": "number",
+              "minimum": 0
+            },
+            "farbe": {
+              "type": "string"
+            }
           }
         }
       }

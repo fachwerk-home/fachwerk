@@ -91,5 +91,6 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-UI-IMPORT-2.md | Codex | ✅ gemergt (PR #16) |
 | AUFTRAG-VISU-NACHBESSERUNG-3.md | Codex | ✅ gemergt (PR #17) |
 | AUFTRAG-VISU-BESCHRIFTUNG.md | Codex | ✅ gemergt (PR #18) |
-| AUFTRAG-INTEROP-KATALOG.md | Dirty Room (LLM) | Teil 2 (Befehle) erledigt und umgesetzt; Teile 1, 3, 4 offen |
+| AUFTRAG-INTEROP-KATALOG.md | Dirty Room (Cursor) | ✅ alle 4 Teile geliefert (_ingest); Teil 2+4 umgesetzt |
+| AUFTRAG-VISU-DESIGN-VOLL.md | Codex | offen (die zwölf neuen Design-Angaben zeichnen) |
 | AUFTRAG-VISU-UMSCHALTEN.md | Codex | ✅ gemergt (PR #20) |

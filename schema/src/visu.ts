@@ -154,6 +154,25 @@ export interface VisuRand {
   staerke?: number;
   farbe?: string;
   radius?: number;
+  /**
+   * Farbe je Seite. Bewusst NEBEN `farbe` statt als Vereinigungstyp: der
+   * Renderer darf `farbe` weiter als schlichte Zeichenkette lesen. Ist
+   * `farben` gesetzt, gewinnt es.
+   */
+  farben?: { links?: string; oben?: string; rechts?: string; unten?: string };
+  /** Radius je Ecke (ab oben links im Uhrzeigersinn); gewinnt gegen `radius`. */
+  radien?: { ol?: number; or?: number; ur?: number; ul?: number };
+  muster?: "linie" | "punkte" | "striche";
+}
+
+/** Schlagschatten. `innen` macht daraus einen nach innen geworfenen Schatten. */
+export interface VisuSchatten {
+  x?: number;
+  y?: number;
+  unschaerfe?: number;
+  ueberstand?: number;
+  farbe?: string;
+  innen?: boolean;
 }
 export interface VisuDesign {
   hintergrund?: string;
@@ -163,6 +182,8 @@ export interface VisuDesign {
   /** Horizontale Textausrichtung. Fehlt sie, entscheidet der Renderer. */
   textausrichtung?: "links" | "zentriert" | "rechts" | "blocksatz";
   icon?: string;
+  /** Hintergrundbild aus visu/dateien/ (ADR-0015 D-2: Name, nie ein Pfad). */
+  bild?: string;
   /**
    * Beschriftung, die den `text` des Elements ERSETZT, solange dieses Design
    * gilt. Gedacht fuer wertabhaengige Designs (`design_je_wert`): ein Schalter
@@ -171,8 +192,16 @@ export interface VisuDesign {
    */
   beschriftung?: string;
   schriftgroesse?: number;
+  schriftstil?: "normal" | "kursiv";
+  schriftstaerke?: "normal" | "fett";
   deckkraft?: number;
+  /** Innenabstand in Pixeln. */
+  polsterung?: number;
+  /** Verschiebung gegenueber der Platzierung, in Pixeln. */
+  versatz?: { x?: number; y?: number };
   rand?: VisuRand;
+  schatten?: VisuSchatten;
+  textschatten?: Omit<VisuSchatten, "ueberstand" | "innen">;
 }
 export type VisuDesigns = Record<string, VisuDesign>;
 

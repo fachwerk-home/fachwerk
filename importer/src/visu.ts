@@ -250,6 +250,15 @@ export function konvertiereVisu(
     if (name !== "") schriftName.set(num(f, "id"), name);
   }
 
+  // Bilder (Slot s10, s46, s47): die Beilage im Paket heisst img-<id>.<suffix>
+  // und wird unter diesem Namen ins Gewerk gelegt. Das Design verweist auf den
+  // Dateinamen, nie auf einen Pfad (ADR-0015 D-2).
+  const bildDatei = new Map<number, string>();
+  for (const b of alsZeilen(visu.editVisuImg)) {
+    const suffix = str(b, "suffix");
+    if (suffix !== "") bildDatei.set(num(b, "id"), `img-${num(b, "id")}.${suffix}`);
+  }
+
   // Basis-Designs je Element (styletyp 0) aus editVisuElementDesign.
   const designRoh = new Map<number, Record<string, unknown>>();
   // Bedingte Designs (styletyp 1): gelten, solange der Wert des Steuer-KOs im
@@ -351,14 +360,79 @@ export function konvertiereVisu(
     if (ausrichtung) d.textausrichtung = ausrichtung;
     const deck = Number(slot(roh, "s8"));
     if (Number.isFinite(deck) && deck > 0 && deck < 1) d.deckkraft = deck;
+    // Schriftschnitt (s16/s17) — Aufzaehlungen aus der geprueften Spec.
+    const stil = ({ 1: "normal", 2: "kursiv" } as const)[slotZahl(roh, "s16") as 1 | 2];
+    if (stil) d.schriftstil = stil;
+    const staerke = ({ 1: "normal", 2: "fett" } as const)[slotZahl(roh, "s17") as 1 | 2];
+    if (staerke) d.schriftstaerke = staerke;
+    const polster = slotZahl(roh, "s12");
+    if (polster > 0) d.polsterung = polster;
+    const dx = slotZahl(roh, "s3");
+    const dy = slotZahl(roh, "s4");
+    if (dx !== 0 || dy !== 0) d.versatz = { ...(dx ? { x: dx } : {}), ...(dy ? { y: dy } : {}) };
+    const bild = bildDatei.get(slotZahl(roh, "s10"));
+    if (bild) d.bild = bild;
+    // Textschatten (s19-s22) und Boxschatten (s33-s38). Beide brauchen eine
+    // Farbe, sonst waeren sie unsichtbar — ohne die wird nichts geschrieben.
+    const tsFarbe = fgFarbe.get(slotZahl(roh, "s22"));
+    if (tsFarbe) {
+      d.textschatten = {
+        x: slotZahl(roh, "s19"),
+        y: slotZahl(roh, "s20"),
+        unschaerfe: slotZahl(roh, "s21"),
+        farbe: tsFarbe,
+      };
+    }
+    const bsFarbe = fgFarbe.get(slotZahl(roh, "s37"));
+    if (bsFarbe) {
+      d.schatten = {
+        x: slotZahl(roh, "s33"),
+        y: slotZahl(roh, "s34"),
+        unschaerfe: slotZahl(roh, "s35"),
+        ueberstand: slotZahl(roh, "s36"),
+        farbe: bsFarbe,
+        // s38: 1 = aussen, 2 = innen.
+        ...(slotZahl(roh, "s38") === 2 ? { innen: true } : {}),
+      };
+    }
     const rb = slotZahl(roh, "s31");
-    const rf = fgFarbe.get(slotZahl(roh, "s27")) ?? bgFarbe.get(slotZahl(roh, "s27"));
-    const radius = slotZahl(roh, "s23");
-    if (rb > 0 || rf || radius > 0) {
+    const randFarbe = (slotName: string): string | undefined =>
+      fgFarbe.get(slotZahl(roh, slotName)) ?? bgFarbe.get(slotZahl(roh, slotName));
+    // s27-s30 sind vier eigenstaendige Seitenfarben. Sind alle gleich, genuegt
+    // die einfache Angabe — sonst braucht der Renderer sie einzeln.
+    const seiten = {
+      links: randFarbe("s27"),
+      oben: randFarbe("s28"),
+      rechts: randFarbe("s29"),
+      unten: randFarbe("s30"),
+    };
+    const gesetzteSeiten = Object.values(seiten).filter(Boolean);
+    const einheitlicheFarbe =
+      gesetzteSeiten.length === 4 && new Set(gesetzteSeiten).size === 1 ? seiten.links : undefined;
+    const rf = einheitlicheFarbe ?? (gesetzteSeiten.length === 1 ? gesetzteSeiten[0] : undefined);
+    const ecken = {
+      ol: slotZahl(roh, "s23"),
+      or: slotZahl(roh, "s24"),
+      ur: slotZahl(roh, "s25"),
+      ul: slotZahl(roh, "s26"),
+    };
+    const eckWerte = Object.values(ecken).filter((v) => v > 0);
+    const radius = new Set(Object.values(ecken)).size === 1 ? ecken.ol : 0;
+    const muster = ({ 1: "linie", 2: "punkte", 3: "striche" } as const)[
+      slotZahl(roh, "s32") as 1 | 2 | 3
+    ];
+    if (rb > 0 || gesetzteSeiten.length > 0 || eckWerte.length > 0 || muster) {
       d.rand = {
         ...(rb > 0 ? { staerke: rb } : {}),
         ...(rf ? { farbe: rf } : {}),
+        ...(rf === undefined && gesetzteSeiten.length > 0
+          ? { farben: Object.fromEntries(Object.entries(seiten).filter(([, v]) => v)) }
+          : {}),
         ...(radius > 0 ? { radius } : {}),
+        ...(radius === 0 && eckWerte.length > 0
+          ? { radien: Object.fromEntries(Object.entries(ecken).filter(([, v]) => v > 0)) }
+          : {}),
+        ...(muster ? { muster } : {}),
       };
     }
     if (Object.keys(d).length === 0) return undefined;
