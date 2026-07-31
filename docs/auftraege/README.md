@@ -92,5 +92,5 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-VISU-NACHBESSERUNG-3.md | Codex | ✅ gemergt (PR #17) |
 | AUFTRAG-VISU-BESCHRIFTUNG.md | Codex | ✅ gemergt (PR #18) |
 | AUFTRAG-INTEROP-KATALOG.md | Dirty Room (Cursor) | ✅ alle 4 Teile geliefert (_ingest); Teil 2+4 umgesetzt |
-| AUFTRAG-VISU-DESIGN-VOLL.md | Codex | offen (die zwölf neuen Design-Angaben zeichnen) |
+| AUFTRAG-VISU-DESIGN-VOLL.md | Codex | ✅ gemergt (PR #21) |
 | AUFTRAG-VISU-UMSCHALTEN.md | Codex | ✅ gemergt (PR #20) |
