@@ -140,9 +140,15 @@ export function navigationZeigtPfeil(label: string, design: VisuDesign): boolean
 export function fachwerkKachelFuer(element: VisuElement, design: VisuDesign): boolean {
   const rand = design.rand;
   const hatEigeneFlaeche = design.hintergrund !== undefined
+    || design.bild !== undefined
+    || design.polsterung !== undefined
+    || design.schatten !== undefined
     || rand?.staerke !== undefined
     || rand?.farbe !== undefined
-    || rand?.radius !== undefined;
+    || rand?.farben !== undefined
+    || rand?.radius !== undefined
+    || rand?.radien !== undefined
+    || rand?.muster !== undefined;
   if (hatEigeneFlaeche) return false;
   return !PRESETS_OHNE_STANDARD_KACHEL.has(element.preset ?? "");
 }

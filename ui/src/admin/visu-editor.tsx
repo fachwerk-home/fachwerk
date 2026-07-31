@@ -1,8 +1,6 @@
-import type { JSX } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type {
   VisuAktion,
-  VisuDesign,
   VisuDesigns,
   VisuElement,
   VisuPlacement,
@@ -18,8 +16,8 @@ import {
   lesbarerName,
   placementFuer,
   schriftartenAusDesigns,
-  schriftfamilieFuer,
 } from "../visu/modell.ts";
+import { designStil } from "../visu/design.ts";
 import {
   bestaetigeSeitenwechsel,
   dupliziereElemente,
@@ -91,17 +89,6 @@ function ersterSeitenKey(seiten: Record<string, VisuSeite>): string | null {
 
 function clone(seite: VisuSeite): VisuSeite {
   return structuredClone(seite);
-}
-
-function designStil(design: VisuDesign): JSX.CSSProperties {
-  return {
-    ...(design.hintergrund ? { background: design.hintergrund } : {}),
-    ...(design.text ? { color: design.text } : {}),
-    ...(design.schriftart ? { fontFamily: schriftfamilieFuer(design.schriftart) } : {}),
-    ...(design.rand?.farbe ? { borderColor: design.rand.farbe } : {}),
-    ...(design.rand?.radius !== undefined ? { borderRadius: design.rand.radius } : {}),
-    ...(design.schriftgroesse !== undefined ? { fontSize: design.schriftgroesse } : {}),
-  };
 }
 
 function typLabel(element: VisuElement): string {
