@@ -27,6 +27,7 @@ import {
   navigationZeigtPfeil,
   placementFuer,
   reglerKonfiguration,
+  reglerSchreibwert,
   reglerWertFuerWinkel,
   renderElementeFuerSeite,
   schriftartenAusDesigns,
@@ -155,7 +156,7 @@ function ElementInhalt({
           aria-valuemin={konfiguration.min}
           aria-valuemax={konfiguration.max}
           aria-valuenow={wert}
-          onPointerDown={(event) => { if (!deaktiviert) { (event.currentTarget as SVGSVGElement).setPointerCapture(event.pointerId); aktualisiere(event); } }}
+          onPointerDown={(event) => { if (!deaktiviert) { const feld = event.currentTarget as SVGSVGElement; feld.dataset["reglerStartwert"] = String(wert); feld.setPointerCapture(event.pointerId); aktualisiere(event); } }}
           onPointerMove={(event) => { if (!deaktiviert && (event.currentTarget as SVGSVGElement).hasPointerCapture(event.pointerId)) aktualisiere(event); }}
           onPointerUp={(event) => {
             const feld = event.currentTarget as SVGSVGElement;
@@ -163,8 +164,9 @@ function ElementInhalt({
             const zielwert = aktualisiere(event);
             feld.releasePointerCapture(event.pointerId);
             bedien.setzeSlider(setKey, null);
-            const inkrement = element.parameter?.["art"] === "inkrement";
-            bedien.bediene(elementKey, element, inkrement ? zielwert - wert : zielwert);
+            const startwert = Number(feld.dataset["reglerStartwert"]);
+            delete feld.dataset["reglerStartwert"];
+            bedien.bediene(elementKey, element, reglerSchreibwert(element.parameter?.["art"], Number.isFinite(startwert) ? startwert : wert, zielwert));
           }}
         >
           <circle class="regler-bogen" cx="50" cy="50" r="42" />

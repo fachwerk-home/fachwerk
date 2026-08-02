@@ -14,6 +14,7 @@ import {
   placementFuer,
   renderElementeFuerSeite,
   reglerKonfiguration,
+  reglerSchreibwert,
   reglerWertFuerWinkel,
   seitenSkalierung,
   startSeite,
@@ -246,6 +247,14 @@ describe("Regler", () => {
     expect(winkelFuerReglerWert(150, konfiguration)).toBe(510);
     expect(reglerWertFuerWinkel(180, konfiguration)).toBe(100);
     expect(reglerWertFuerWinkel(540, konfiguration)).toBe(100);
+  });
+
+  it("schreibt beim inkrementellen Ziehen die Differenz zum Wert beim Aufsetzen", () => {
+    const startwert = 20;
+    const zielwert = reglerWertFuerWinkel(360, konfiguration);
+    expect(zielwert).toBe(50);
+    expect(reglerSchreibwert("inkrement", startwert, zielwert)).toBe(30);
+    expect(reglerSchreibwert("poti", startwert, zielwert)).toBe(50);
   });
 });
 

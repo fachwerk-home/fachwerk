@@ -226,6 +226,11 @@ export function reglerWertFuerWinkel(winkel: number, konfiguration: ReglerKonfig
   return begrenzeReglerWert(Math.round(rohwert / konfiguration.schritt) * konfiguration.schritt, konfiguration);
 }
 
+/** Ein Inkrementalregler schreibt die Bewegung seit dem Aufsetzen, kein Absolutwert. */
+export function reglerSchreibwert(art: unknown, startwert: number, zielwert: number): number {
+  return art === "inkrement" ? zielwert - startwert : zielwert;
+}
+
 export function formatierterWert(
   schluessel: string | undefined,
   werte: ReadonlyMap<string, WertEintrag>,
