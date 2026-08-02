@@ -376,13 +376,40 @@ test("echter Wertebereich (s1 != s2) wird nicht geraten, sondern gemeldet", () =
   expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Wertebereich");
 });
 
-test("Regler (controltyp 12/15) bleibt gemeldet, auch wenn sein KO aufloesbar ist", () => {
+test("Farbauswahl (controltyp 15) wird ein Widget — mit Vermerk zum unklaren Modus", () => {
   const roh = fixture();
   (roh.editVisuElement as Array<Record<string, unknown>>).push({
-    id: 25, controltyp: 15, pageid: 1, gaid: 100, xpos: 0, ypos: 620, xsize: 40, ysize: 40, text: "",
+    id: 25, controltyp: 15, pageid: 1, gaid: 100, var3: "32", var5: "24",
+    xpos: 0, ypos: 620, xsize: 40, ysize: 40, text: "",
   });
-  const { bericht } = konvertiereVisu(roh, gaKey);
-  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Farb-/Dimmerregler");
+  const { seiten, bericht } = konvertiereVisu(roh, gaKey);
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.widget === "farbauswahl")!;
+  expect(el.preset).toBeUndefined();
+  expect(el.parameter).toMatchObject({ alpha_schwelle: 32, cursor: 24 });
+  // Der Modus steht in var1, dessen Werteliste die Spec NICHT fuehrt. Er wird
+  // deshalb nicht geraten, sondern gemeldet — sonst sieht das Element fertig
+  // aus und schreibt womoeglich den falschen Wertetyp.
+  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Farbmodus");
+});
+
+test("Schiebeschalter (1004) wird ein Widget mit Aus-, Ein- und Knopf-Design", () => {
+  const roh = fixture();
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 70, targetid: 14, styletyp: 0, s9: "1", s44: "1", s42: "2" },
+    { id: 71, targetid: 14, styletyp: 1, s1: "1", s2: "1", s9: "1", s44: "3", s42: "2" },
+  );
+  const { seiten, designs } = konvertiereVisu(roh, gaKey, { typVon: () => "bool" });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.widget === "schiebeschalter")!;
+  expect(el.preset).toBeUndefined();
+  // Preset und Parameter schliessen sich im Schema aus — beides zugleich waere
+  // ein ungueltiges Gewerk.
+  expect(el.parameter?.["aus"]).toBeDefined();
+  expect(el.parameter?.["ein"]).toBeDefined();
+  const knopfAus = designs[el.parameter!["knopf_aus"] as string]!;
+  const knopfEin = designs[el.parameter!["knopf_ein"] as string]!;
+  expect(knopfAus.hintergrund).toBe("#123456");
+  expect(knopfEin.hintergrund).toBe("#abcdef");
+  expect(validateVisuSeite(seiten.get("wohnzimmer")!)).toBe(true);
 });
 
 test("s11 wird zur Beschriftung — aber nur beim bedingten Design", () => {

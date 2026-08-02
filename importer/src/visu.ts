@@ -110,6 +110,21 @@ function str(z: Record<string, unknown>, spalte: string): string {
 }
 
 /**
+ * Position eines radialen Verlaufs in die heutige Syntax bringen. Die alte
+ * praefigierte Form nennt die Position nackt ("center"), die heutige verlangt
+ * "at center" — oder laesst sie weg, weil die Mitte ohnehin der Standard ist.
+ * Unveraendert durchgereicht ergaebe das ungueltiges CSS, und der Verlauf
+ * verschwaende ersatzlos.
+ */
+function radialeRichtung(alt: string): string | undefined {
+  const t = alt.trim().toLowerCase();
+  if (t === "" || t === "center") return undefined;
+  // Form- und Groessenangaben sind in beiden Syntaxen gleich.
+  if (/^(circle|ellipse|closest|farthest)/.test(t)) return alt.trim();
+  return `at ${alt.trim()}`;
+}
+
+/**
  * Winkel der alten, praefigierten Verlaufssyntax in die heutige uebersetzen.
  *
  * Die beiden Syntaxen zaehlen GEGENLAEUFIG und von verschiedenen Nullpunkten:
@@ -149,7 +164,10 @@ export function farbe(roh: string): string {
     (_treffer, art: string, richtung: string) =>
       art === "linear-gradient"
         ? `linear-gradient(${verlaufsRichtung(richtung)},`
-        : `radial-gradient(${richtung},`,
+        : (() => {
+            const pos = radialeRichtung(richtung);
+            return pos === undefined ? "radial-gradient(" : `radial-gradient(${pos},`;
+          })(),
   );
 }
 
@@ -185,7 +203,7 @@ const AKT_KO2 = 4;
  * andere landet im Migrations-Report als Posten, den der Betreiber klaeren
  * muss. 0 = Gruppenknoten (uebersprungen), 1004 = Schiebeschalter (Katalog).
  */
-const ABGEBILDETE_CONTROLTYPEN = new Set([0, 1, 13, 21, 1004]);
+const ABGEBILDETE_CONTROLTYPEN = new Set([0, 1, 11, 12, 13, 15, 21, 1004]);
 
 /**
  * Voreinstellungen des Altsystems fuer Elemente ohne eigene Angabe. Sie sind
@@ -340,6 +358,16 @@ export function konvertiereVisu(
   // Design-Sammlung: gleiche Optik -> ein Design (dedupliziert).
   const designs: VisuDesigns = {};
   const designNachSignatur = new Map<string, string>();
+  const merkeDesign = (d: VisuDesign): string => {
+    const signatur = JSON.stringify(d);
+    let name = designNachSignatur.get(signatur);
+    if (!name) {
+      name = `d${designNachSignatur.size + 1}`;
+      designNachSignatur.set(signatur, name);
+      designs[name] = d;
+    }
+    return name;
+  };
   const designAus = (roh: Record<string, unknown>, bedingt = false): string | undefined => {
     const d: VisuDesign = {};
     // s11 ersetzt den Anzeigetext, solange das Design gilt — aber NUR bei
@@ -455,15 +483,26 @@ export function konvertiereVisu(
       };
     }
     if (Object.keys(d).length === 0) return undefined;
-    const signatur = JSON.stringify(d);
-    let name = designNachSignatur.get(signatur);
-    if (!name) {
-      name = `d${designNachSignatur.size + 1}`;
-      designNachSignatur.set(signatur, name);
-      designs[name] = d;
-    }
-    return name;
+    return merkeDesign(d);
   };
+  /**
+   * Knopf-Design eines Schiebeschalters aus den Zusatzfarben s44/s42.
+   *
+   * Das Custom-Element zeichnet seinen Knopf ueber CSS-Variablen, die aus
+   * diesen beiden Slots gespeist werden. Dass es der Knopf ist, steht nicht in
+   * der Spec — es steht in den Daten: der Betreiber hat die Farben selbst
+   * "Button Knopf off" und "Button Knopf on" genannt, und sie sind der EINZIGE
+   * Unterschied zwischen seiner Aus- und Ein-Vorlage.
+   */
+  const knopfAus = (roh: Record<string, unknown>): string | undefined => {
+    const d: VisuDesign = {};
+    const hg = bgFarbe.get(slotZahl(roh, "s44"));
+    if (hg) d.hintergrund = hg;
+    const vg = fgFarbe.get(slotZahl(roh, "s42"));
+    if (vg) d.text = vg;
+    return Object.keys(d).length > 0 ? merkeDesign(d) : undefined;
+  };
+
   const designFuer = (elementId: number): string | undefined => {
     const roh = designRoh.get(elementId);
     return roh ? designAus(roh) : undefined;
@@ -605,6 +644,64 @@ export function konvertiereVisu(
         regeln.push({ wenn: bedingungsWert(von, designQuelle), design: name });
       }
       if (regeln.length > 0) element.design_je_wert = regeln;
+
+      // ---- Elementtypen mit eigenem Widget --------------------------------
+      // Preset und Widget schliessen sich aus (Schema): wer ein Widget bekommt,
+      // verliert sein Preset. Die var-Bedeutungen sind JE TYP verschieden —
+      // dieselbe Nummer heisst anderswo etwas anderes, deshalb steht jede
+      // Auswertung in ihrem eigenen Zweig.
+      if (controltyp === 1004) {
+        // Schiebeschalter: Aus- und Ein-Optik stecken in Basis- und bedingtem
+        // Design, der Knopf in deren Zusatzfarben.
+        const basisRoh = designRoh.get(id);
+        const einRoh = bedingte[0];
+        const aus = designName;
+        const ein = einRoh ? designAus(einRoh, true) : undefined;
+        if (aus && ein) {
+          delete element.preset;
+          delete element.design_je_wert;
+          element.widget = "schiebeschalter";
+          const knopfA = basisRoh ? knopfAus(basisRoh) : undefined;
+          const knopfE = einRoh ? knopfAus(einRoh) : undefined;
+          const anteil = num(e, "var4");
+          element.parameter = {
+            aus,
+            ein,
+            ...(knopfA && knopfE ? { knopf_aus: knopfA, knopf_ein: knopfE } : {}),
+            ...(anteil > 0 ? { knopf_anteil: anteil } : {}),
+            dauer_ms: 200,
+          };
+        } else {
+          zaehle("Schiebeschalter ohne Aus/Ein-Design — Zustand nicht sichtbar");
+        }
+      } else if (controltyp === 11 || controltyp === 12) {
+        delete element.preset;
+        element.widget = "regler";
+        // Typ 11: var5-8 Wertebereich, var9 Groesse. Typ 12: var9 Groesse,
+        // var10/11 Knopfgroesse. var1 nennt den Modus, aber die Spec fuehrt
+        // die Werteliste NICHT — deshalb bleibt der Modus offen statt geraten.
+        const groesse = num(e, "var9");
+        const knopf = num(e, controltyp === 12 ? "var10" : "var10");
+        element.parameter = {
+          ...(groesse > 0 ? { groesse } : {}),
+          ...(knopf > 0 ? { knopf_anteil: knopf } : {}),
+        };
+        zaehle(`controltyp ${controltyp}: Reglermodus (var1) nicht in der Spec — Standard angenommen`);
+      } else if (controltyp === 15) {
+        delete element.preset;
+        element.widget = "farbauswahl";
+        // var3 Alpha-Schwelle, var5 Cursor-Durchmesser, var6 Cursor-Staerke.
+        // var1 nennt den Modus, wieder ohne Werteliste in der Spec.
+        const alpha = num(e, "var3");
+        const cursor = num(e, "var5");
+        const staerke = num(e, "var6");
+        element.parameter = {
+          ...(alpha > 0 ? { alpha_schwelle: alpha } : {}),
+          ...(cursor > 0 ? { cursor } : {}),
+          ...(staerke > 0 ? { cursor_staerke: staerke } : {}),
+        };
+        zaehle("controltyp 15: Farbmodus (var1) nicht in der Spec — Standard angenommen");
+      }
 
       // Element-Schluessel: sprechender Name, sonst Text, sonst element_<id>.
       // ABER nie aus einem Wertausdruck: aus "{floor(#*100/255)} %" wuerde der
@@ -867,10 +964,11 @@ function baueElement(
     // bleibt ein Regler, auch wenn seine KOs aufloesbar sind. Sonst verschwaende
     // er als scheinbar fertiger Taster oder als Statusanzeige mit rohem Wert —
     // und der Betreiber verlaere den Hinweis, dass hier etwas nachzubauen ist.
+    // Regler und Farbauswahl bekommen im Element-Durchgang ihr Widget; hier
+    // wird nur die Bindung gesichert und das Preset vorbelegt, falls die
+    // Widget-Zuweisung mangels Daten unterbleibt.
     preset = "label";
     if (statusKey) bindungen.status = statusKey;
-    zaehle(`controltyp ${controltyp} (Farb-/Dimmerregler) noch nicht als Widget abgebildet`);
-    notizen.push(`controltyp ${controltyp}: Regler — im Editor nachbauen`);
   } else if (bindungen.set) {
     // Klickbares Element mit KO2 -> Taster (schickt einen festen Wert) bzw.
     // Schalter (kein fester Wert -> umschalten).
