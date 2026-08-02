@@ -13,9 +13,12 @@ import {
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
+  reglerKonfiguration,
+  reglerWertFuerWinkel,
   seitenSkalierung,
   startSeite,
   textausrichtungCss,
+  winkelFuerReglerWert,
   waehleBreakpoint,
 } from "./modell.ts";
 
@@ -220,6 +223,29 @@ describe("Fachwerk-Kachel", () => {
     expect(fachwerkKachelFuer({ widget: "slider" }, {})).toBe(true);
     expect(fachwerkKachelFuer({ preset: "navigation" }, {})).toBe(false);
     expect(fachwerkKachelFuer({ preset: "symbol" }, {})).toBe(false);
+  });
+});
+
+describe("Regler", () => {
+  const konfiguration = reglerKonfiguration({ widget: "regler", parameter: { min: 0, max: 100, schritt: 1, winkel_von: 210, winkel_bis: 510 } });
+
+  it("ordnet Bereichsgrenzen den Bogenenden zu", () => {
+    expect(winkelFuerReglerWert(0, konfiguration)).toBe(210);
+    expect(winkelFuerReglerWert(100, konfiguration)).toBe(510);
+    expect(reglerWertFuerWinkel(210, konfiguration)).toBe(0);
+    expect(reglerWertFuerWinkel(510, konfiguration)).toBe(100);
+  });
+
+  it("rechnet Wert und Winkel in beide Richtungen", () => {
+    expect(winkelFuerReglerWert(25, konfiguration)).toBe(285);
+    expect(reglerWertFuerWinkel(285, konfiguration)).toBe(25);
+  });
+
+  it("begrenzt Werte und Winkel auf den Wertebereich", () => {
+    expect(winkelFuerReglerWert(-5, konfiguration)).toBe(210);
+    expect(winkelFuerReglerWert(150, konfiguration)).toBe(510);
+    expect(reglerWertFuerWinkel(180, konfiguration)).toBe(100);
+    expect(reglerWertFuerWinkel(540, konfiguration)).toBe(100);
   });
 });
 

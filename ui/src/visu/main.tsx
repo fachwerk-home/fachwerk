@@ -26,10 +26,13 @@ import {
   fontFaceCssFuerSchriften,
   navigationZeigtPfeil,
   placementFuer,
+  reglerKonfiguration,
+  reglerWertFuerWinkel,
   renderElementeFuerSeite,
   schriftartenAusDesigns,
   seitenSkalierung,
   startSeite,
+  winkelFuerReglerWert,
   waehleBreakpoint,
   type WertEintrag,
 } from "./modell.ts";
@@ -122,6 +125,56 @@ function ElementInhalt({
   bedien: BedienKontext;
 }): ComponentChildren {
   const anzeige = elementAnzeige("client", elementKey, element, werte, placement, design);
+
+  if (element.widget === "regler") {
+    const setKey = element.bindungen?.["set"];
+    const konfiguration = reglerKonfiguration(element);
+    const entwurf = setKey ? bedien.slider.get(setKey) : undefined;
+    const wert = entwurf ?? (typeof anzeige.rohwert === "number" ? anzeige.rohwert : konfiguration.min);
+    const winkel = winkelFuerReglerWert(wert, konfiguration);
+    const deaktiviert = !setKey || !bedien.darfBedienen || (setKey ? bedien.gesperrt.has(setKey) : false);
+    const punkt = (event: PointerEvent): number => {
+      const feld = event.currentTarget as SVGSVGElement;
+      const rechteck = feld.getBoundingClientRect();
+      const x = event.clientX - rechteck.left - rechteck.width / 2;
+      const y = event.clientY - rechteck.top - rechteck.height / 2;
+      return Math.atan2(x, -y) * 180 / Math.PI + (Math.atan2(x, -y) < 0 ? 360 : 0);
+    };
+    const aktualisiere = (event: PointerEvent): number => {
+      const neu = reglerWertFuerWinkel(punkt(event), konfiguration);
+      if (setKey) bedien.setzeSlider(setKey, neu);
+      return neu;
+    };
+    return (
+      <div class="regler-inhalt">
+        <svg
+          class="regler-kreis"
+          viewBox="0 0 100 100"
+          aria-label={anzeige.label || "Regler"}
+          role="slider"
+          aria-valuemin={konfiguration.min}
+          aria-valuemax={konfiguration.max}
+          aria-valuenow={wert}
+          onPointerDown={(event) => { if (!deaktiviert) { (event.currentTarget as SVGSVGElement).setPointerCapture(event.pointerId); aktualisiere(event); } }}
+          onPointerMove={(event) => { if (!deaktiviert && (event.currentTarget as SVGSVGElement).hasPointerCapture(event.pointerId)) aktualisiere(event); }}
+          onPointerUp={(event) => {
+            const feld = event.currentTarget as SVGSVGElement;
+            if (!setKey || deaktiviert || !feld.hasPointerCapture(event.pointerId)) return;
+            const zielwert = aktualisiere(event);
+            feld.releasePointerCapture(event.pointerId);
+            bedien.setzeSlider(setKey, null);
+            const inkrement = element.parameter?.["art"] === "inkrement";
+            bedien.bediene(elementKey, element, inkrement ? zielwert - wert : zielwert);
+          }}
+        >
+          <circle class="regler-bogen" cx="50" cy="50" r="42" />
+          <line class="regler-marke" x1="50" y1="50" x2="50" y2="12" transform={`rotate(${winkel} 50 50)`} />
+          <circle class="regler-knopf" cx="50" cy="50" r={konfiguration.knopfAnteil * 0.22} />
+        </svg>
+        <strong>{anzeige.wert || String(wert)}</strong>
+      </div>
+    );
+  }
 
   if (element.widget === "slider") {
     const setKey = element.bindungen?.["set"];
@@ -263,7 +316,7 @@ function VisuElementAnsicht({
   ].filter(Boolean).join(" ");
   const titel = hatSet && !bedien.darfBedienen ? "Scope operate fehlt" : sperrgrund;
 
-  if (element.widget === "diagramm" || element.widget === "slider") {
+  if (element.widget === "diagramm" || element.widget === "slider" || element.widget === "regler") {
     return (
       <div
         class={klassen}
