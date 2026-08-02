@@ -27,6 +27,7 @@ import {
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
+  schiebeschalterZustand,
   schriftartenAusDesigns,
   seitenSkalierung,
   startSeite,
@@ -111,6 +112,7 @@ function ElementInhalt({
   element,
   placement,
   werte,
+  designs,
   design,
   bedien,
 }: {
@@ -118,10 +120,32 @@ function ElementInhalt({
   element: VisuElement;
   placement: VisuPlacement;
   werte: ReadonlyMap<string, WertEintrag>;
+  designs: VisuDesigns;
   design: VisuDesign;
   bedien: BedienKontext;
 }): ComponentChildren {
   const anzeige = elementAnzeige("client", elementKey, element, werte, placement, design);
+
+  if (element.widget === "schiebeschalter") {
+    const statusKey = element.bindungen?.["status"];
+    const schalter = schiebeschalterZustand(element, designs, statusKey ? werte.get(statusKey)?.wert : undefined);
+    return (
+      <>
+        <span class="schiebeschalter-beschriftung">{anzeige.label}</span>
+        {schalter.knopf && (
+          <span
+            class="schiebeschalter-knopf"
+            style={{
+              width: `${schalter.knopfAnteil}%`,
+              left: schalter.knopfLinks ? "0" : `${100 - schalter.knopfAnteil}%`,
+              transitionDuration: `${schalter.dauerMs}ms`,
+              ...designStil(schalter.knopf),
+            }}
+          />
+        )}
+      </>
+    );
+  }
 
   if (element.widget === "slider") {
     const setKey = element.bindungen?.["set"];
@@ -229,13 +253,16 @@ function VisuElementAnsicht({
 }) {
   const statusKey = element.bindungen?.["status"];
   const status = statusKey ? werte.get(statusKey)?.wert : undefined;
-  const design = designFuer(element, designs, status);
+  const schiebeschalter = element.widget === "schiebeschalter"
+    ? schiebeschalterZustand(element, designs, status)
+    : undefined;
+  const design = schiebeschalter?.flaeche ?? designFuer(element, designs, status);
   const aktion = navigationsAktion(element);
   const setKey = element.bindungen?.["set"];
   const sperrgrund = setKey ? bedien.gesperrt.get(setKey) : undefined;
   const pending = setKey ? bedien.pending.has(setKey) : false;
   const hatSet = setKey !== undefined;
-  const kachel = fachwerkKachelFuer(element, design);
+  const kachel = schiebeschalter ? false : fachwerkKachelFuer(element, design);
   const einzelSymbol = einzelnesPrivatesSymbol(beschriftungFuerElement(element, design)) || einzelnesPrivatesSymbol(design.icon);
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
@@ -252,6 +279,7 @@ function VisuElementAnsicht({
       element={element}
       placement={placement}
       werte={werte}
+      designs={designs}
       design={design}
       bedien={bedien}
     />

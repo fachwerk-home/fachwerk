@@ -13,6 +13,7 @@ import {
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
+  schiebeschalterZustand,
   seitenSkalierung,
   startSeite,
   textausrichtungCss,
@@ -220,6 +221,44 @@ describe("Fachwerk-Kachel", () => {
     expect(fachwerkKachelFuer({ widget: "slider" }, {})).toBe(true);
     expect(fachwerkKachelFuer({ preset: "navigation" }, {})).toBe(false);
     expect(fachwerkKachelFuer({ preset: "symbol" }, {})).toBe(false);
+  });
+});
+
+describe("Schiebeschalter", () => {
+  const designs = {
+    aus: { hintergrund: "#222", beschriftung: "Aus" },
+    ein: { hintergrund: "#fd0", beschriftung: "Ein" },
+    knopfAus: { hintergrund: "#fff" },
+    knopfEin: { hintergrund: "#000" },
+  };
+  const element: VisuElement = {
+    widget: "schiebeschalter",
+    parameter: { aus: "aus", ein: "ein", knopf_aus: "knopfAus", knopf_ein: "knopfEin", knopf_anteil: 45, dauer_ms: 200 },
+  };
+
+  it("nimmt im Aus-Zustand das Aus-Design und den linken Knopf", () => {
+    expect(schiebeschalterZustand(element, designs, false)).toMatchObject({
+      an: false, flaeche: designs.aus, knopf: designs.knopfAus, knopfLinks: true, knopfAnteil: 45, dauerMs: 200,
+    });
+  });
+
+  it("nimmt im An-Zustand auch bei Zahlen ungleich null das Ein-Design", () => {
+    expect(schiebeschalterZustand(element, designs, 12)).toMatchObject({
+      an: true, flaeche: designs.ein, knopf: designs.knopfEin, knopfLinks: false,
+    });
+  });
+
+  it("zeichnet ohne beide Knopfdesigns keinen Knopf", () => {
+    expect(schiebeschalterZustand({ widget: "schiebeschalter", parameter: { aus: "aus", ein: "ein" } }, designs, true))
+      .not.toHaveProperty("knopf");
+    expect(schiebeschalterZustand({ widget: "schiebeschalter", parameter: { aus: "aus", ein: "ein", knopf_aus: "knopfAus" } }, designs, false))
+      .not.toHaveProperty("knopf");
+  });
+
+  it("spiegelt die Knopfseite, wenn Ein links liegt", () => {
+    const links = { ...element, parameter: { ...element.parameter, ein_liegt: "links" } };
+    expect(schiebeschalterZustand(links, designs, true).knopfLinks).toBe(true);
+    expect(schiebeschalterZustand(links, designs, false).knopfLinks).toBe(false);
   });
 });
 

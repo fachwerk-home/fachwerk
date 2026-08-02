@@ -176,6 +176,54 @@ export function designFuer(
   return mischeDesign(basis, dynamisch ? designs[dynamisch] : undefined);
 }
 
+export interface SchiebeschalterZustand {
+  an: boolean;
+  flaeche: VisuDesign;
+  knopf?: VisuDesign;
+  knopfLinks: boolean;
+  knopfAnteil: number;
+  dauerMs: number;
+}
+
+/** Alles ausser einem klaren Aus-Wert ist der eingeschaltete Zustand. */
+function schiebeschalterIstAn(wert: unknown): boolean {
+  if (wert === false || wert === 0 || wert === "" || wert === null || wert === undefined) return false;
+  if (typeof wert === "number") return Number.isFinite(wert);
+  return typeof wert === "string" || typeof wert === "boolean";
+}
+
+function parameterZahl(parameter: Record<string, unknown> | undefined, key: string, standard: number): number {
+  const wert = parameter?.[key];
+  return typeof wert === "number" && Number.isFinite(wert) ? wert : standard;
+}
+
+/**
+ * Schiebeschalter haben bewusst keine eingebaute Optik: Die beiden
+ * Flaechendesigns und optionalen Knopfdesigns bestimmen sie vollstaendig.
+ */
+export function schiebeschalterZustand(
+  element: VisuElement,
+  designs: VisuDesigns,
+  status: unknown,
+): SchiebeschalterZustand {
+  const an = schiebeschalterIstAn(status);
+  const ausDesign = typeof element.parameter?.["aus"] === "string" ? designs[element.parameter["aus"]] : undefined;
+  const einDesign = typeof element.parameter?.["ein"] === "string" ? designs[element.parameter["ein"]] : undefined;
+  const knopfAus = typeof element.parameter?.["knopf_aus"] === "string" ? designs[element.parameter["knopf_aus"]] : undefined;
+  const knopfEin = typeof element.parameter?.["knopf_ein"] === "string" ? designs[element.parameter["knopf_ein"]] : undefined;
+  const einLiegtLinks = element.parameter?.["ein_liegt"] === "links";
+  const knopfAnteil = Math.min(100, Math.max(0, parameterZahl(element.parameter, "knopf_anteil", 45)));
+
+  return {
+    an,
+    flaeche: an ? einDesign ?? {} : ausDesign ?? {},
+    ...(knopfAus && knopfEin ? { knopf: an ? knopfEin : knopfAus } : {}),
+    knopfLinks: an ? einLiegtLinks : !einLiegtLinks,
+    knopfAnteil,
+    dauerMs: Math.max(0, parameterZahl(element.parameter, "dauer_ms", 0)),
+  };
+}
+
 export function formatierterWert(
   schluessel: string | undefined,
   werte: ReadonlyMap<string, WertEintrag>,
