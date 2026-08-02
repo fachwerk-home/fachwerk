@@ -44,7 +44,7 @@ button.visu-element:not(:disabled):active { translate: 0 0; background: var(--fw
    auf dem Panel gar nichts: die Kachel-Regel oben setzt auch den Schwebezustand
    (visu-element-gedrueckt) zurueck, der das Warten auf den Bus anzeigt. */
 button.visu-element[data-kachel="false"]:not(:disabled):active { background: transparent; opacity: 0.55; }
-.visu-element[data-kachel="false"].visu-element-gedrueckt { opacity: 0.55; }
+.visu-element[data-kachel="false"].visu-element-gedrueckt { border-color: transparent; background: transparent; box-shadow: none; opacity: 0.55; }
 .visu-element-deaktiviert, .visu-element-deaktiviert:disabled { cursor: not-allowed; filter: saturate(0.6); }
 .visu-element-deaktiviert::after { content: "Gesperrt"; position: absolute; right: 5px; bottom: 4px; padding: 1px 5px; border-radius: 999px; background: color-mix(in srgb, var(--fw-flaeche-3) 88%, transparent); color: currentColor; font-size: 9px; line-height: 1.5; opacity: 0.82; }
 .visu-element-gedrueckt { border-color: var(--fw-akzent); background: var(--fw-akzent-ruhig); box-shadow: var(--fw-fokus); }
@@ -57,6 +57,9 @@ button.visu-element[data-kachel="false"]:not(:disabled):active { background: tra
 .symbol .visu-svg-icon { display: block; }
 .slider-inhalt { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--fw-s3); }
 .slider-inhalt input { width: 100%; }
+.schiebeschalter-beschriftung { position: relative; z-index: 1; width: 100%; pointer-events: none; }
+.schiebeschalter-knopf { position: absolute; inset-block: 0; transition-property: left; transition-timing-function: ease; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .schiebeschalter-knopf { transition-duration: 0ms !important; } }
 .diagramm-visu { width: 100%; height: 100%; min-height: 0; padding: var(--fw-s2); box-shadow: none; }
 .diagramm-visu .diagramm-kopf { align-items: start; }
 .diagramm-visu .diagramm-svg { min-height: 0; height: 100%; }
