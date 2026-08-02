@@ -57,6 +57,10 @@ button.visu-element[data-kachel="false"]:not(:disabled):active { background: tra
 .symbol .visu-svg-icon { display: block; }
 .slider-inhalt { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--fw-s3); }
 .slider-inhalt input { width: 100%; }
+.farbauswahl { position: relative; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.farbauswahl-deaktiviert { cursor: default; }
+.farbauswahl img { display: block; width: 100%; height: 100%; object-fit: fill; user-select: none; pointer-events: none; }
+.farbauswahl-cursor { position: absolute; translate: -50% -50%; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px black; pointer-events: none; }
 .diagramm-visu { width: 100%; height: 100%; min-height: 0; padding: var(--fw-s2); box-shadow: none; }
 .diagramm-visu .diagramm-kopf { align-items: start; }
 .diagramm-visu .diagramm-svg { min-height: 0; height: 100%; }

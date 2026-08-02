@@ -20,6 +20,7 @@ import { VisuIcon } from "./icons.tsx";
 import {
   designFuer,
   elementAnzeige,
+  farbwertFuerPixel,
   beschriftungFuerElement,
   einzelnesPrivatesSymbol,
   fachwerkKachelFuer,
@@ -33,7 +34,7 @@ import {
   waehleBreakpoint,
   type WertEintrag,
 } from "./modell.ts";
-import { designStil, grundstilFuerRenderSeite, grundstilStil } from "./design.ts";
+import { designStil, grundstilFuerRenderSeite, grundstilStil, visuDateiUrl } from "./design.ts";
 
 type LiveStatus = "verbindet" | "verbunden" | "getrennt";
 type LiveWert = Extract<LiveNachricht, { art: "wert" }>;
@@ -106,6 +107,38 @@ function MitSymbol({ element, label, children }: { element: VisuElement; label: 
   return <><VisuIcon name={element.symbol} dekorativ={Boolean(label)} />{children}</>;
 }
 
+function Farbauswahl({ elementKey, element, design, bedien }: { elementKey: string; element: VisuElement; design: VisuDesign; bedien: BedienKontext }) {
+  const bild = useRef<HTMLImageElement>(null);
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+  const setKey = element.bindungen?.["set"];
+  const bedienbar = Boolean(setKey) && bedien.darfBedienen && !bedien.gesperrt.has(setKey!);
+  const abtasten = (event: PointerEvent): string | number | undefined => {
+    const quelle = bild.current;
+    const feld = event.currentTarget as HTMLDivElement;
+    if (!quelle || !quelle.complete || quelle.naturalWidth === 0) return undefined;
+    const r = feld.getBoundingClientRect();
+    const x = Math.min(r.width, Math.max(0, event.clientX - r.left));
+    const y = Math.min(r.height, Math.max(0, event.clientY - r.top));
+    const canvas = document.createElement("canvas");
+    canvas.width = quelle.naturalWidth; canvas.height = quelle.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+    try {
+      ctx.drawImage(quelle, 0, 0);
+      const d = ctx.getImageData(Math.min(quelle.naturalWidth - 1, Math.floor(x / r.width * quelle.naturalWidth)), Math.min(quelle.naturalHeight - 1, Math.floor(y / r.height * quelle.naturalHeight)), 1, 1).data;
+      const wert = farbwertFuerPixel({ r: d[0] ?? 0, g: d[1] ?? 0, b: d[2] ?? 0, a: d[3] ?? 0 }, element.parameter?.["modus"], typeof element.parameter?.["alpha_schwelle"] === "number" ? element.parameter["alpha_schwelle"] : 32);
+      if (wert !== undefined) setCursor({ x: x / r.width * 100, y: y / r.height * 100 });
+      return wert;
+    } catch { return undefined; }
+  };
+  if (!design.bild) return null;
+  const cursorGroesse = typeof element.parameter?.["cursor"] === "number" ? element.parameter["cursor"] : 24;
+  return <div class={bedienbar ? "farbauswahl" : "farbauswahl farbauswahl-deaktiviert"} onPointerDown={(e) => { if (bedienbar) { (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId); abtasten(e); } }} onPointerMove={(e) => { if ((e.currentTarget as HTMLDivElement).hasPointerCapture(e.pointerId)) abtasten(e); }} onPointerUp={(e) => { const feld = e.currentTarget as HTMLDivElement; if (!bedienbar || !setKey || !feld.hasPointerCapture(e.pointerId)) return; const wert = abtasten(e); feld.releasePointerCapture(e.pointerId); if (wert !== undefined) bedien.bediene(elementKey, element, wert); }}>
+    <img ref={bild} src={visuDateiUrl(design.bild)} alt="" draggable={false} />
+    {cursor && cursorGroesse > 0 && <span class="farbauswahl-cursor" style={{ left: `${cursor.x}%`, top: `${cursor.y}%`, width: `${cursorGroesse}px`, height: `${cursorGroesse}px` }} />}
+  </div>;
+}
+
 function ElementInhalt({
   elementKey,
   element,
@@ -122,6 +155,8 @@ function ElementInhalt({
   bedien: BedienKontext;
 }): ComponentChildren {
   const anzeige = elementAnzeige("client", elementKey, element, werte, placement, design);
+
+  if (element.widget === "farbauswahl") return <Farbauswahl elementKey={elementKey} element={element} design={design} bedien={bedien} />;
 
   if (element.widget === "slider") {
     const setKey = element.bindungen?.["set"];
@@ -263,7 +298,7 @@ function VisuElementAnsicht({
   ].filter(Boolean).join(" ");
   const titel = hatSet && !bedien.darfBedienen ? "Scope operate fehlt" : sperrgrund;
 
-  if (element.widget === "diagramm" || element.widget === "slider") {
+  if (element.widget === "diagramm" || element.widget === "slider" || element.widget === "farbauswahl") {
     return (
       <div
         class={klassen}

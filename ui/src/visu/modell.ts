@@ -176,6 +176,30 @@ export function designFuer(
   return mischeDesign(basis, dynamisch ? designs[dynamisch] : undefined);
 }
 
+export interface BildPixel { r: number; g: number; b: number; a: number }
+
+function hexTeil(wert: number): string {
+  return Math.min(255, Math.max(0, Math.round(wert))).toString(16).padStart(2, "0");
+}
+
+function hsvFuerRgb({ r, g, b }: BildPixel): string {
+  const rot = r / 255;
+  const gruen = g / 255;
+  const blau = b / 255;
+  const max = Math.max(rot, gruen, blau);
+  const min = Math.min(rot, gruen, blau);
+  const delta = max - min;
+  const hue = delta === 0 ? 0 : 60 * (max === rot ? ((gruen - blau) / delta % 6) : max === gruen ? (blau - rot) / delta + 2 : (rot - gruen) / delta + 4);
+  return `hsv(${Math.round((hue + 360) % 360)},${Math.round(max === 0 ? 0 : delta / max * 100)}%,${Math.round(max * 100)}%)`;
+}
+
+export function farbwertFuerPixel(pixel: BildPixel, modus: unknown, alphaSchwelle: number): string | number | undefined {
+  if (pixel.a < alphaSchwelle) return undefined;
+  if (modus === "dimmen") return Math.round(Math.max(pixel.r, pixel.g, pixel.b));
+  if (modus === "hsv") return hsvFuerRgb(pixel);
+  return `#${hexTeil(pixel.r)}${hexTeil(pixel.g)}${hexTeil(pixel.b)}`;
+}
+
 export function formatierterWert(
   schluessel: string | undefined,
   werte: ReadonlyMap<string, WertEintrag>,
