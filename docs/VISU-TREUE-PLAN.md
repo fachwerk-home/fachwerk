@@ -87,6 +87,29 @@ Fachwerk-Hintergrund statt keinem, und eine verlorene Schriftfarbe.
    Element für Element gebaut werden müssen — vier Typen, nicht 128 Elemente.
    `_ingest/controltypen.md` liefert dafür die var-Belegung.
 
+## Abdeckung der Elementtypen
+
+Das Altsystem definiert 30 Elementtypen. Fachwerk bildet fuenf davon ab; der
+Rest wird als Beschriftung importiert und im Migrations-Report gezaehlt. Das
+klingt nach viel Rueckstand, ist aber keiner — gemessen an einer realen Anlage:
+
+| Typ | Verwendungen |
+|---|---:|
+| 1 Universalelement | 120 |
+| 0 Gruppe (uebersprungen) | 21 |
+| 1004 Schiebeschalter | 5 |
+| 12 Dimmer, 15 Farbauswahl, 21 Diagramm | je 1 |
+
+**Alles andere kommt nicht vor.** Kamera, Zeitschaltuhr, Notizen, Codeschloss,
+Anrufarchiv: beschrieben, aber ungenutzt. Sie zu bauen, bevor jemand sie
+braucht, waere Arbeit ins Blaue.
+
+Bemerkenswert ist die andere Zahl: **30 der 120 Universalelemente tragen
+Zustandsdesigns** — der Betreiber baut sich seine Schalter selbst aus dem
+Universalelement, statt fertige Typen zu nehmen. Das ist der haeufigste
+Bedienbaustein der Anlage, und er braucht kein eigenes Widget, sondern
+funktionierende Zustandsdesigns. Genau die sind jetzt da.
+
 ## Was dieses Verfahren NICHT leistet
 
 Es vergleicht Form, nicht Verhalten. Ob ein Schalter auf eine Wertänderung

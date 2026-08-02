@@ -31,7 +31,15 @@ export type VisuPreset =
   | "label"
   | "symbol"
   | "navigation";
-export type VisuWidget = "slider" | "diagramm";
+export type VisuWidget =
+  | "slider"
+  | "diagramm"
+  /** Schiebeschalter: zwei Zustandsdesigns mit Uebergang dazwischen. */
+  | "schiebeschalter"
+  /** Dreh- oder Inkrementalregler fuer einen Zahlenwert. */
+  | "regler"
+  /** Farbe oder Helligkeit aus einem Bild greifen. */
+  | "farbauswahl";
 export type VisuSymbolName =
   | "alarm"
   | "anwesenheit"

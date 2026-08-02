@@ -94,4 +94,7 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-INTEROP-KATALOG.md | Dirty Room (Cursor) | ✅ alle 4 Teile geliefert (_ingest); Teil 2+4 umgesetzt |
 | AUFTRAG-VISU-DESIGN-VOLL.md | Codex | ✅ gemergt (PR #21) |
 | AUFTRAG-VISU-GRUNDSTIL.md | Codex | ✅ gemergt (PR #22) |
+| AUFTRAG-WIDGET-SCHIEBESCHALTER.md | Codex | offen (kann sofort starten) |
+| AUFTRAG-WIDGET-REGLER.md | Codex | offen (nach Schiebeschalter) |
+| AUFTRAG-WIDGET-FARBAUSWAHL.md | Codex | offen (nach Regler) |
 | AUFTRAG-VISU-UMSCHALTEN.md | Codex | ✅ gemergt (PR #20) |

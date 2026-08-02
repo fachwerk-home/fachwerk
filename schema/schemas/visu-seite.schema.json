@@ -342,7 +342,10 @@
         "widget": {
           "enum": [
             "slider",
-            "diagramm"
+            "diagramm",
+            "schiebeschalter",
+            "regler",
+            "farbauswahl"
           ]
         },
         "text": {
