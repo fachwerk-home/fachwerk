@@ -185,6 +185,33 @@
               "type": "string"
             }
           }
+        },
+        "bildGroesse": {
+          "enum": [
+            "original",
+            "masse",
+            "flaeche",
+            "decken",
+            "einpassen"
+          ]
+        },
+        "bildMasse": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "b",
+            "h"
+          ],
+          "properties": {
+            "b": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "h": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
         }
       }
     }

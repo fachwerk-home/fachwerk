@@ -185,6 +185,15 @@ export interface VisuDesign {
   /** Hintergrundbild aus visu/dateien/ (ADR-0015 D-2: Name, nie ein Pfad). */
   bild?: string;
   /**
+   * Skalierung des Hintergrundbilds. "flaeche" fuellt das Element (verzerrt),
+   * "decken"/"einpassen" wahren das Seitenverhaeltnis, "original" laesst es
+   * unskaliert, "masse" nimmt bildMasse. Fehlt die Angabe, gilt "flaeche" —
+   * das ist der Standard des Altsystems, und ein unskaliert gekacheltes Bild
+   * ist praktisch immer falsch.
+   */
+  bildGroesse?: "original" | "masse" | "flaeche" | "decken" | "einpassen";
+  bildMasse?: { b: number; h: number };
+  /**
    * Beschriftung, die den `text` des Elements ERSETZT, solange dieses Design
    * gilt. Gedacht fuer wertabhaengige Designs (`design_je_wert`): ein Schalter
    * zeigt „Aus", im Zustand An aber „An". Entweder-oder, nie beides — ist sie

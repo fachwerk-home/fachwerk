@@ -502,3 +502,18 @@ test("Schnitt, Abstand, Schatten, Rahmenmuster und Bild kommen ins Design", () =
   expect(d.rand?.radius).toBeUndefined();
   expect(validateVisuDesigns(designs)).toBe(true);
 });
+
+test("bedingte Designs OHNE gaid3 haengen am KO1 — der Normalfall der Standard-Schalter", () => {
+  const roh = fixture();
+  // Element mit gaid (KO1), OHNE gaid3, mit zwei Zustandsdesigns.
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 40, controltyp: 1, pageid: 1, gaid: 100, xpos: 0, ypos: 900, xsize: 40, ysize: 40, text: String.fromCodePoint(0xe92d),
+  });
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 60, targetid: 40, styletyp: 1, s1: "1", s2: "1", s15: "2" },
+  );
+  const { seiten } = konvertiereVisu(roh, gaKey, { typVon: () => "bool" });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((el2) => el2.design_je_wert)!;
+  expect(el.bindungen?.status).toBe("wohnen.licht");
+  expect(el.design_je_wert![0]!.wenn).toBe(true);
+});

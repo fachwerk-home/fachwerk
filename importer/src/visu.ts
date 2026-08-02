@@ -371,7 +371,16 @@ export function konvertiereVisu(
     const dy = slotZahl(roh, "s4");
     if (dx !== 0 || dy !== 0) d.versatz = { ...(dx ? { x: dx } : {}), ...(dy ? { y: dy } : {}) };
     const bild = bildDatei.get(slotZahl(roh, "s10"));
-    if (bild) d.bild = bild;
+    if (bild) {
+      d.bild = bild;
+      // Ohne Angabe fuellt das Bild die Flaeche. Das ist der Standard des
+      // Altsystems (var7=2) und der einzig brauchbare Rueckfall: ein Bild in
+      // Originalgroesse in einem 300er Quadrat ist immer falsch. Die genaue
+      // Angabe kommt spaeter aus var7 — aber NUR bei controltyp 1, wo var7
+      // ueberhaupt die Bildskalierung meint. Bei anderen Typen bedeutet
+      // dieselbe Nummer etwas voellig anderes.
+      d.bildGroesse = "flaeche";
+    }
     // Textschatten (s19-s22) und Boxschatten (s33-s38). Beide brauchen eine
     // Farbe, sonst waeren sie unsichtbar — ohne die wird nichts geschrieben.
     const tsFarbe = fgFarbe.get(slotZahl(roh, "s22"));
@@ -538,13 +547,42 @@ export function konvertiereVisu(
 
       const designName = designFuer(id);
       if (designName) element.design = designName;
+      // Bildskalierung aus var7 — ausschliesslich beim Universalelement.
+      // controltypen.md: bei ct12 heisst var9 "Groesse in Prozent", bei ct15
+      // "Cursor-Durchmesser". Dieselbe Nummer, andere Bedeutung; wer sie
+      // typunabhaengig liest, macht funktionierende Elemente kaputt.
+      if (controltyp === 1 && designName) {
+        const d = designs[designName];
+        if (d?.bild) {
+          const art = ({ 0: "original", 1: "masse", 2: "flaeche", 3: "decken", 4: "einpassen" } as const)[
+            num(e, "var7") as 0 | 1 | 2 | 3 | 4
+          ];
+          if (art) d.bildGroesse = art;
+          const bb = num(e, "var9");
+          const bh = num(e, "var10");
+          if (art === "masse" && bb > 0 && bh > 0) d.bildMasse = { b: bb, h: bh };
+        }
+      }
 
-      // Bedingte Designs: das Altsystem tauscht die Optik, sobald der Wert des
-      // Steuer-KOs (gaid3) in den Bereich s1..s2 faellt. Fachwerk kennt dafuer
-      // design_je_wert mit STRIKTEM Vergleich — deshalb muss der Vergleichswert
-      // den Typ des Ziel-Datenpunkts tragen, sonst trifft er nie.
+      // Bedingte Designs: das Altsystem tauscht die Optik, sobald der Wert
+      // des Steuer-KOs in den Bereich s1..s2 faellt. Steuer-KO ist laut Spec
+      // KO3 (gaid3) — und FEHLT es, KO1 (gaid). Dieser Rueckfall ist kein
+      // Randfall, sondern der Normalfall: die Standard-Schalter einer Anlage
+      // haengen ihre Zustandsdesigns fast immer an KO1. Ohne ihn kamen die
+      // Regeln zwar mit, aber ohne Statusquelle — und ein Design, dessen
+      // Steuerwert nie eintrifft, wechselt nie.
+      const bedingte = designBedingt.get(id) ?? [];
+      const designQuelle =
+        bedingte.length > 0
+          ? aufloese(num(e, "gaid3")) ?? aufloese(num(e, "gaid")) ?? element.bindungen?.status
+          : undefined;
+      if (designQuelle && element.bindungen?.status === undefined) {
+        element.bindungen = { ...element.bindungen, status: designQuelle };
+      }
+      // Fachwerk vergleicht STRIKT — der Vergleichswert muss den Typ des
+      // Steuer-Datenpunkts tragen, sonst trifft er nie.
       const regeln: Array<{ wenn: string | number | boolean | null; design: string }> = [];
-      for (const rohD of designBedingt.get(id) ?? []) {
+      for (const rohD of bedingte) {
         const von = str(rohD, "s1");
         const bis = str(rohD, "s2");
         if (von === "") continue;
@@ -554,7 +592,7 @@ export function konvertiereVisu(
         }
         const name = designAus(rohD, true);
         if (!name) continue;
-        regeln.push({ wenn: bedingungsWert(von, element.bindungen?.status), design: name });
+        regeln.push({ wenn: bedingungsWert(von, designQuelle), design: name });
       }
       if (regeln.length > 0) element.design_je_wert = regeln;
 
