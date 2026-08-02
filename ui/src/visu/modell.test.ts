@@ -4,6 +4,7 @@ import {
   beschriftungFuerElement,
   designFuer,
   elementAnzeige,
+  farbwertFuerPixel,
   fachwerkKachelFuer,
   fontFaceCssFuerDesigns,
   schriftartenAusDesigns,
@@ -259,6 +260,19 @@ describe("Schiebeschalter", () => {
     const links = { ...element, parameter: { ...element.parameter, ein_liegt: "links" } };
     expect(schiebeschalterZustand(links, designs, true).knopfLinks).toBe(true);
     expect(schiebeschalterZustand(links, designs, false).knopfLinks).toBe(false);
+  });
+});
+
+describe("Farbauswahl", () => {
+  it("bildet einen Pixel je Modus auf einen schreibbaren Wert ab", () => {
+    const rot = { r: 255, g: 0, b: 0, a: 255 };
+    expect(farbwertFuerPixel(rot, "dimmen", 32)).toBe(255);
+    expect(farbwertFuerPixel(rot, "rgb", 32)).toBe("#ff0000");
+    expect(farbwertFuerPixel(rot, "hsv", 32)).toBe("hsv(0,100%,100%)");
+  });
+
+  it("ignoriert Pixel unterhalb der Alpha-Schwelle", () => {
+    expect(farbwertFuerPixel({ r: 1, g: 2, b: 3, a: 31 }, "rgb", 32)).toBeUndefined();
   });
 });
 
