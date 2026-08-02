@@ -517,3 +517,16 @@ test("bedingte Designs OHNE gaid3 haengen am KO1 — der Normalfall der Standard
   expect(el.bindungen?.status).toBe("wohnen.licht");
   expect(el.design_je_wert![0]!.wenn).toBe(true);
 });
+
+test("der blosse Rohwert {#} wird ein Format, nicht woertlicher Text", () => {
+  const roh = fixture();
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 50, controltyp: 1, pageid: 1, gaid: 100, xpos: 0, ypos: 950, xsize: 80, ysize: 30, text: "{#} °C",
+  });
+  const wz = konvertiereVisu(roh, gaKey).seiten.get("wohnzimmer")!;
+  const el = Object.values(wz.elemente).find((e) => e.format?.suffix === " °C")!;
+  expect(el).toBeDefined();
+  // Die Vorlage darf NICHT als Beschriftung stehenbleiben.
+  expect(el.text).toBeUndefined();
+  expect(el.format?.praefix).toBeUndefined();
+});

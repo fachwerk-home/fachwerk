@@ -24,6 +24,19 @@ if (!altPfad || !neuPfad) {
   process.exit(2);
 }
 const ALLE = rest.includes("--alle");
+/**
+ * Schriftnamen einander zuordnen. Der Import benennt mitgelieferte Schriften
+ * sprechend um (font1 -> „KNX UF"), damit das Gewerk lesbar bleibt. Fuer den
+ * Vergleich muss man die Paare kennen, sonst meldet das Werkzeug eine
+ * Abweichung, wo nur der Name ein anderer ist.
+ *
+ *   --schriften "font1=knx uf,font2=flaticon"
+ */
+const SCHRIFT_ABBILD = new Map(
+  (rest.find((r) => r.startsWith("--schriften="))?.slice(12) ?? "")
+    .split(",").filter(Boolean)
+    .map((paar) => paar.split("=").map((t) => t.trim().toLowerCase())),
+);
 
 /** Zahlen aus einer CSS-Laengenangabe; calc(12px + 3px) ergibt 15. */
 function laenge(wert) {
@@ -58,12 +71,25 @@ function farbe(wert) {
   return t;
 }
 
-/** Schriftfamilie auf den ersten Namen kuerzen und Zierrat entfernen. */
+/**
+ * Schriftfamilie auf den ersten TATSAECHLICH verfuegbaren Namen kuerzen.
+ *
+ * Eine Kette wie „EDOMIfont, Lucida Grande, Arial" nennt zuerst die
+ * Hausschrift des Altsystems. Die liegt dem Export nicht bei, also faellt
+ * jeder Browser auf das naechste Glied zurueck — und Fachwerk zeigt dasselbe.
+ * Wer nur den ersten Namen vergleicht, meldet 28 Abweichungen, wo keine sind.
+ */
+const NICHT_VERFUEGBAR = new Set(["edomifont"]);
+
 function schrift(wert) {
   if (!wert) return undefined;
-  const erst = wert.split(",")[0].trim().replace(/^["']|["']$/g, "").toLowerCase();
-  // Fachwerk stellt importierten Schriften einen Namensraum voran.
-  return erst.replace(/^fachwerk visu /, "");
+  const kette = wert.split(",")
+    .map((n) => n.trim().replace(/^["']|["']$/g, "").toLowerCase())
+    // Fachwerk stellt importierten Schriften einen Namensraum voran.
+    .map((n) => n.replace(/^fachwerk visu /, ""))
+    .filter((n) => n !== "" && !NICHT_VERFUEGBAR.has(n));
+  const erst = kette[0];
+  return erst === undefined ? undefined : (SCHRIFT_ABBILD.get(erst) ?? erst);
 }
 
 /**
@@ -85,9 +111,17 @@ function bedeutungslos(wert) {
     wert === "start" || wert === "left";
 }
 
+/** HTML-Entities im style-Attribut aufloesen — sonst steht dort &quot; statt ". */
+function entities(text) {
+  return text
+    .replace(/&quot;?/g, '"')
+    .replace(/&#0?39;?/g, "'")
+    .replace(/&amp;?/g, "&");
+}
+
 function stilKarte(stil) {
   const karte = new Map();
-  for (const teil of stil.split(";")) {
+  for (const teil of entities(stil).split(";")) {
     const i = teil.indexOf(":");
     if (i < 0) continue;
     karte.set(teil.slice(0, i).trim().toLowerCase(), teil.slice(i + 1).trim());

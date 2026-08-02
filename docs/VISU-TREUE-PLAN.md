@@ -54,6 +54,25 @@ mitbringen: die schlichten Standard-Schalter.
 Das ist der Grund, warum es sich anfühlt wie „jedes Element einzeln". Es ist
 ein Fehler, der 46-mal sichtbar wird.
 
+## Messung nach Schritt 1
+
+| Stand | Abweichungen |
+|---|---:|
+| vorher | 68 |
+| Grundstil vererbt | 54 |
+| Werkzeug: Schriftketten und Entities richtig gelesen | 44 |
+
+Schriftfarbe (10) und Schriftgroesse (8) sind vollstaendig weg. Von den
+verbliebenen 44 sind 18 die Schriftfamilie: die Altanlage nennt eine Kette
+`EDOMIfont, Lucida Grande, Arial`, deren erstes Glied dem Export nicht beiliegt.
+Wir setzen `Arial, Helvetica, sans-serif` — auf einem Mac ist das ein Schritt
+daneben, auf Windows dasselbe. Das ist eine **hingenommene** Differenz, keine
+offene Aufgabe: die Hausschrift des Altsystems duerfen wir nicht mitliefern.
+
+Bleiben rund 26 echte Abweichungen, im Kern drei Gruppen: die
+Schiebeschalter (Eckenradius, Beschriftung), zwei Elemente mit
+Fachwerk-Hintergrund statt keinem, und eine verlorene Schriftfarbe.
+
 ## Reihenfolge
 
 1. **Seiten-Voreinstellungen übernehmen** (Spur 1: Schema + Importer,

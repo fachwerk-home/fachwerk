@@ -187,6 +187,16 @@ const AKT_KO2 = 4;
  */
 const ABGEBILDETE_CONTROLTYPEN = new Set([0, 1, 13, 21, 1004]);
 
+/**
+ * Voreinstellungen des Altsystems fuer Elemente ohne eigene Angabe. Sie sind
+ * Anlagenkonfiguration und stehen nicht im Export; abgelesen wurden sie an der
+ * Darstellung einer realen Anlage (Schriftgroesse 10, schwarzer Text). Wer
+ * andere Vorgaben hat, korrigiert sie im erzeugten Gewerk — sie stehen dort
+ * je Seite als `grundstil` und sind damit sichtbar statt eingebrannt.
+ */
+const GRUNDSCHRIFTGROESSE = 10;
+const GRUNDTEXTFARBE = "#000000";
+
 // ---- Konvertierung ---------------------------------------------------------
 
 export function konvertiereVisu(
@@ -641,6 +651,18 @@ export function konvertiereVisu(
       groessen: { panel: { w: Math.ceil(maxX), h: Math.ceil(maxY) } },
       elemente,
     };
+    // Voreinstellungen der Seite. Das Altsystem gibt jeder Seite eine
+    // Grundschrift mit; Elemente ohne eigene Angabe erben sie. Ohne dieses
+    // Feld erben sie stattdessen die Typografie der Fachwerk-Oberflaeche —
+    // und dann sehen ausgerechnet die schlichten Elemente falsch aus.
+    // Gemessen an einer echten Anlage: 46 von 68 Abweichungen auf einer Seite.
+    //
+    // Die Werte stehen NICHT im Export: sie sind Anlagenkonfiguration. Sie
+    // stammen aus der beobachteten Darstellung des Altsystems und sind
+    // deshalb hier benannt statt versteckt. Die Schriftfamilie bleibt offen —
+    // die Grundschrift des Altsystems liegt dem Export nicht bei, und der
+    // Renderer nimmt dann eine neutrale Serifenlose statt unserer eigenen.
+    seite.grundstil = { schriftgroesse: GRUNDSCHRIFTGROESSE, text: GRUNDTEXTFARBE };
     // Seitenhintergrund (B1): bgcolorid ueber die Palette. 0/null = keiner.
     const bg = bgFarbe.get(info.bgcolorid);
     if (bg) seite.hintergrund = bg;
@@ -915,6 +937,19 @@ function textAlsFormat(text: string): VisuElement["format"] | undefined {
       skalierung: Number(m[1]) / Number(m[2]),
       dezimalstellen: 0,
       ...(suffix ? { suffix: ` ${suffix}` } : {}),
+    };
+  }
+  // Der Rohwert ohne Umrechnung: "{#} °C" zeigt schlicht den Wert mit Einheit.
+  // Das ist kein Raten — `#` IST laut Spec der Rohwert. Ohne diesen Fall steht
+  // die Vorlage woertlich auf dem Panel: "{#} °C" statt "26.3 °C".
+  const roh = /^(.*?)\{\s*#\s*\}(.*)$/s.exec(text);
+  if (roh) {
+    const praefix = roh[1] ?? "";
+    const suffix = roh[2] ?? "";
+    if (praefix.trim() === "" && suffix.trim() === "") return undefined;
+    return {
+      ...(praefix.trim() ? { praefix } : {}),
+      ...(suffix.trim() ? { suffix } : {}),
     };
   }
   // Unbekannter Ausdruck: als Template durchreichen (# -> {wert}) waere Raten;
