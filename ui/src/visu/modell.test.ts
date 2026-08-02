@@ -15,9 +15,13 @@ import {
   placementFuer,
   renderElementeFuerSeite,
   schiebeschalterZustand,
+  reglerKonfiguration,
+  reglerSchreibwert,
+  reglerWertFuerWinkel,
   seitenSkalierung,
   startSeite,
   textausrichtungCss,
+  winkelFuerReglerWert,
   waehleBreakpoint,
 } from "./modell.ts";
 
@@ -273,6 +277,37 @@ describe("Farbauswahl", () => {
 
   it("ignoriert Pixel unterhalb der Alpha-Schwelle", () => {
     expect(farbwertFuerPixel({ r: 1, g: 2, b: 3, a: 31 }, "rgb", 32)).toBeUndefined();
+  });
+});
+
+describe("Regler", () => {
+  const konfiguration = reglerKonfiguration({ widget: "regler", parameter: { min: 0, max: 100, schritt: 1, winkel_von: 210, winkel_bis: 510 } });
+
+  it("ordnet Bereichsgrenzen den Bogenenden zu", () => {
+    expect(winkelFuerReglerWert(0, konfiguration)).toBe(210);
+    expect(winkelFuerReglerWert(100, konfiguration)).toBe(510);
+    expect(reglerWertFuerWinkel(210, konfiguration)).toBe(0);
+    expect(reglerWertFuerWinkel(510, konfiguration)).toBe(100);
+  });
+
+  it("rechnet Wert und Winkel in beide Richtungen", () => {
+    expect(winkelFuerReglerWert(25, konfiguration)).toBe(285);
+    expect(reglerWertFuerWinkel(285, konfiguration)).toBe(25);
+  });
+
+  it("begrenzt Werte und Winkel auf den Wertebereich", () => {
+    expect(winkelFuerReglerWert(-5, konfiguration)).toBe(210);
+    expect(winkelFuerReglerWert(150, konfiguration)).toBe(510);
+    expect(reglerWertFuerWinkel(180, konfiguration)).toBe(100);
+    expect(reglerWertFuerWinkel(540, konfiguration)).toBe(100);
+  });
+
+  it("schreibt beim inkrementellen Ziehen die Differenz zum Wert beim Aufsetzen", () => {
+    const startwert = 20;
+    const zielwert = reglerWertFuerWinkel(360, konfiguration);
+    expect(zielwert).toBe(50);
+    expect(reglerSchreibwert("inkrement", startwert, zielwert)).toBe(30);
+    expect(reglerSchreibwert("poti", startwert, zielwert)).toBe(50);
   });
 });
 

@@ -192,6 +192,15 @@ function schiebeschalterIstAn(wert: unknown): boolean {
   return typeof wert === "string" || typeof wert === "boolean";
 }
 
+export interface ReglerKonfiguration {
+  min: number;
+  max: number;
+  schritt: number;
+  winkelVon: number;
+  winkelBis: number;
+  knopfAnteil: number;
+}
+
 function parameterZahl(parameter: Record<string, unknown> | undefined, key: string, standard: number): number {
   const wert = parameter?.[key];
   return typeof wert === "number" && Number.isFinite(wert) ? wert : standard;
@@ -246,6 +255,47 @@ export function farbwertFuerPixel(pixel: BildPixel, modus: unknown, alphaSchwell
   if (modus === "dimmen") return Math.round(Math.max(pixel.r, pixel.g, pixel.b));
   if (modus === "hsv") return hsvFuerRgb(pixel);
   return `#${hexTeil(pixel.r)}${hexTeil(pixel.g)}${hexTeil(pixel.b)}`;
+}
+
+export function reglerKonfiguration(element: VisuElement): ReglerKonfiguration {
+  const min = parameterZahl(element.parameter, "min", 0);
+  const rohMax = parameterZahl(element.parameter, "max", 255);
+  const max = rohMax > min ? rohMax : min + 1;
+  return {
+    min,
+    max,
+    schritt: Math.max(Number.EPSILON, parameterZahl(element.parameter, "schritt", 1)),
+    winkelVon: parameterZahl(element.parameter, "winkel_von", 210),
+    winkelBis: parameterZahl(element.parameter, "winkel_bis", 510),
+    knopfAnteil: Math.min(100, Math.max(0, parameterZahl(element.parameter, "knopf_anteil", 70))),
+  };
+}
+
+export function begrenzeReglerWert(wert: number, konfiguration: ReglerKonfiguration): number {
+  return Math.min(konfiguration.max, Math.max(konfiguration.min, wert));
+}
+
+export function winkelFuerReglerWert(wert: number, konfiguration: ReglerKonfiguration): number {
+  const begrenzt = begrenzeReglerWert(wert, konfiguration);
+  return konfiguration.winkelVon
+    + ((begrenzt - konfiguration.min) / (konfiguration.max - konfiguration.min))
+      * (konfiguration.winkelBis - konfiguration.winkelVon);
+}
+
+export function reglerWertFuerWinkel(winkel: number, konfiguration: ReglerKonfiguration): number {
+  const von = konfiguration.winkelVon;
+  const bis = konfiguration.winkelBis;
+  let fortschritt = winkel;
+  while (fortschritt < von) fortschritt += 360;
+  while (fortschritt > von + 360) fortschritt -= 360;
+  const anteil = Math.min(1, Math.max(0, (fortschritt - von) / (bis - von)));
+  const rohwert = konfiguration.min + anteil * (konfiguration.max - konfiguration.min);
+  return begrenzeReglerWert(Math.round(rohwert / konfiguration.schritt) * konfiguration.schritt, konfiguration);
+}
+
+/** Ein Inkrementalregler schreibt die Bewegung seit dem Aufsetzen, kein Absolutwert. */
+export function reglerSchreibwert(art: unknown, startwert: number, zielwert: number): number {
+  return art === "inkrement" ? zielwert - startwert : zielwert;
 }
 
 export function formatierterWert(
