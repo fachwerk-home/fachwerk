@@ -23,16 +23,17 @@ import {
   beschriftungFuerElement,
   einzelnesPrivatesSymbol,
   fachwerkKachelFuer,
-  fontFaceCssFuerDesigns,
+  fontFaceCssFuerSchriften,
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
+  schriftartenAusDesigns,
   seitenSkalierung,
   startSeite,
   waehleBreakpoint,
   type WertEintrag,
 } from "./modell.ts";
-import { designStil } from "./design.ts";
+import { designStil, grundstilFuerRenderSeite, grundstilStil } from "./design.ts";
 
 type LiveStatus = "verbindet" | "verbunden" | "getrennt";
 type LiveWert = Extract<LiveNachricht, { art: "wert" }>;
@@ -214,6 +215,7 @@ function VisuElementAnsicht({
   onAktion,
   bedien,
   zIndex,
+  grundstil,
 }: {
   elementKey: string;
   element: VisuElement;
@@ -223,6 +225,7 @@ function VisuElementAnsicht({
   onAktion: (aktion: VisuAktion) => void;
   bedien: BedienKontext;
   zIndex: number;
+  grundstil: JSX.CSSProperties;
 }) {
   const statusKey = element.bindungen?.["status"];
   const status = statusKey ? werte.get(statusKey)?.wert : undefined;
@@ -240,6 +243,7 @@ function VisuElementAnsicht({
     width: placement.w ?? 0,
     height: placement.h ?? 0,
     zIndex,
+    ...grundstil,
     ...designStil(design),
   };
   const inhalt = (
@@ -339,6 +343,7 @@ function SeitenCanvas({
   const canvas = seite.groessen[breakpoint] ?? seite.groessen[seite.basis];
   if (!canvas) return <div class="visu-leer">Keine Canvas-Größe definiert.</div>;
   const faktor = seitenSkalierung(canvas.w, verfuegbar.w);
+  const canvasGrundstil = grundstilStil(seite.grundstil);
 
   return (
     <div class="canvas-rahmen" style={{ width: canvas.w * faktor, height: canvas.h * faktor }}>
@@ -349,6 +354,7 @@ function SeitenCanvas({
           width: canvas.w,
           height: canvas.h,
           transform: `scale(${faktor})`,
+          ...canvasGrundstil,
           ...(seite.hintergrund ? { background: seite.hintergrund } : {}),
         }}
       >
@@ -367,6 +373,7 @@ function SeitenCanvas({
               onAktion={onAktion}
               bedien={bedien}
               zIndex={gruppenEbene + (element.ebene ?? 0)}
+              grundstil={grundstilFuerRenderSeite(renderSeite, seite)}
             />
           );
         })}
@@ -435,7 +442,11 @@ function App() {
 
   useEffect(() => {
     if (!visu) return;
-    const css = fontFaceCssFuerDesigns(visu.designs);
+    const schriften = new Set(schriftartenAusDesigns(visu.designs));
+    for (const seite of Object.values(visu.seiten)) {
+      if (seite.grundstil?.schriftart) schriften.add(seite.grundstil.schriftart);
+    }
+    const css = fontFaceCssFuerSchriften([...schriften]);
     if (!css) return;
     const style = document.createElement("style");
     style.dataset["fachwerkVisuSchriften"] = "true";

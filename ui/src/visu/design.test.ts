@@ -1,5 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { designStil, visuDateiUrl } from "./design.ts";
+import type { VisuSeite } from "../../../schema/src/visu.ts";
+import { designStil, grundstilFuerRenderSeite, grundstilStil, visuDateiUrl } from "./design.ts";
+
+function seite(grundstil?: VisuSeite["grundstil"]): VisuSeite {
+  return {
+    typ: "seite",
+    name: "Test",
+    basis: "tablet",
+    groessen: { tablet: { w: 100, h: 100 } },
+    elemente: {},
+    ...(grundstil ? { grundstil } : {}),
+  };
+}
+
+describe("Visu-Grundstil-CSS", () => {
+  it("legt gesetzte Seiten-Voreinstellungen als vererbbare CSS-Angaben ab", () => {
+    expect(grundstilStil({
+      schriftart: "Altanlage Sans",
+      schriftgroesse: 10,
+      text: "#000000",
+      textausrichtung: "zentriert",
+    })).toMatchObject({
+      fontFamily: "\"Fachwerk Visu Altanlage Sans\"",
+      fontSize: "10px",
+      color: "#000000",
+      textAlign: "center",
+    });
+  });
+
+  it("nutzt ohne Schriftart eine neutrale Serifenlose statt der Fachwerk-Oberflaechenschrift", () => {
+    expect(grundstilStil({ schriftgroesse: 10 })).toMatchObject({
+      fontFamily: "Arial, Helvetica, sans-serif",
+      fontSize: "10px",
+    });
+    expect(grundstilStil({ schriftgroesse: 10 }).fontFamily).not.toBe("var(--fw-schrift)");
+  });
+
+  it("laesst fehlenden Grundstil unveraendert", () => {
+    expect(grundstilStil(undefined)).toEqual({});
+  });
+
+  it("gibt eingebundenen Seiten ihren eigenen Grundstil", () => {
+    expect(grundstilFuerRenderSeite(
+      seite({ schriftgroesse: 11, text: "#111111" }),
+      seite({ schriftgroesse: 10, text: "#000000" }),
+    )).toMatchObject({
+      fontSize: "11px",
+      color: "#111111",
+    });
+  });
+
+  it("laesst Includes ohne Grundstil nicht den Grundstil der einbindenden Seite erben", () => {
+    expect(grundstilFuerRenderSeite(
+      seite(),
+      seite({ schriftgroesse: 10, text: "#000000" }),
+    )).toMatchObject({
+      fontFamily: "var(--fw-schrift)",
+      fontSize: "14px",
+      color: "var(--fw-text)",
+      textAlign: "left",
+    });
+  });
+});
 
 describe("Visu-Design-CSS", () => {
   it("zeichnet Schatten nach innen", () => {

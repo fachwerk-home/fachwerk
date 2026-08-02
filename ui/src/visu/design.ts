@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { VisuDesign, VisuRand, VisuSchatten } from "../../../schema/src/visu.ts";
+import type { VisuDesign, VisuGrundstil, VisuRand, VisuSchatten, VisuSeite } from "../../../schema/src/visu.ts";
 import { schriftfamilieFuer, textausrichtungCss } from "./modell.ts";
 
 function px(wert: number | undefined): string {
@@ -54,6 +54,34 @@ function schriftstaerkeCss(
 
 export function visuDateiUrl(datei: string): string {
   return `/api/visu/datei/${encodeURIComponent(datei)}`;
+}
+
+const VISU_OHNE_GRUNDSTIL: JSX.CSSProperties = {
+  fontFamily: "var(--fw-schrift)",
+  fontSize: "14px",
+  color: "var(--fw-text)",
+  textAlign: "left",
+};
+
+export function grundstilStil(grundstil: VisuGrundstil | undefined): JSX.CSSProperties {
+  if (!grundstil) return {};
+  return {
+    // Eine importierte Seite ist keine Fachwerk-Oberflaeche. Fehlt die
+    // Schriftangabe, erbt sie deshalb nicht Inter aus der App, sondern eine
+    // neutrale Web-Serifenlose.
+    fontFamily: grundstil.schriftart
+      ? schriftfamilieFuer(grundstil.schriftart)
+      : "Arial, Helvetica, sans-serif",
+    ...(grundstil.schriftgroesse !== undefined ? { fontSize: `${grundstil.schriftgroesse}px` } : {}),
+    ...(grundstil.text ? { color: grundstil.text } : {}),
+    textAlign: textausrichtungCss(grundstil.textausrichtung),
+  };
+}
+
+export function grundstilFuerRenderSeite(renderSeite: VisuSeite, canvasSeite: VisuSeite): JSX.CSSProperties {
+  if (renderSeite === canvasSeite) return {};
+  if (renderSeite.grundstil) return grundstilStil(renderSeite.grundstil);
+  return canvasSeite.grundstil ? VISU_OHNE_GRUNDSTIL : {};
 }
 
 export function designStil(design: VisuDesign): JSX.CSSProperties {
