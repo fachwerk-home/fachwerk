@@ -128,6 +128,16 @@ export interface VisuElement {
   format?: WertFormat;
   placements?: Record<string, VisuPlacement>;
 }
+/** Vererbbare Voreinstellungen einer Seite. */
+export interface VisuGrundstil {
+  /** Schriftfamilie aus visu/dateien/. Fehlt sie, gilt eine neutrale Serifenlose. */
+  schriftart?: string;
+  schriftgroesse?: number;
+  /** Schriftfarbe — heisst wie im Design `text`. */
+  text?: string;
+  textausrichtung?: "links" | "zentriert" | "rechts" | "blocksatz";
+}
+
 export interface VisuSeite {
   typ: VisuSeitenTyp;
   name: string;
@@ -140,6 +150,19 @@ export interface VisuSeite {
    * `design: d12` einen Nachschlag erzwingt (ADR-0004: Gewerk = lesbarer Text).
    */
   hintergrund?: string;
+  /**
+   * Voreinstellungen der Seite, die JEDES Element ohne eigene Angabe erbt.
+   *
+   * Ein importiertes Altsystem bringt eigene Vorgaben mit — andere Schrift,
+   * andere Groesse, andere Textfarbe. Ohne dieses Feld erben die Elemente
+   * stattdessen die Vorgaben der Fachwerk-Oberflaeche, und dann sehen genau
+   * die Elemente falsch aus, die im Original nichts eigenes mitbringen: die
+   * schlichten. Gemessen an einer echten Anlage waren das 46 von 68
+   * Abweichungen — eine Ursache, vielfach sichtbar.
+   *
+   * Nur vererbbare Angaben: was nicht vererbt wird, gehoert ins Design.
+   */
+  grundstil?: VisuGrundstil;
   /**
    * Seiten vom Typ `include`, die VOR dem eigenen Inhalt gerendert werden
    * (z. B. ein Kopfbereich auf jeder Seite). Referenziert wird der Seiten-
