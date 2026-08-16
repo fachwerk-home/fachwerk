@@ -48,6 +48,9 @@ function hilfe(): void {
                       sich NICHT auf Strg+C: "docker exec -i" ohne -t reicht
                       Tastatursignale gar nicht an den Container weiter
   --auch-bus          auch Bus-Datenpunkte schreiben (Standard: nur interne)
+  --setze <wert>      EINEN festen Wert schreiben und aufhoeren, statt zu
+                      wandern. Genau das braucht man, um eine Anzeige fuer
+                      einen Abzug in einen bestimmten Zustand zu bringen.
   --trocken           nur zeigen, was geschrieben wuerde
 
 Beispiele:
@@ -166,6 +169,37 @@ export async function simulator(argv: string[]): Promise<number> {
       `${opt.laeufe === 0 && opt.dauerMs === 0 ? ", unbegrenzt — mit --dauer oder --laeufe begrenzen" : ""}` +
       `${opt.trocken ? " — TROCKEN, es wird nichts geschrieben" : ""}`,
   );
+  // Fester Wert: einmal schreiben, fertig. Kein Warten, keine Schleife.
+  const festerWert = wert("--setze");
+  if (festerWert !== undefined) {
+    let geschrieben = 0;
+    for (const d of ziele) {
+      // Der Text von der Kommandozeile im Typ des Datenpunkts: "1" auf einem
+      // bool-Punkt muss true werden, sonst lehnt die API ab.
+      const zahl = Number(festerWert);
+      const w = d.typ === "bool"
+        ? festerWert === "1" || festerWert.toLowerCase() === "true"
+        : d.typ === "zahl" && Number.isFinite(zahl) ? zahl : festerWert;
+      if (opt.trocken) {
+        console.log(`  ${d.schluessel} (${d.typ}) ${JSON.stringify(d.wert)} -> ${JSON.stringify(w)}`);
+        continue;
+      }
+      const antwort = await fetch(`${opt.basis}/api/datenpunkte/${d.schluessel}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: opt.basis,
+          ...(opt.token ? { authorization: `Bearer ${opt.token}` } : {}),
+        },
+        body: JSON.stringify({ wert: w }),
+      });
+      if (antwort.ok) geschrieben++;
+      else console.error(`  ${d.schluessel}: abgelehnt (${antwort.status})`);
+    }
+    if (!opt.trocken) console.error(`${geschrieben} von ${ziele.length} gesetzt.`);
+    return geschrieben > 0 || opt.trocken ? 0 : 1;
+  }
+
   if (opt.trocken) {
     for (const d of ziele) {
       console.log(`  ${d.schluessel} (${d.typ}) ${JSON.stringify(d.wert)} -> ${JSON.stringify(naechsterWert(d))}`);
