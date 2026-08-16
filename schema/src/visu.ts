@@ -239,6 +239,21 @@ export interface VisuDesign {
   polsterung?: number;
   /** Verschiebung gegenueber der Platzierung, in Pixeln. */
   versatz?: { x?: number; y?: number };
+  /**
+   * Groessenzuschlag des Designs gegenueber der Platzierung, in Pixeln.
+   *
+   * Damit kann ein wertabhaengiges Design die AUSDEHNUNG aendern, nicht nur
+   * die Farbe — ein Schalterknopf, der im Zustand An von 83 auf 183 Pixel
+   * waechst und so den Rahmen ausfuellt. Ohne dieses Feld steht so ein Knopf
+   * still, weil sein Zustandsdesign zwar Farben mitbringt, aber keine Groesse.
+   *
+   * Rechenregel fuer den Renderer: die Platzierung enthaelt bereits den
+   * Zuschlag des GRUNDdesigns. Wirksam ist deshalb die Differenz —
+   * `Groesse = Platzierung - grunddesign.zuschlag + aktivesDesign.zuschlag`.
+   * Solange dasselbe Design gilt, ist die Differenz null und nichts aendert
+   * sich; das haelt bestehende Seiten unveraendert.
+   */
+  groessenzuschlag?: { b?: number; h?: number };
   rand?: VisuRand;
   schatten?: VisuSchatten;
   textschatten?: Omit<VisuSchatten, "ueberstand" | "innen">;

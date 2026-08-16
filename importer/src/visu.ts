@@ -159,7 +159,15 @@ function verlaufsRichtung(alt: string): string {
  * links). Deshalb wird der Winkel mit umgerechnet.
  */
 export function farbe(roh: string): string {
-  return roh.replace(
+  // Ein Semikolon am Ende ist kein Tippfehler des Betreibers, sondern ein
+  // Nebeneffekt der Altanlage: dort landet die Farbe per Textverkettung in
+  // einer Deklarationsliste (`background:` + Wert + `;`), und ein zweites
+  // Semikolon stoert dort niemanden. Wir tragen den Wert in ein eigenes Feld
+  // ein — als CSS-WERT ist das Semikolon ungueltig, der Browser verwirft die
+  // ganze Angabe, und das Element behaelt stumm die Farbe seines Grunddesigns.
+  // Belegt an einer echten Anlage: ein Zustandsdesign schaltete deshalb
+  // sichtbar nicht um. Genau ein Palettenwert war betroffen.
+  return roh.replace(/[\s;]+$/, "").replace(
     /-webkit-(linear-gradient|radial-gradient)\(\s*([^,]+),/g,
     (_treffer, art: string, richtung: string) =>
       art === "linear-gradient"
@@ -408,6 +416,14 @@ export function konvertiereVisu(
     const dx = slotZahl(roh, "s3");
     const dy = slotZahl(roh, "s4");
     if (dx !== 0 || dy !== 0) d.versatz = { ...(dx ? { x: dx } : {}), ...(dy ? { y: dy } : {}) };
+    // s5/s6 gehoeren dem Design, nicht dem Element: ein Zustandsdesign darf die
+    // Ausdehnung aendern. Das Grunddesign steckt schon in der Platzierung
+    // (siehe groesse()), wirksam ist deshalb die Differenz zum aktiven Design.
+    const db = slotZahl(roh, "s5");
+    const dh = slotZahl(roh, "s6");
+    if (db !== 0 || dh !== 0) {
+      d.groessenzuschlag = { ...(db ? { b: db } : {}), ...(dh ? { h: dh } : {}) };
+    }
     const bild = bildDatei.get(slotZahl(roh, "s10"));
     if (bild) {
       d.bild = bild;

@@ -142,6 +142,19 @@
             }
           }
         },
+        "groessenzuschlag": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "b": {
+              "type": "number"
+            },
+            "h": {
+              "type": "number"
+            }
+          }
+        },
         "schatten": {
           "type": "object",
           "additionalProperties": false,

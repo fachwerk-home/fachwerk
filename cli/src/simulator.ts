@@ -123,6 +123,28 @@ export async function simulator(argv: string[]): Promise<number> {
     const i = argv.indexOf(name);
     return i >= 0 ? argv[i + 1] : undefined;
   };
+  // Eine unbekannte Option ist ein Abbruchgrund, keine Kleinigkeit. Wer
+  // --setze an eine aeltere Fassung schickt, die das noch nicht kennt, bekaeme
+  // sonst wortlos die wandernde Betriebsart und einen Lauf ohne Ende — genau
+  // das ist an einer echten Anlage zweimal passiert. Lieber laut abbrechen und
+  // damit gleich verraten, dass der Dienst nicht auf dem erwarteten Stand ist.
+  const MIT_WERT = ["--host", "--token", "--nutzer", "--nur", "--intervall", "--laeufe", "--dauer", "--setze"];
+  const OHNE_WERT = ["--auch-bus", "--trocken", "--help", "-h"];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (!a.startsWith("-")) continue;
+    if (MIT_WERT.includes(a)) {
+      if (argv[i + 1] === undefined || argv[i + 1]!.startsWith("--")) {
+        console.error(`FEHLER: ${a} braucht einen Wert.`);
+        return 2;
+      }
+      i++;
+      continue;
+    }
+    if (OHNE_WERT.includes(a)) continue;
+    console.error(`FEHLER: unbekannte Option „${a}". Bekannt sind: ${[...MIT_WERT, ...OHNE_WERT].join(", ")}`);
+    return 2;
+  }
   const basis = (wert("--host") ?? "http://localhost:8300").replace(/\/$/, "");
   let token = wert("--token");
   const nutzer = wert("--nutzer");

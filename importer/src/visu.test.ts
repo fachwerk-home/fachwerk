@@ -261,6 +261,17 @@ test("farbe laesst einfache Farben und radiale Verlaeufe unangetastet", () => {
   expect(farbe("-webkit-radial-gradient(circle, #a, #b)")).toBe("radial-gradient(circle, #a, #b)");
 });
 
+test("farbe entfernt ein angehaengtes Semikolon", () => {
+  // In der Altanlage landet die Farbe per Verkettung in einer
+  // Deklarationsliste, dort ist das zweite Semikolon harmlos. Als CSS-WERT ist
+  // es ungueltig: der Browser verwirft die Angabe, und das Element behaelt
+  // stumm die Farbe seines Grunddesigns — ein Zustandsdesign schaltete
+  // dadurch an einer echten Anlage sichtbar nicht um.
+  expect(farbe("rgb(0, 162, 255);")).toBe("rgb(0, 162, 255)");
+  expect(farbe("#57545e ; ")).toBe("#57545e");
+  expect(farbe("-webkit-linear-gradient(left, #a, #b);")).toBe("linear-gradient(to right, #a, #b)");
+});
+
 // ---- Dynamisch dimensionierte Elemente -------------------------------------
 // Das Altsystem addiert Elementgroesse und Design-Zuschlag: calc(<xsize>px +
 // <s5>px). Wer nur xsize liest, macht aus einem dynamisch dimensionierten
@@ -344,6 +355,31 @@ test("styletyp 1 wird zu design_je_wert mit typrichtigem Vergleichswert", () => 
   const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.design_je_wert)!;
   expect(el.bindungen?.status).toBe("status.merker");
   expect(el.design_je_wert!.map((r) => r.wenn)).toEqual([11, 12]);
+});
+
+test("ein Zustandsdesign darf die Ausdehnung aendern, nicht nur die Farbe", () => {
+  // Belegt an einer echten Anlage: der Knopf eines selbstgebauten Schalters
+  // waechst im Zustand An von 83 auf 183 Pixel und fuellt so den Rahmen. Ohne
+  // s5/s6 IM DESIGN bekaeme das Zustandsdesign nur eine andere Farbe — der
+  // Knopf stuende still, und der Schalter saehe im An-Zustand falsch aus.
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 372, ga: "372", name: "Spots" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 24, controltyp: 1, pageid: 1, gaid3: 372, xpos: 0, ypos: 580, xsize: 1, ysize: 1, text: "Z",
+  });
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 54, targetid: 24, styletyp: 0, s5: "82", s6: "82" },
+    { id: 55, targetid: 24, styletyp: 1, s1: "1", s2: "1", s5: "182", s6: "82" },
+  );
+  const { seiten, designs } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) => (n === "Spots" ? "status.spots" : undefined),
+    typVon: () => "zahl",
+  });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.design_je_wert)!;
+  // Die Platzierung traegt weiter den Zuschlag des Grunddesigns: 1 + 82.
+  expect(el.placements?.["panel"]).toMatchObject({ w: 83, h: 83 });
+  expect(designs[el.design!]!.groessenzuschlag).toEqual({ b: 82, h: 82 });
+  expect(designs[el.design_je_wert![0]!.design]!.groessenzuschlag).toEqual({ b: 182, h: 82 });
 });
 
 test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
