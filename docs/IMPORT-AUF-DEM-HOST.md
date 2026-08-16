@@ -152,6 +152,32 @@ Anlage (Kommunikationsobjekte, Verdrahtung, Seiten). Weder Programmcode noch
 Laufzeitdaten. Das ist die Clean-Room-Linie des Projekts, und sie ist hier kein
 Zufall, sondern die Liste oben.
 
+## Zustandsabhängige Anzeigen prüfen
+
+Eine importierte Visu zeigt ihre halbe Wahrheit erst, wenn sich Werte ändern —
+ob ein Schalter umschlägt oder ein Symbol die Farbe wechselt, sieht man am
+ruhenden Bild nicht. Im Beobachtungsmodus bewegt sich aber nichts, weil niemand
+schreibt.
+
+`fachwerk simulator` treibt Datenpunkte über dieselbe API wie ein Bediener:
+
+```bash
+C=$(docker ps -qf name=fachwerk)
+printf 'DEIN-PASSWORT
+' | docker exec -i "$C" node cli/src/main.ts simulator   --nutzer julian --nur '^status\.' --intervall 1000
+```
+
+Das `node cli/src/main.ts` davor muss sein — `docker exec` geht nicht durch den
+ENTRYPOINT des Images.
+
+Standardmäßig werden **nur interne** Datenpunkte geschrieben; der Bus bleibt
+unberührt, solange `--auch-bus` fehlt. `--trocken` zeigt vorher, was passieren
+würde, `--laeufe 3` begrenzt die Runden, `Strg+C` beendet.
+
+Die Werte laufen eine feste Treppe (`0 → 1 → 20 → 50 → 100 → 255`, bool kippt)
+statt zufällig: so lässt sich nachvollziehen, welcher Wert welche Anzeige
+ausgelöst hat.
+
 ## Wenn etwas schiefgeht
 
 | Meldung | Bedeutung |

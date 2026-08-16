@@ -37,7 +37,9 @@ function hilfe(): void {
   console.log(`Aufruf: fachwerk simulator [Optionen]
 
   --host <url>        Basis der laufenden Instanz (Standard http://localhost:8300)
-  --token <t>         Bearer-Token, falls die Instanz eine Anmeldung verlangt
+  --nutzer <name>     Anmeldung mit einem Nutzerkonto; das Passwort kommt ueber
+                      stdin, nie ueber die Kommandozeile
+  --token <t>         stattdessen ein statisches Bearer-Token
   --nur <muster>      nur Datenpunkte, deren Schluessel darauf passt (regulaerer Ausdruck)
   --intervall <ms>    Abstand zwischen zwei Schritten (Standard 1500)
   --laeufe <n>        Anzahl Durchlaeufe; 0 = endlos (Standard 0)
@@ -45,8 +47,8 @@ function hilfe(): void {
   --trocken           nur zeigen, was geschrieben wuerde
 
 Beispiele:
-  fachwerk simulator --nur '^status\\.'
-  fachwerk simulator --host http://192.168.11.77:8300 --token geheim --intervall 800`);
+  printf 'geheim\\n' | fachwerk simulator --nutzer julian --nur '^status\\.'
+  fachwerk simulator --token geheim --intervall 800 --laeufe 3`);
 }
 
 /**
@@ -65,6 +67,34 @@ export function naechsterWert(dp: Pick<Datenpunkt, "typ" | "wert">): unknown {
   }
   // Text: zwischen zwei erkennbaren Zustaenden wechseln.
   return dp.wert === "AN" ? "AUS" : "AN";
+}
+
+/**
+ * Mit Nutzerkonto anmelden und das Sitzungstoken holen.
+ *
+ * Das Passwort kommt ueber stdin, nie ueber argv — Argumente stehen in der
+ * Prozessliste und in der Shell-Historie. Genauso macht es `nutzer anlegen`,
+ * und im Skript sieht beides gleich aus:
+ *
+ *     printf 'geheim\n' | fachwerk simulator --nutzer julian
+ */
+async function melde_an(basis: string, name: string): Promise<string> {
+  const passwort = (await new Promise<string>((fertig) => {
+    let puffer = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (teil) => void (puffer += teil));
+    process.stdin.on("end", () => fertig(puffer));
+  })).split("\n")[0]?.trim() ?? "";
+  if (passwort === "") throw new Error("kein Passwort auf stdin — printf 'geheim\n' | fachwerk simulator …");
+  const antwort = await fetch(`${basis}/api/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: basis },
+    body: JSON.stringify({ name, passwort }),
+  });
+  if (!antwort.ok) throw new Error(`Anmeldung als "${name}" abgelehnt (${antwort.status})`);
+  const daten = (await antwort.json()) as { token?: string };
+  if (!daten.token) throw new Error("Anmeldung lieferte kein Token");
+  return daten.token;
 }
 
 async function hole(opt: Optionen, pfad: string): Promise<unknown> {
@@ -86,9 +116,20 @@ export async function simulator(argv: string[]): Promise<number> {
     const i = argv.indexOf(name);
     return i >= 0 ? argv[i + 1] : undefined;
   };
+  const basis = (wert("--host") ?? "http://localhost:8300").replace(/\/$/, "");
+  let token = wert("--token");
+  const nutzer = wert("--nutzer");
+  if (nutzer) {
+    try {
+      token = await melde_an(basis, nutzer);
+    } catch (e) {
+      console.error(`FEHLER: ${e instanceof Error ? e.message : String(e)}`);
+      return 1;
+    }
+  }
   const opt: Optionen = {
-    basis: (wert("--host") ?? "http://localhost:8300").replace(/\/$/, ""),
-    ...(wert("--token") ? { token: wert("--token")! } : {}),
+    basis,
+    ...(token ? { token } : {}),
     muster: new RegExp(wert("--nur") ?? ""),
     intervallMs: Number(wert("--intervall") ?? 1500),
     laeufe: Number(wert("--laeufe") ?? 0),
