@@ -174,8 +174,16 @@ function ElementInhalt({
           <span
             class="schiebeschalter-knopf"
             style={{
-              width: `${schalter.knopfAnteil}%`,
-              left: schalter.knopfLinks ? "0" : `${100 - schalter.knopfAnteil}%`,
+              ...(schalter.knopfGroesse
+                ? {
+                  width: `${schalter.knopfGroesse.b}px`,
+                  height: `${schalter.knopfGroesse.h}px`,
+                  transform: `translate(${schalter.knopfVersatz?.x ?? 0}px, ${schalter.knopfVersatz?.y ?? 0}px)`,
+                }
+                : {
+                  width: `${schalter.knopfAnteil}%`,
+                  transform: `translateX(${schalter.knopfLinks ? 0 : 100 - schalter.knopfAnteil}%)`,
+                }),
               transitionDuration: `${schalter.dauerMs}ms`,
               ...designStil(schalter.knopf),
             }}

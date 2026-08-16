@@ -279,6 +279,20 @@ describe("Schiebeschalter", () => {
     expect(schiebeschalterZustand(links, designs, true).knopfLinks).toBe(true);
     expect(schiebeschalterZustand(links, designs, false).knopfLinks).toBe(false);
   });
+
+  it("bevorzugt die Zustandsliste, vergleicht streng und fällt auf ihren ersten Eintrag zurück", () => {
+    const zustandsElement: VisuElement = {
+      widget: "schiebeschalter",
+      parameter: { zustaende: [
+        { wenn: 0, rahmen: "aus", knopf: "knopfAus" },
+        { wenn: 1, rahmen: "ein", knopf: "knopfEin" },
+      ], dauer_ms: 200, aus: "ein" },
+    };
+    expect(schiebeschalterZustand(zustandsElement, designs, 1)).toMatchObject({
+      flaeche: designs.ein, knopf: designs.knopfEin, knopfGroesse: { b: 1, h: 1 }, dauerMs: 200,
+    });
+    expect(schiebeschalterZustand(zustandsElement, designs, "1").flaeche).toEqual(designs.aus);
+  });
 });
 
 describe("Farbauswahl", () => {

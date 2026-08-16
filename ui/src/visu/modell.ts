@@ -202,6 +202,8 @@ export interface SchiebeschalterZustand {
   knopfLinks: boolean;
   knopfAnteil: number;
   dauerMs: number;
+  knopfGroesse?: { b: number; h: number };
+  knopfVersatz?: { x: number; y: number };
 }
 
 /** Alles ausser einem klaren Aus-Wert ist der eingeschaltete Zustand. */
@@ -234,6 +236,30 @@ export function schiebeschalterZustand(
   designs: VisuDesigns,
   status: unknown,
 ): SchiebeschalterZustand {
+  const zustaende = element.parameter?.["zustaende"];
+  if (Array.isArray(zustaende)) {
+    const gueltige = zustaende.filter((zustand): zustand is Record<string, unknown> => (
+      typeof zustand === "object" && zustand !== null
+      && typeof zustand["rahmen"] === "string" && typeof zustand["knopf"] === "string"
+    ));
+    const zustand = gueltige.find((eintrag) => eintrag["wenn"] === status) ?? gueltige[0];
+    if (zustand) {
+      const knopf = designs[zustand["knopf"] as string];
+      return {
+        an: status !== false && status !== 0 && status !== "" && status !== null && status !== undefined,
+        flaeche: designs[zustand["rahmen"] as string] ?? {},
+        ...(knopf ? { knopf } : {}),
+        knopfLinks: false,
+        knopfAnteil: 0,
+        dauerMs: Math.max(0, parameterZahl(element.parameter, "dauer_ms", 0)),
+        ...(knopf ? {
+          // Die Altanlage zählt den Basispixel nicht im Zuschlag mit.
+          knopfGroesse: { b: (knopf.groessenzuschlag?.b ?? 0) + 1, h: (knopf.groessenzuschlag?.h ?? 0) + 1 },
+          knopfVersatz: { x: knopf.versatz?.x ?? 0, y: knopf.versatz?.y ?? 0 },
+        } : {}),
+      };
+    }
+  }
   const an = schiebeschalterIstAn(status);
   const ausDesign = typeof element.parameter?.["aus"] === "string" ? designs[element.parameter["aus"]] : undefined;
   const einDesign = typeof element.parameter?.["ein"] === "string" ? designs[element.parameter["ein"]] : undefined;
