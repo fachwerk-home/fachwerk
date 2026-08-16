@@ -289,7 +289,7 @@ describe("Schiebeschalter", () => {
       ], dauer_ms: 200, aus: "ein" },
     };
     expect(schiebeschalterZustand(zustandsElement, designs, 1)).toMatchObject({
-      flaeche: designs.ein, knopf: designs.knopfEin, knopfGroesse: { b: 1, h: 1 }, dauerMs: 200,
+      flaeche: designs.ein, knopf: designs.knopfEin, knopfGroesse: { b: 0, h: 0 }, dauerMs: 200,
     });
     expect(schiebeschalterZustand(zustandsElement, designs, "1").flaeche).toEqual(designs.aus);
   });

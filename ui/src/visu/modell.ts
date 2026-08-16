@@ -254,7 +254,7 @@ export function schiebeschalterZustand(
         dauerMs: Math.max(0, parameterZahl(element.parameter, "dauer_ms", 0)),
         ...(knopf ? {
           // Die Altanlage zählt den Basispixel nicht im Zuschlag mit.
-          knopfGroesse: { b: (knopf.groessenzuschlag?.b ?? 0) + 1, h: (knopf.groessenzuschlag?.h ?? 0) + 1 },
+          knopfGroesse: { b: knopf.groessenzuschlag?.b ?? 0, h: knopf.groessenzuschlag?.h ?? 0 },
           knopfVersatz: { x: knopf.versatz?.x ?? 0, y: knopf.versatz?.y ?? 0 },
         } : {}),
       };

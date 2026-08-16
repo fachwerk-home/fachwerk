@@ -362,10 +362,12 @@ function VisuElementAnsicht({
   const hatSet = setKey !== undefined;
   const kachel = schiebeschalter ? false : fachwerkKachelFuer(element, design);
   const einzelSymbol = einzelnesPrivatesSymbol(beschriftungFuerElement(element, design)) || einzelnesPrivatesSymbol(design.icon);
+  const groesse = groesseFuerPlacement(element, designs, status, placement);
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
     top: placement.y ?? 0,
-    ...groesseFuerPlacement(element, designs, status, placement),
+    width: groesse.w,
+    height: groesse.h,
     zIndex,
     ...grundstil,
     ...designStil(design),
@@ -523,27 +525,29 @@ function reaktionswerte(element: VisuElement): unknown[] {
 function VorschauTafel({
   seite, seiteKey, seiten, datenpunkte, operate, wertSetzen, schliessen,
 }: {
-  seite: VisuSeite; seiteKey: string; seiten: Record<string, VisuSeite>; datenpunkte: ReadonlyMap<string, DatenpunktSicht>;
+  seite: VisuSeite; seiteKey: string; seiten: Record<string, VisuSeite>; datenpunkte: ReadonlyMap<string, DatenpunktSicht>; werte: ReadonlyMap<string, WertEintrag>;
   operate: boolean; wertSetzen: (schluessel: string, wert: Wert, echt: boolean) => void; schliessen: () => void;
 }) {
   const [echt, setEcht] = useState(false);
   const eintraege = useMemo(() => {
-    const werte = new Map<string, unknown[]>();
+    const reaktionen = new Map<string, unknown[]>();
     for (const { element } of renderElementeFuerSeite(seiten, seiteKey)) {
       for (const schluessel of Object.values(element.bindungen ?? {})) {
-        const bisher = werte.get(schluessel) ?? [];
+        const bisher = reaktionen.get(schluessel) ?? [];
         bisher.push(...reaktionswerte(element));
-        werte.set(schluessel, bisher);
+        reaktionen.set(schluessel, bisher);
       }
     }
-    return [...werte.keys()].sort().flatMap((schluessel) => {
-      const dp = datenpunkte.get(schluessel);
+    return [...reaktionen.keys()].sort().flatMap((schluessel) => {
+      const datenpunkt = datenpunkte.get(schluessel);
+      const dp = datenpunkt ? { ...datenpunkt, wert: werte.get(schluessel)?.wert ?? datenpunkt.wert } : undefined;
       if (!dp || (echt && dp.protected)) return [];
-      const optionen = [...new Map((werte.get(schluessel) ?? []).map((wert) => [JSON.stringify(wert), wert])).values()]
+      const rueckfall: Wert = dp.typ === "bool" ? false : dp.typ === "zahl" ? 0 : "";
+      const optionen = [...new Map([rueckfall, ...(reaktionen.get(schluessel) ?? [])].map((wert) => [JSON.stringify(wert), wert])).values()]
         .sort((a, b) => String(a).localeCompare(String(b), "de", { numeric: true }));
       return [{ dp, optionen }];
     });
-  }, [seite, seiteKey, seiten, datenpunkte, echt]);
+  }, [seite, seiteKey, seiten, datenpunkte, werte, echt]);
   const modus = echt ? "Wirklich setzen" : "Vorschau";
   return <aside class="visu-vorschau" aria-label="Visu-Vorschau">
     <header><strong>{modus}</strong><button onClick={schliessen} aria-label="Vorschau schließen">×</button></header>
@@ -839,7 +843,7 @@ function App() {
           </section>
         </div>
       )}
-      {vorschauOffen && <VorschauTafel seite={seite} seiteKey={seiteKey} seiten={visu.seiten} datenpunkte={datenpunkte} operate={hatScope(ich, "operate")} schliessen={() => setVorschauOffen(false)} wertSetzen={(schluessel, wert, echt) => {
+      {vorschauOffen && <VorschauTafel seite={seite} seiteKey={seiteKey} seiten={visu.seiten} datenpunkte={datenpunkte} werte={darstellungsWerte} operate={hatScope(ich, "operate")} schliessen={() => setVorschauOffen(false)} wertSetzen={(schluessel, wert, echt) => {
         if (echt) {
           void api.setzeDatenpunkt(schluessel, wert).catch((error: unknown) => zeigeToast(error instanceof Error ? error.message : String(error), "fehler"));
           return;
