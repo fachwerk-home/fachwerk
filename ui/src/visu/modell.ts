@@ -176,6 +176,25 @@ export function designFuer(
   return mischeDesign(basis, dynamisch ? designs[dynamisch] : undefined);
 }
 
+/**
+ * Die Platzierung enthält schon den Zuschlag ihres Grunddesigns. Ein
+ * Zustandsdesign ersetzt diesen daher, statt ihn noch einmal aufzuschlagen.
+ */
+export function groesseFuerPlacement(
+  element: VisuElement,
+  designs: VisuDesigns,
+  status: unknown,
+  placement: VisuPlacement,
+): { w: number; h: number } {
+  const basis = element.design ? designs[element.design] : undefined;
+  const regel = element.design_je_wert?.find((eintrag) => eintrag.wenn === status);
+  const aktiv = regel?.design ? designs[regel.design] : basis;
+  return {
+    w: (placement.w ?? 0) - (basis?.groessenzuschlag?.b ?? 0) + (aktiv?.groessenzuschlag?.b ?? 0),
+    h: (placement.h ?? 0) - (basis?.groessenzuschlag?.h ?? 0) + (aktiv?.groessenzuschlag?.h ?? 0),
+  };
+}
+
 export interface SchiebeschalterZustand {
   an: boolean;
   flaeche: VisuDesign;
@@ -316,6 +335,7 @@ export interface ElementAnzeige {
   rohwert: unknown;
   hatText: boolean;
   hatWert: boolean;
+  wertAngefordert: boolean;
 }
 
 export type VisuAnzeigeKontext = "client" | "editor";
@@ -357,6 +377,7 @@ export function elementAnzeige(
     rohwert,
     hatText: text !== undefined,
     hatWert: wertKey !== undefined,
+    wertAngefordert: element.format !== undefined || placement?.format !== undefined,
   };
 }
 

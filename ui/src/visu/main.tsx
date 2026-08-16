@@ -26,6 +26,7 @@ import {
   fachwerkKachelFuer,
   fontFaceCssFuerSchriften,
   navigationZeigtPfeil,
+  groesseFuerPlacement,
   placementFuer,
   reglerKonfiguration,
   reglerSchreibwert,
@@ -307,9 +308,9 @@ function ElementInhalt({
       // daneben) — der Schluessel-Fallback waere dort erfundene Zierde.
       return <MitSymbol element={element} label={anzeige.label}><>{anzeige.hatText && <span class="element-name">{anzeige.label}</span>}<strong class="element-wert">{anzeige.wert || "—"}</strong></></MitSymbol>;
     case "statusanzeige":
-      return <MitSymbol element={element} label={anzeige.label}><><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</></MitSymbol>;
+      return <MitSymbol element={element} label={anzeige.label}><><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && anzeige.wertAngefordert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</></MitSymbol>;
     case "schalter":
-      return <MitSymbol element={element} label={anzeige.label}><><span>{anzeige.label}</span><strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong></></MitSymbol>;
+      return <MitSymbol element={element} label={anzeige.label}><><span>{anzeige.label}</span>{anzeige.wertAngefordert && <strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong>}</></MitSymbol>;
     case "taster":
       return <MitSymbol element={element} label={anzeige.label}><span>{anzeige.label}</span></MitSymbol>;
     case "navigation":
@@ -356,8 +357,7 @@ function VisuElementAnsicht({
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
     top: placement.y ?? 0,
-    width: placement.w ?? 0,
-    height: placement.h ?? 0,
+    ...groesseFuerPlacement(element, designs, status, placement),
     zIndex,
     ...grundstil,
     ...designStil(design),
