@@ -164,7 +164,16 @@ schreibt.
 ```bash
 C=$(docker ps -qf name=fachwerk)
 printf 'DEIN-PASSWORT
-' | docker exec -i "$C" node cli/src/main.ts simulator   --nutzer julian --nur '^status\.' --intervall 1000
+' | docker exec -i "$C" node cli/src/main.ts simulator   --nutzer julian --nur '^status\.' --intervall 1000 --dauer 120
+```
+
+**`--dauer` oder `--laeufe` mitgeben.** `docker exec -i` ohne `-t` reicht
+Tastatursignale nicht an den Container weiter — Strg+C beendet dann nur die
+lokale Anzeige, der Lauf im Container geht weiter. Mit einer Grenze hört er von
+selbst auf. Läuft doch mal einer zu lange:
+
+```bash
+docker exec "$C" pkill -f "main.ts simulator"
 ```
 
 Das `node cli/src/main.ts` davor muss sein — `docker exec` geht nicht durch den
@@ -172,7 +181,7 @@ ENTRYPOINT des Images.
 
 Standardmäßig werden **nur interne** Datenpunkte geschrieben; der Bus bleibt
 unberührt, solange `--auch-bus` fehlt. `--trocken` zeigt vorher, was passieren
-würde, `--laeufe 3` begrenzt die Runden, `Strg+C` beendet.
+würde, `--laeufe 3` begrenzt die Runden.
 
 Die Werte laufen eine feste Treppe (`0 → 1 → 20 → 50 → 100 → 255`, bool kippt)
 statt zufällig: so lässt sich nachvollziehen, welcher Wert welche Anzeige

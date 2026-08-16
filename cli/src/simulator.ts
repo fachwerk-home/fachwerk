@@ -29,6 +29,7 @@ interface Optionen {
   muster: RegExp;
   intervallMs: number;
   laeufe: number;
+  dauerMs: number;
   nurIntern: boolean;
   trocken: boolean;
 }
@@ -42,7 +43,10 @@ function hilfe(): void {
   --token <t>         stattdessen ein statisches Bearer-Token
   --nur <muster>      nur Datenpunkte, deren Schluessel darauf passt (regulaerer Ausdruck)
   --intervall <ms>    Abstand zwischen zwei Schritten (Standard 1500)
-  --laeufe <n>        Anzahl Durchlaeufe; 0 = endlos (Standard 0)
+  --laeufe <n>        Anzahl Durchlaeufe; 0 = unbegrenzt (Standard 0)
+  --dauer <s>         nach so vielen Sekunden von selbst aufhoeren. Verlaesst
+                      sich NICHT auf Strg+C: "docker exec -i" ohne -t reicht
+                      Tastatursignale gar nicht an den Container weiter
   --auch-bus          auch Bus-Datenpunkte schreiben (Standard: nur interne)
   --trocken           nur zeigen, was geschrieben wuerde
 
@@ -133,6 +137,7 @@ export async function simulator(argv: string[]): Promise<number> {
     muster: new RegExp(wert("--nur") ?? ""),
     intervallMs: Number(wert("--intervall") ?? 1500),
     laeufe: Number(wert("--laeufe") ?? 0),
+    dauerMs: Number(wert("--dauer") ?? 0) * 1000,
     nurIntern: !argv.includes("--auch-bus"),
     trocken: argv.includes("--trocken"),
   };
@@ -156,7 +161,9 @@ export async function simulator(argv: string[]): Promise<number> {
 
   console.error(
     `${ziele.length} Datenpunkt(e), alle ${opt.intervallMs} ms` +
-      `${opt.laeufe > 0 ? `, ${opt.laeufe} Durchlaeufe` : ", endlos (Strg+C beendet)"}` +
+      `${opt.laeufe > 0 ? `, ${opt.laeufe} Durchlaeufe` : ""}` +
+      `${opt.dauerMs > 0 ? `, ${opt.dauerMs / 1000} s lang` : ""}` +
+      `${opt.laeufe === 0 && opt.dauerMs === 0 ? ", unbegrenzt — mit --dauer oder --laeufe begrenzen" : ""}` +
       `${opt.trocken ? " — TROCKEN, es wird nichts geschrieben" : ""}`,
   );
   if (opt.trocken) {
@@ -166,9 +173,27 @@ export async function simulator(argv: string[]): Promise<number> {
     return 0;
   }
 
+  // Abbruch sauber behandeln. Zwei Gruende: `docker exec` OHNE -t leitet
+  // Strg+C gar nicht erst weiter (dort hilft nur -it oder docker stop), und
+  // selbst mit Signal wuerde eine laufende Wartezeit den Abbruch verschleppen.
+  // Deshalb ein eigener Schalter, den jede Schleifenrunde prueft.
+  let abbruch = false;
+  const aufSignal = (): void => {
+    if (abbruch) process.exit(130); // zweimal Strg+C: sofort raus
+    abbruch = true;
+    console.error("\nAbbruch angefordert — laufender Schritt wird noch beendet.");
+  };
+  process.on("SIGINT", aufSignal);
+  process.on("SIGTERM", aufSignal);
+
   const stand = new Map(ziele.map((d) => [d.schluessel, d.wert]));
-  for (let lauf = 0; opt.laeufe === 0 || lauf < opt.laeufe; lauf++) {
+  const gesperrt = new Set<string>();
+  const start = Date.now();
+  const zeitAbgelaufen = (): boolean => opt.dauerMs > 0 && Date.now() - start >= opt.dauerMs;
+  for (let lauf = 0; (opt.laeufe === 0 || lauf < opt.laeufe) && !abbruch && !zeitAbgelaufen(); lauf++) {
     for (const d of ziele) {
+      if (abbruch || zeitAbgelaufen()) break;
+      if (gesperrt.has(d.schluessel)) continue;
       const neu = naechsterWert({ typ: d.typ, wert: stand.get(d.schluessel) });
       stand.set(d.schluessel, neu);
       const antwort = await fetch(`${opt.basis}/api/datenpunkte/${d.schluessel}`, {
@@ -180,15 +205,27 @@ export async function simulator(argv: string[]): Promise<number> {
         },
         body: JSON.stringify({ wert: neu }),
       });
-      const zeichen = antwort.ok ? "·" : "!";
-      process.stderr.write(zeichen);
-      if (!antwort.ok && antwort.status === 403) {
-        console.error(`\nFEHLER: ${d.schluessel} abgelehnt (403). Fehlt der Scope operate, oder ist der Punkt geschuetzt?`);
-        return 1;
+      if (antwort.status === 403) {
+        // Geschuetzte Datenpunkte (Schloesser, Alarm, Tore) sind mit KEINEM
+        // Scope schreibbar — Absicht, kein Fehlerfall. Wer deswegen den ganzen
+        // Lauf abbricht, macht den Simulator in jedem echten Gewerk
+        // unbrauchbar: es genuegt ein Tuerkontakt in der Liste. Also einmal
+        // melden und den Punkt fallenlassen.
+        gesperrt.add(d.schluessel);
+        console.error(`\n  uebersprungen: ${d.schluessel} (403 — geschuetzt oder Recht fehlt)`);
+        continue;
       }
+      process.stderr.write(antwort.ok ? "·" : "!");
       await schlafe(opt.intervallMs);
     }
     process.stderr.write("\n");
   }
-  return 0;
+  process.off("SIGINT", aufSignal);
+  process.off("SIGTERM", aufSignal);
+  if (gesperrt.size > 0) {
+    console.error(`${gesperrt.size} Datenpunkt(e) uebersprungen (geschuetzt oder ohne Recht).`);
+  }
+  // Alles uebersprungen heisst: nichts bewegt. Das ist ein Fehlschlag, auch
+  // wenn jeder einzelne Schritt "nur" abgelehnt wurde.
+  return gesperrt.size === ziele.length ? 1 : 0;
 }
