@@ -523,7 +523,7 @@ function reaktionswerte(element: VisuElement): unknown[] {
 }
 
 function VorschauTafel({
-  seite, seiteKey, seiten, datenpunkte, operate, wertSetzen, schliessen,
+  seite, seiteKey, seiten, datenpunkte, werte, operate, wertSetzen, schliessen,
 }: {
   seite: VisuSeite; seiteKey: string; seiten: Record<string, VisuSeite>; datenpunkte: ReadonlyMap<string, DatenpunktSicht>; werte: ReadonlyMap<string, WertEintrag>;
   operate: boolean; wertSetzen: (schluessel: string, wert: Wert, echt: boolean) => void; schliessen: () => void;

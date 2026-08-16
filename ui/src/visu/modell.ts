@@ -246,7 +246,7 @@ export function schiebeschalterZustand(
     if (zustand) {
       const knopf = designs[zustand["knopf"] as string];
       return {
-        an: status !== false && status !== 0 && status !== "" && status !== null && status !== undefined,
+        an: schiebeschalterIstAn(status),
         flaeche: designs[zustand["rahmen"] as string] ?? {},
         ...(knopf ? { knopf } : {}),
         knopfLinks: false,
