@@ -86,6 +86,9 @@ button.visu-element[data-kachel="false"]:not(:disabled):active { background: tra
 .toast-info { border-color: color-mix(in srgb, var(--fw-info) 38%, var(--fw-rand)); color: var(--fw-info); }
 .toast-warn { border-color: color-mix(in srgb, var(--fw-warn) 42%, var(--fw-rand)); color: var(--fw-warn); }
 .toast-fehler { border-color: color-mix(in srgb, var(--fw-fehler) 42%, var(--fw-rand)); color: var(--fw-fehler); }
+.visu-vorschau-oeffnen { justify-self: end; font-size: 11px; }
+.visu-vorschau { position: fixed; z-index: 2200; top: var(--visu-kopf); right: 0; width: min(360px, 100vw); height: calc(100% - var(--visu-kopf)); overflow: auto; padding: var(--fw-s4); background: var(--fw-flaeche); border-left: 1px solid var(--fw-rand-stark); box-shadow: var(--fw-schatten-m); }
+.visu-vorschau header { display: flex; justify-content: space-between; align-items: center; }.visu-vorschau p, .visu-vorschau small { display: block; margin: var(--fw-s2) 0; }.visu-vorschau section { display: grid; gap: var(--fw-s2); margin-top: var(--fw-s4); padding-top: var(--fw-s3); border-top: 1px solid var(--fw-rand); }.vorschau-werte { display: flex; flex-wrap: wrap; gap: var(--fw-s2); }.vorschau-echt { background: var(--fw-fehler); color: white; }
 .visu-meldung, .visu-leer { max-width: 38rem; margin: 0 auto; padding: var(--fw-s5); }
 
 @media (max-width: 520px) {
