@@ -11,6 +11,7 @@ import {
   schriftfamilieFuer,
   einzelnesPrivatesSymbol,
   formatierterWert,
+  groesseFuerPlacement,
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
@@ -147,6 +148,19 @@ describe("Design und Format", () => {
     expect(formatierterWert("raum.temp", werte, { template: "{fixed(#,1)} / {fixed(#{aussen.temp},0)}" }))
       .toBe("21.4 / 8");
   });
+
+  it("ersetzt den Zuschlag des Grunddesigns durch den des Zustandsdesigns", () => {
+    const element: VisuElement = {
+      design: "aus",
+      design_je_wert: [{ wenn: 1, design: "an" }],
+    };
+    const designs = {
+      aus: { groessenzuschlag: { b: 82, h: 82 } },
+      an: { groessenzuschlag: { b: 182, h: 82 } },
+    };
+    expect(groesseFuerPlacement(element, designs, 0, { w: 83, h: 83 })).toEqual({ w: 83, h: 83 });
+    expect(groesseFuerPlacement(element, designs, 1, { w: 83, h: 83 })).toEqual({ w: 183, h: 83 });
+  });
 });
 
 describe("Visu-Schriften", () => {
@@ -265,6 +279,20 @@ describe("Schiebeschalter", () => {
     expect(schiebeschalterZustand(links, designs, true).knopfLinks).toBe(true);
     expect(schiebeschalterZustand(links, designs, false).knopfLinks).toBe(false);
   });
+
+  it("bevorzugt die Zustandsliste, vergleicht streng und fällt auf ihren ersten Eintrag zurück", () => {
+    const zustandsElement: VisuElement = {
+      widget: "schiebeschalter",
+      parameter: { zustaende: [
+        { wenn: 0, rahmen: "aus", knopf: "knopfAus" },
+        { wenn: 1, rahmen: "ein", knopf: "knopfEin" },
+      ], dauer_ms: 200, aus: "ein" },
+    };
+    expect(schiebeschalterZustand(zustandsElement, designs, 1)).toMatchObject({
+      flaeche: designs.ein, knopf: designs.knopfEin, knopfGroesse: { b: 0, h: 0 }, dauerMs: 200,
+    });
+    expect(schiebeschalterZustand(zustandsElement, designs, "1").flaeche).toEqual(designs.aus);
+  });
 });
 
 describe("Farbauswahl", () => {
@@ -332,6 +360,13 @@ describe("Elementtext", () => {
   it("behält im Client bei Text und Display-Bindung Text als Label und Wert separat", () => {
     const anzeige = elementAnzeige("client", "raum_temp", { preset: "wertanzeige", text: "Innen", bindungen: { display: "raum.temp" } }, werte);
     expect(anzeige).toMatchObject({ label: "Innen", wert: "21.4 °C", hatText: true, hatWert: true });
+  });
+
+  it("markiert Werte nur bei einem expliziten Element- oder Placement-Format als angefordert", () => {
+    const element: VisuElement = { preset: "schalter", bindungen: { status: "licht" } };
+    const werte = new Map([["licht", { wert: true }]]);
+    expect(elementAnzeige("client", "licht", element, werte).wertAngefordert).toBe(false);
+    expect(elementAnzeige("client", "licht", { ...element, format: { suffix: "%" } }, werte).wertAngefordert).toBe(true);
   });
 
   it("behält im Client bei leerem Text und Display-Bindung nur den Wert separat", () => {

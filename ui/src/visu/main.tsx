@@ -26,6 +26,7 @@ import {
   fachwerkKachelFuer,
   fontFaceCssFuerSchriften,
   navigationZeigtPfeil,
+  groesseFuerPlacement,
   placementFuer,
   reglerKonfiguration,
   reglerSchreibwert,
@@ -173,8 +174,16 @@ function ElementInhalt({
           <span
             class="schiebeschalter-knopf"
             style={{
-              width: `${schalter.knopfAnteil}%`,
-              left: schalter.knopfLinks ? "0" : `${100 - schalter.knopfAnteil}%`,
+              ...(schalter.knopfGroesse
+                ? {
+                  width: `${schalter.knopfGroesse.b}px`,
+                  height: `${schalter.knopfGroesse.h}px`,
+                  transform: `translate(${schalter.knopfVersatz?.x ?? 0}px, ${schalter.knopfVersatz?.y ?? 0}px)`,
+                }
+                : {
+                  width: `${schalter.knopfAnteil}%`,
+                  transform: `translateX(${schalter.knopfLinks ? 0 : 100 - schalter.knopfAnteil}%)`,
+                }),
               transitionDuration: `${schalter.dauerMs}ms`,
               ...designStil(schalter.knopf),
             }}
@@ -307,9 +316,9 @@ function ElementInhalt({
       // daneben) — der Schluessel-Fallback waere dort erfundene Zierde.
       return <MitSymbol element={element} label={anzeige.label}><>{anzeige.hatText && <span class="element-name">{anzeige.label}</span>}<strong class="element-wert">{anzeige.wert || "—"}</strong></></MitSymbol>;
     case "statusanzeige":
-      return <MitSymbol element={element} label={anzeige.label}><><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</></MitSymbol>;
+      return <MitSymbol element={element} label={anzeige.label}><><span class="status-punkt" aria-hidden="true" /> <span class="element-name">{anzeige.label}</span>{anzeige.hatWert && anzeige.wertAngefordert && <strong class="element-wert">{anzeige.wert || "—"}</strong>}</></MitSymbol>;
     case "schalter":
-      return <MitSymbol element={element} label={anzeige.label}><><span>{anzeige.label}</span><strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong></></MitSymbol>;
+      return <MitSymbol element={element} label={anzeige.label}><><span>{anzeige.label}</span>{anzeige.wertAngefordert && <strong>{anzeige.wert || (anzeige.rohwert ? "An" : "Aus")}</strong>}</></MitSymbol>;
     case "taster":
       return <MitSymbol element={element} label={anzeige.label}><span>{anzeige.label}</span></MitSymbol>;
     case "navigation":
@@ -353,11 +362,12 @@ function VisuElementAnsicht({
   const hatSet = setKey !== undefined;
   const kachel = schiebeschalter ? false : fachwerkKachelFuer(element, design);
   const einzelSymbol = einzelnesPrivatesSymbol(beschriftungFuerElement(element, design)) || einzelnesPrivatesSymbol(design.icon);
+  const groesse = groesseFuerPlacement(element, designs, status, placement);
   const stil: JSX.CSSProperties = {
     left: placement.x ?? 0,
     top: placement.y ?? 0,
-    width: placement.w ?? 0,
-    height: placement.h ?? 0,
+    width: groesse.w,
+    height: groesse.h,
     zIndex,
     ...grundstil,
     ...designStil(design),
@@ -502,6 +512,62 @@ function SeitenCanvas({
   );
 }
 
+function reaktionswerte(element: VisuElement): unknown[] {
+  return [
+    ...(element.design_je_wert ?? []).map((regel) => regel.wenn),
+    ...(Array.isArray(element.parameter?.["zustaende"])
+      ? element.parameter!["zustaende"].flatMap((zustand) => (
+        typeof zustand === "object" && zustand !== null ? [(zustand as Record<string, unknown>)["wenn"]] : []
+      )) : []),
+  ];
+}
+
+function VorschauTafel({
+  seite, seiteKey, seiten, datenpunkte, werte, operate, wertSetzen, schliessen,
+}: {
+  seite: VisuSeite; seiteKey: string; seiten: Record<string, VisuSeite>; datenpunkte: ReadonlyMap<string, DatenpunktSicht>; werte: ReadonlyMap<string, WertEintrag>;
+  operate: boolean; wertSetzen: (schluessel: string, wert: Wert, echt: boolean) => void; schliessen: () => void;
+}) {
+  const [echt, setEcht] = useState(false);
+  const eintraege = useMemo(() => {
+    const reaktionen = new Map<string, unknown[]>();
+    for (const { element } of renderElementeFuerSeite(seiten, seiteKey)) {
+      for (const schluessel of Object.values(element.bindungen ?? {})) {
+        const bisher = reaktionen.get(schluessel) ?? [];
+        bisher.push(...reaktionswerte(element));
+        reaktionen.set(schluessel, bisher);
+      }
+    }
+    return [...reaktionen.keys()].sort().flatMap((schluessel) => {
+      const datenpunkt = datenpunkte.get(schluessel);
+      const dp = datenpunkt ? { ...datenpunkt, wert: werte.get(schluessel)?.wert ?? datenpunkt.wert } : undefined;
+      if (!dp || (echt && dp.protected)) return [];
+      const rueckfall: Wert = dp.typ === "bool" ? false : dp.typ === "zahl" ? 0 : "";
+      const optionen = [...new Map([rueckfall, ...(reaktionen.get(schluessel) ?? [])].map((wert) => [JSON.stringify(wert), wert])).values()]
+        .sort((a, b) => String(a).localeCompare(String(b), "de", { numeric: true }));
+      return [{ dp, optionen }];
+    });
+  }, [seite, seiteKey, seiten, datenpunkte, werte, echt]);
+  const modus = echt ? "Wirklich setzen" : "Vorschau";
+  return <aside class="visu-vorschau" aria-label="Visu-Vorschau">
+    <header><strong>{modus}</strong><button onClick={schliessen} aria-label="Vorschau schließen">×</button></header>
+    <p>{echt ? "Schreibt echte Werte. Dieser Modus bleibt sichtbar aktiv." : "Werte gelten nur in diesem Browser und werden nicht geschrieben."}</p>
+    {operate && <button class={echt ? "vorschau-echt" : ""} onClick={() => {
+      if (!echt && !window.confirm("Wirklich setzen schreibt Werte an die Anlage. Fortfahren?")) return;
+      setEcht(!echt);
+    }}>{echt ? "Zurück zur Vorschau" : "Wirklich setzen aktivieren"}</button>}
+    {eintraege.map(({ dp, optionen }) => <section key={dp.schluessel}>
+      <strong>{dp.name}</strong><small>{dp.schluessel} · {dp.typ} · {String(dp.wert ?? "—")}</small>
+      {dp.typ === "bool" ? <input type="checkbox" checked={Boolean(dp.wert)} onInput={(e) => wertSetzen(dp.schluessel, (e.currentTarget as HTMLInputElement).checked, echt)} />
+        : <input type={dp.typ === "zahl" ? "number" : "text"} value={String(dp.wert ?? "")} onChange={(e) => {
+          const wert = (e.currentTarget as HTMLInputElement).value;
+          wertSetzen(dp.schluessel, dp.typ === "zahl" ? Number(wert) : wert, echt);
+        }} />}
+      {optionen.length > 0 && <div class="vorschau-werte">{optionen.map((wert) => <button key={JSON.stringify(wert)} onClick={() => wertSetzen(dp.schluessel, wert as Wert, echt)}>{String(wert)}</button>)}</div>}
+    </section>)}
+  </aside>;
+}
+
 function App() {
   const [auth, setAuth] = useState<AuthStatus>({ art: "laedt" });
   const [authZaehler, setAuthZaehler] = useState(0);
@@ -517,6 +583,8 @@ function App() {
   const [live, setLive] = useState<LiveStatus>("verbindet");
   const [liveNachricht, setLiveNachricht] = useState<LiveWert | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [vorschauOffen, setVorschauOffen] = useState(false);
+  const [vorschauWerte, setVorschauWerte] = useState<Map<string, Wert>>(new Map());
   const pendingRef = useRef(new Map<string, { wert: Wert; timer: ReturnType<typeof setTimeout> }>());
   const toastIdRef = useRef(0);
 
@@ -729,6 +797,11 @@ function App() {
     setzeSlider,
     bediene,
   }), [datenpunkte, gesperrt, pending, slider, liveNachricht, werte, auth]);
+  const darstellungsWerte = useMemo(() => {
+    const kombiniert = new Map(werte);
+    for (const [schluessel, wert] of vorschauWerte) kombiniert.set(schluessel, { ...kombiniert.get(schluessel), wert });
+    return kombiniert;
+  }, [werte, vorschauWerte]);
 
   if (auth.art === "login") return <LoginAnsicht titel="Fachwerk Visu" onErfolg={() => void ladeIdentitaet()} />;
   if (auth.art === "laedt") return <main class="visu-meldung"><h1>Fachwerk Visu</h1><p>Rechte werden geprüft …</p></main>;
@@ -748,12 +821,13 @@ function App() {
       <header class="visu-kopf">
         <strong>Fachwerk Visu</strong>
         <span>{seite.name}</span>
+        <button class="visu-vorschau-oeffnen" onClick={() => setVorschauOffen(true)}>Vorschau</button>
         <span class={live === "verbunden" ? "live-ok" : "live-wartet"} title={`${ich.name} · ${ich.art}`}>
           {live === "verbunden" ? "● live" : "○ verbindet"}
         </span>
       </header>
       <section class="visu-flaeche" aria-label={seite.name}>
-        <SeitenCanvas seite={seite} seiteKey={seiteKey} seiteLookup={visu.seiten} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} />
+        <SeitenCanvas seite={seite} seiteKey={seiteKey} seiteLookup={visu.seiten} designs={visu.designs} werte={darstellungsWerte} onAktion={aktiviere} bedien={bedien} />
       </section>
       {popup && popupKey && (
         <div class="popup-hintergrund" role="presentation" onClick={() => setPopupKey(null)}>
@@ -765,10 +839,18 @@ function App() {
             onClick={(event) => event.stopPropagation()}
           >
             <button class="popup-schliessen" aria-label="Popup schließen" onClick={() => setPopupKey(null)}>×</button>
-            <SeitenCanvas seite={popup} seiteKey={popupKey} seiteLookup={visu.seiten} designs={visu.designs} werte={werte} onAktion={aktiviere} bedien={bedien} popup />
+            <SeitenCanvas seite={popup} seiteKey={popupKey} seiteLookup={visu.seiten} designs={visu.designs} werte={darstellungsWerte} onAktion={aktiviere} bedien={bedien} popup />
           </section>
         </div>
       )}
+      {vorschauOffen && <VorschauTafel seite={seite} seiteKey={seiteKey} seiten={visu.seiten} datenpunkte={datenpunkte} werte={darstellungsWerte} operate={hatScope(ich, "operate")} schliessen={() => setVorschauOffen(false)} wertSetzen={(schluessel, wert, echt) => {
+        if (echt) {
+          void api.setzeDatenpunkt(schluessel, wert).catch((error: unknown) => zeigeToast(error instanceof Error ? error.message : String(error), "fehler"));
+          return;
+        }
+        // Der Standardpfad ist strikt lokal: kein API-Aufruf, kein Buszugriff.
+        setVorschauWerte((alt) => new Map(alt).set(schluessel, wert));
+      }} />}
       {live === "getrennt" && (
         <div class="verbindung-verloren" role="status">Verbindung verloren – neuer Versuch läuft …</div>
       )}
