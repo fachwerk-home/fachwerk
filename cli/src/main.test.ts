@@ -79,3 +79,17 @@ describe("Schreibprobe vor dem Uebernehmen", () => {
     expect(grund).toContain("ENOENT");
   });
 });
+
+describe("Simulator", () => {
+  it("kippt bool und wandert Zahlen eine feste Treppe hoch", async () => {
+    const { naechsterWert } = await import("./simulator.ts");
+    expect(naechsterWert({ typ: "bool", wert: false })).toBe(true);
+    expect(naechsterWert({ typ: "bool", wert: true })).toBe(false);
+    // Vorhersagbar statt zufaellig: man will nachvollziehen koennen, welcher
+    // Wert welche Anzeige ausgeloest hat.
+    expect(naechsterWert({ typ: "zahl", wert: 0 })).toBe(1);
+    expect(naechsterWert({ typ: "zahl", wert: 50 })).toBe(100);
+    expect(naechsterWert({ typ: "zahl", wert: 255 })).toBe(0);
+    expect(naechsterWert({ typ: "text", wert: "AN" })).toBe("AUS");
+  });
+});

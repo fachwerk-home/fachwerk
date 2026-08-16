@@ -144,6 +144,15 @@ switch (cmd) {
     break;
   }
 
+  case "simulator": {
+    const { simulator } = await import("./simulator.ts");
+    // Bewusst exitCode statt process.exit: der Simulator haelt HTTP-
+    // Verbindungen offen, und ein harter Abbruch quittiert das unter Windows
+    // mit einer libuv-Meldung, die wie ein Absturz aussieht.
+    process.exitCode = await simulator(args);
+    break;
+  }
+
   case "katalog": {
     const { katalog } = await import("./katalog.ts");
     process.exit(katalog(args));
@@ -178,7 +187,7 @@ switch (cmd) {
     console.error(`Unbekanntes Kommando: ${cmd}`);
     console.error(
       "Verfügbar: version · validate <verzeichnis> · run <verzeichnis> · " +
-        "baustein test|pin <verzeichnis> · nutzer anlegen|entfernen|liste · katalog [--json]",
+        "baustein test|pin <verzeichnis> · nutzer anlegen|entfernen|liste · katalog [--json] · simulator",
     );
     process.exit(1);
 }

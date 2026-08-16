@@ -664,13 +664,29 @@ export function konvertiereVisu(
           const knopfA = basisRoh ? knopfAus(basisRoh) : undefined;
           const knopfE = einRoh ? knopfAus(einRoh) : undefined;
           const anteil = num(e, "var4");
+          // var6 nennt die Richtung: welche Seite der EIN-Zustand belegt.
+          // Am Panel des Betreibers steht der Knopf im Aus-Zustand RECHTS
+          // (rot) — bei var6=0 liegt EIN also links.
+          const einLinks = num(e, "var6") % 2 === 0;
+          // var2 = Stil: 0 rund, sonst abgerundet/eckig. Die Werteliste fuehrt
+          // die Spec nicht; belegt ist nur, dass der Betreiber mit 0 eine
+          // Pillenform bekommt. Deshalb wird ausschliesslich dieser eine Wert
+          // uebersetzt und alles andere offengelassen statt geraten.
+          const stil = num(e, "var2");
           element.parameter = {
             aus,
             ein,
             ...(knopfA && knopfE ? { knopf_aus: knopfA, knopf_ein: knopfE } : {}),
             ...(anteil > 0 ? { knopf_anteil: anteil } : {}),
+            ...(einLinks ? { ein_liegt: "links" } : {}),
+            ...(stil === 0 ? { form: "pille" } : {}),
             dauer_ms: 200,
           };
+          if (stil !== 0) zaehle(`Schiebeschalter Stil var2=${stil} — Werteliste fehlt in der Spec`);
+          // Die Beschriftung gehoert IN den Knopf, nicht daneben. Der
+          // Elementtext traegt die Zeilen An/Aus/deaktiviert; sie stehen
+          // bereits als bool_map im Format.
+          element.parameter["text_im_knopf"] = true;
         } else {
           zaehle("Schiebeschalter ohne Aus/Ein-Design — Zustand nicht sichtbar");
         }
