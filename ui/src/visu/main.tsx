@@ -32,6 +32,7 @@ import {
   reglerSchreibwert,
   reglerWertFuerWinkel,
   renderElementeFuerSeite,
+  schiebeschalterKnopfBeschriftung,
   schiebeschalterZustand,
   schriftartenAusDesigns,
   seitenSkalierung,
@@ -167,9 +168,10 @@ function ElementInhalt({
   if (element.widget === "schiebeschalter") {
     const statusKey = element.bindungen?.["status"];
     const schalter = schiebeschalterZustand(element, designs, statusKey ? werte.get(statusKey)?.wert : undefined);
+    const textImKnopf = element.parameter?.["text_im_knopf"] === true;
     return (
       <>
-        <span class="schiebeschalter-beschriftung">{anzeige.label}</span>
+        {!textImKnopf && <span class="schiebeschalter-beschriftung">{anzeige.label}</span>}
         {schalter.knopf && (
           <span
             class="schiebeschalter-knopf"
@@ -187,7 +189,9 @@ function ElementInhalt({
               transitionDuration: `${schalter.dauerMs}ms`,
               ...designStil(schalter.knopf),
             }}
-          />
+          >
+            {schiebeschalterKnopfBeschriftung(element, schalter.knopf)}
+          </span>
         )}
       </>
     );

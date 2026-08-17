@@ -378,6 +378,11 @@ function elementText(element: VisuElement): string | undefined {
   return element.text && element.text.trim().length > 0 ? element.text : undefined;
 }
 
+/** Die Knopfbeschriftung gewinnt; text_im_knopf verschiebt nur den Elementtext. */
+export function schiebeschalterKnopfBeschriftung(element: VisuElement, knopf: VisuDesign): string | undefined {
+  return knopf.beschriftung ?? (element.parameter?.["text_im_knopf"] === true ? elementText(element) : undefined);
+}
+
 export function beschriftungFuerElement(element: VisuElement, design?: VisuDesign): string | undefined {
   return design?.beschriftung ?? elementText(element);
 }

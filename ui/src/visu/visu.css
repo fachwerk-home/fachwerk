@@ -58,7 +58,7 @@ button.visu-element[data-kachel="false"]:not(:disabled):active { background: tra
 .slider-inhalt { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--fw-s3); }
 .slider-inhalt input { width: 100%; }
 .schiebeschalter-beschriftung { position: relative; z-index: 1; width: 100%; pointer-events: none; }
-.schiebeschalter-knopf { position: absolute; inset-block: 0; left: 0; transform-origin: top left; transition-property: transform, width, height, background, border-color, box-shadow; transition-timing-function: ease; pointer-events: none; }
+.schiebeschalter-knopf { position: absolute; z-index: 2; inset-block: 0; left: 0; display: grid; align-content: center; box-sizing: border-box; overflow: hidden; transform-origin: top left; transition-property: transform, width, height, background, border-color, box-shadow; transition-timing-function: ease; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .schiebeschalter-knopf { transition-duration: 0ms !important; } }
 
 .farbauswahl { position: relative; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }

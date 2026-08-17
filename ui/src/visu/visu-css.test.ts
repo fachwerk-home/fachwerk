@@ -29,4 +29,10 @@ describe("Visu-CSS", () => {
 
     expect(regel).toContain("overflow: visible");
   });
+
+  it("legt den Schiebeschalterknopf über seine Rahmenbeschriftung", () => {
+    const regel = regelFuer(".schiebeschalter-knopf");
+
+    expect(regel).toContain("z-index: 2");
+  });
 });

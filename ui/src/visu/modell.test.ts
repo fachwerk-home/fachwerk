@@ -15,6 +15,7 @@ import {
   navigationZeigtPfeil,
   placementFuer,
   renderElementeFuerSeite,
+  schiebeschalterKnopfBeschriftung,
   schiebeschalterZustand,
   reglerKonfiguration,
   reglerSchreibwert,
@@ -265,6 +266,22 @@ describe("Schiebeschalter", () => {
     expect(schiebeschalterZustand(element, designs, 12)).toMatchObject({
       an: true, flaeche: designs.ein, knopf: designs.knopfEin, knopfLinks: false,
     });
+  });
+
+  it("zeichnet die Beschriftung des Knopfdesigns im Knopf", () => {
+    const knopf = { beschriftung: "ON", text: "black", textausrichtung: "zentriert" as const };
+
+    expect(schiebeschalterKnopfBeschriftung(element, knopf)).toBe("ON");
+  });
+
+  it("verschiebt mit text_im_knopf die Elementbeschriftung in den Knopf", () => {
+    const mitTextImKnopf = { ...element, text: "An", parameter: { ...element.parameter, text_im_knopf: true } };
+
+    expect(schiebeschalterKnopfBeschriftung(mitTextImKnopf, {})).toBe("An");
+  });
+
+  it("lässt einen Knopf ohne Beschriftung leer", () => {
+    expect(schiebeschalterKnopfBeschriftung(element, {})).toBeUndefined();
   });
 
   it("zeichnet ohne beide Knopfdesigns keinen Knopf", () => {
