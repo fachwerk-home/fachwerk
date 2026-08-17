@@ -382,6 +382,74 @@ test("ein Zustandsdesign darf die Ausdehnung aendern, nicht nur die Farbe", () =
   expect(designs[el.design_je_wert![0]!.design]!.groessenzuschlag).toEqual({ b: 182, h: 82 });
 });
 
+test("zwei uebereinanderliegende Schalter werden zu einem Schiebeschalter", () => {
+  // Die Altanlage kennt keinen Schalter, der Rahmen und Knopf gemeinsam
+  // gestaltet — Betreiber bauen ihn aus zwei Elementen. In Fachwerk ist das
+  // eines mit Zustandsliste.
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push(
+    { id: 380, ga: "380", name: "Spots" },
+    { id: 381, ga: "381", name: "SpotsKlick" },
+  );
+  (roh.editVisuElement as Array<Record<string, unknown>>).push(
+    // Rahmen: gross, unten. Knopf: klein, obenauf, gleicher Ursprung.
+    { id: 30, controltyp: 1, pageid: 1, gaid3: 380, gaid2: 381, zindex: 99,
+      xpos: 60, ypos: 900, xsize: 211, ysize: 111, text: "OFF", var3: 4 },
+    { id: 31, controltyp: 1, pageid: 1, gaid3: 380, gaid2: 381, zindex: 100,
+      xpos: 60, ypos: 900, xsize: 1, ysize: 1, var3: 4 },
+  );
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 60, targetid: 30, styletyp: 0, s31: "6" },
+    { id: 61, targetid: 30, styletyp: 1, s1: "1", s2: "1", s11: "ON" },
+    { id: 62, targetid: 31, styletyp: 0, s5: "82", s6: "82" },
+    { id: 63, targetid: 31, styletyp: 1, s1: "1", s2: "1", s5: "182", s6: "82" },
+  );
+  const { seiten, designs, bericht } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) =>
+      n === "Spots" ? "status.spots" : n === "SpotsKlick" ? "klick.spots" : undefined,
+    typVon: () => "zahl",
+  });
+  const elemente = seiten.get("wohnzimmer")!.elemente;
+  const paar = Object.values(elemente).filter((e) => e.bindungen?.["status"] === "status.spots");
+  expect(paar).toHaveLength(1);
+  const [schalter] = paar as [(typeof paar)[number]];
+  expect(schalter.widget).toBe("schiebeschalter");
+  expect(schalter.preset).toBeUndefined();
+  expect(schalter.placements?.["panel"]).toMatchObject({ w: 211, h: 111 });
+  const zustaende = schalter.parameter!["zustaende"] as Array<Record<string, string>>;
+  // Erster Eintrag ohne wenn = Rueckfall; der Renderer nimmt ihn, wenn nichts trifft.
+  expect(zustaende[0]!["wenn"]).toBeUndefined();
+  expect(zustaende.map((z) => z["wenn"])).toEqual([undefined, 1]);
+  // Der Knopf hat keine eigene Platzierung mehr: seine volle Groesse steht im
+  // Design — 1 + 82 aus, 1 + 182 an. Ohne den Grundpixel waere er zu klein.
+  expect(designs[zustaende[0]!["knopf"]!]!.groessenzuschlag).toEqual({ b: 83, h: 83 });
+  expect(designs[zustaende[1]!["knopf"]!]!.groessenzuschlag).toEqual({ b: 183, h: 83 });
+  expect(bericht.hinweise.join(" ")).toContain("verschmolzen");
+});
+
+test("Elemente ohne gemeinsame Bindung bleiben getrennt", () => {
+  // Die Erkennung muss eng bleiben: ein falsch verschmolzenes Paar waere
+  // stiller Datenverlust, und fremde Seiten sehen wir nie.
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 382, ga: "382", name: "A" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push(
+    { id: 32, controltyp: 1, pageid: 1, gaid3: 382, gaid2: 382, zindex: 99,
+      xpos: 0, ypos: 950, xsize: 200, ysize: 100, var3: 4 },
+    // Gleiche Bindungen, aber der innere Kasten ragt heraus.
+    { id: 33, controltyp: 1, pageid: 1, gaid3: 382, gaid2: 382, zindex: 100,
+      xpos: 150, ypos: 950, xsize: 100, ysize: 50, var3: 4 },
+  );
+  (roh.editVisuElementDesign as Array<Record<string, unknown>>).push(
+    { id: 64, targetid: 33, styletyp: 1, s1: "1", s2: "1", s9: "1" },
+  );
+  const { seiten } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) => (n === "A" ? "status.a" : undefined),
+    typVon: () => "zahl",
+  });
+  const elemente = Object.values(seiten.get("wohnzimmer")!.elemente);
+  expect(elemente.filter((e) => e.bindungen?.["status"] === "status.a")).toHaveLength(2);
+});
+
 test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
   const roh = fixture();
   (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Schalter" });

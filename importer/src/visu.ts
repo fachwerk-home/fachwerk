@@ -773,6 +773,10 @@ export function konvertiereVisu(
       elementAnzahl++;
     }
 
+    verschmelzeSchalterpaare(elemente, designs, merkeDesign, (m) =>
+      hinweise.push(`${info.slug}: ${m}`),
+    );
+
     const seite: VisuSeite = {
       typ: info.typ,
       name: info.name,
@@ -1130,4 +1134,117 @@ function seitentyp(pagetyp: number): VisuSeitenTyp {
   if (pagetyp === 2) return "include";
   if (pagetyp === 1) return "popup";
   return "seite";
+}
+
+/**
+ * Zwei uebereinanderliegende Elemente zu EINEM Schiebeschalter verschmelzen.
+ *
+ * Die Altanlage kennt keinen Schalter, der Rahmen und Knopf gemeinsam
+ * gestaltet. Betreiber bauen sich einen: unten ein Rahmen, darueber ein
+ * kleinerer Knopf, beide am selben Status-KO, beide mit Zustandsdesigns. Aus
+ * dem Zusammenspiel entsteht der Schalter. In Fachwerk ist das EIN Element mit
+ * einer Zustandsliste — dieselbe Optik, halb so viele Elemente, und im Editor
+ * als das erkennbar, was es ist.
+ *
+ * Die Erkennung ist absichtlich eng. Ein falsch verschmolzenes Paar waere ein
+ * stiller Datenverlust, und die Seiten anderer Betreiber sehen wir nie.
+ * Verlangt werden deshalb ALLE Merkmale zugleich: gleiche Statusbindung,
+ * gleiche Klickbindung, der innere Kasten vollstaendig im aeusseren, der
+ * innere echt kleiner, der innere obenauf, und mindestens einer der beiden mit
+ * Zustandsdesigns. Trifft auch nur eines nicht zu, bleiben es zwei Elemente —
+ * das sieht genauso aus, es ist nur mehr Kleinteiligkeit.
+ */
+export function verschmelzeSchalterpaare(
+  elemente: Record<string, VisuElement>,
+  designs: VisuDesigns,
+  merkeDesign: (d: VisuDesign) => string,
+  melde: (nachricht: string) => void,
+): void {
+  const gruppen = new Map<string, Array<[string, VisuElement]>>();
+  for (const [key, e] of Object.entries(elemente)) {
+    const status = e.bindungen?.["status"];
+    const set = e.bindungen?.["set"];
+    if (e.preset !== "schalter" || !status || !set || !e.placements?.["panel"]) continue;
+    const gruppe = `${status} ${set}`;
+    gruppen.set(gruppe, [...(gruppen.get(gruppe) ?? []), [key, e]]);
+  }
+
+  for (const gruppe of gruppen.values()) {
+    if (gruppe.length !== 2) continue;
+    // Der Knopf liegt obenauf. Ohne klare Reihenfolge kein Paar.
+    const sortiert = [...gruppe].sort((a, b) => (b[1].ebene ?? 0) - (a[1].ebene ?? 0));
+    const knopfKey = sortiert[0]![0];
+    const knopfEl = sortiert[0]![1];
+    const rahmenKey = sortiert[1]![0];
+    const rahmenEl = sortiert[1]![1];
+    if ((knopfEl.ebene ?? 0) <= (rahmenEl.ebene ?? 0)) continue;
+    const innen = knopfEl.placements!["panel"]!;
+    const aussen = rahmenEl.placements!["panel"]!;
+    const ib = innen.w ?? 0;
+    const ih = innen.h ?? 0;
+    const ab = aussen.w ?? 0;
+    const ah = aussen.h ?? 0;
+    if (ib <= 0 || ih <= 0 || ab <= 0 || ah <= 0) continue;
+    if (ib >= ab && ih >= ah) continue;
+    const dx = (innen.x ?? 0) - (aussen.x ?? 0);
+    const dy = (innen.y ?? 0) - (aussen.y ?? 0);
+    if (dx < 0 || dy < 0 || dx + ib > ab || dy + ih > ah) continue;
+    if (!knopfEl.design_je_wert && !rahmenEl.design_je_wert) continue;
+
+    // Alle Werte, auf die EINES der beiden reagiert.
+    const werte: unknown[] = [];
+    for (const el of [rahmenEl, knopfEl]) {
+      for (const regel of el.design_je_wert ?? []) {
+        if (!werte.some((w) => w === regel.wenn)) werte.push(regel.wenn);
+      }
+    }
+    const designFuerWert = (el: VisuElement, wert: unknown): string | undefined =>
+      el.design_je_wert?.find((r) => r.wenn === wert)?.design ?? el.design;
+    const grundZuschlag = knopfEl.design ? designs[knopfEl.design]?.groessenzuschlag : undefined;
+    const knopfDesignFuer = (wert: unknown): string | undefined => {
+      const key = designFuerWert(knopfEl, wert);
+      const roh = key ? designs[key] : undefined;
+      if (!roh) return undefined;
+      const zu = roh.groessenzuschlag;
+      // Im verschmolzenen Element hat der Knopf keine eigene Platzierung mehr;
+      // seine Groesse steht vollstaendig im Design. Deshalb muss die
+      // Grundgroesse der Altanlage hier hinein — sonst faehrt der Renderer nur
+      // den Zuschlag und der Knopf faellt um die Elementgroesse zu klein aus.
+      // Die Platzierung enthaelt den Zuschlag des Grunddesigns bereits.
+      const abgeleitet: VisuDesign = {
+        ...roh,
+        groessenzuschlag: {
+          b: ib - (grundZuschlag?.b ?? 0) + (zu?.b ?? 0),
+          h: ih - (grundZuschlag?.h ?? 0) + (zu?.h ?? 0),
+        },
+        // Der Versatz zaehlt jetzt vom Rahmen aus statt von der eigenen
+        // Platzierung. Sassen beide auf demselben Ursprung, aendert sich nichts.
+        ...(dx !== 0 || dy !== 0 || roh.versatz
+          ? { versatz: { x: dx + (roh.versatz?.x ?? 0), y: dy + (roh.versatz?.y ?? 0) } }
+          : {}),
+      };
+      return merkeDesign(abgeleitet);
+    };
+
+    // Der Rueckfall steht zuerst: die Zustandsliste nimmt den ersten Eintrag,
+    // wenn kein Vergleich trifft.
+    const zustaende: Array<Record<string, unknown>> = [];
+    for (const wert of [undefined, ...werte]) {
+      const rahmen = designFuerWert(rahmenEl, wert);
+      const knopf = knopfDesignFuer(wert);
+      if (!rahmen || !knopf) continue;
+      zustaende.push({ ...(wert === undefined ? {} : { wenn: wert }), rahmen, knopf });
+    }
+    // Ohne Rueckfall und mindestens einen echten Zustand waere die Liste
+    // unvollstaendig; dann bleibt das Paar lieber, wie es ist.
+    if (zustaende.length < 2 || zustaende[0]!["wenn"] !== undefined) continue;
+
+    delete rahmenEl.preset;
+    delete rahmenEl.design;
+    delete rahmenEl.design_je_wert;
+    rahmenEl.widget = "schiebeschalter";
+    rahmenEl.parameter = { zustaende, dauer_ms: 200 };
+    delete elemente[knopfKey];
+    melde(`${rahmenKey} + ${knopfKey} zu einem Schiebeschalter verschmolzen`);
+  }
 }
