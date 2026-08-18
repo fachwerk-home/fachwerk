@@ -545,6 +545,24 @@ test("var9 des Drehreglers ist ein Prozentsatz der Elementkante", () => {
   expect(el.parameter).toMatchObject({ groesse: 270, knopf_anteil: 70 });
 });
 
+test("eine beigelegte Fremdschrift wird zur Grundschrift der Seiten", () => {
+  // Die Textschrift des Altsystems liegt dem Export nicht bei — sie ist
+  // Anlagenkonfiguration. Legt der Betreiber sie selbst ins Paket, ist sie
+  // daran zu erkennen, dass sie nicht font-<n> heisst.
+  const roh = fixture();
+  const mit = konvertiereVisu(roh, gaKey, { beilagen: ["font-1.ttf", "img-1.png", "EDOMIfont.ttf"] });
+  expect(mit.seiten.get("wohnzimmer")!.grundstil?.schriftart).toBe("EDOMIfont");
+  // Ohne Beilage bleibt die Schrift offen: der Renderer nimmt dann eine
+  // neutrale Serifenlose statt der Typografie unserer eigenen Oberflaeche.
+  const ohne = konvertiereVisu(roh, gaKey, { beilagen: ["font-1.ttf", "font-2.ttf"] });
+  expect(ohne.seiten.get("wohnzimmer")!.grundstil?.schriftart).toBeUndefined();
+  // Mehrere: nicht raten. Eine falsch gewaehlte Grundschrift faellt an jedem
+  // Element auf, das keine eigene Schrift nennt.
+  const viele = konvertiereVisu(roh, gaKey, { beilagen: ["EDOMIfont.ttf", "EDOMIfont-Bold.ttf"] });
+  expect(viele.seiten.get("wohnzimmer")!.grundstil?.schriftart).toBeUndefined();
+  expect(viele.bericht.hinweise.join(" ")).toContain("nicht eindeutig");
+});
+
 test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
   const roh = fixture();
   (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Schalter" });

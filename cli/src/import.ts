@@ -245,6 +245,7 @@ export function importiere(dumpPfad: string, ziel: string, visuPfad?: string): n
     const visu = konvertiereVisu(visuExport, (ga) => gaIndex.get(ga), {
       nameKey: (name) => nameIndex.get(name) ?? undefined,
       typVon: (schluessel) => typIndex.get(schluessel),
+      beilagen: beilagen.map((b) => b.name),
     });
     if (visu.seiten.size > 0) {
       mkdirSync(join(ziel, "visu", "seiten"), { recursive: true });

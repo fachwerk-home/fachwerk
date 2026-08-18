@@ -60,6 +60,17 @@ export interface VisuAufloesung {
    * vergleicht STRIKT, ein `1` trifft keinen bool-Datenpunkt mit `true`.
    */
   typVon?: (schluessel: string) => string | undefined;
+  /**
+   * Dateinamen der Beilagen im Paket (Schriften, Bilder).
+   *
+   * Gebraucht fuer die GRUNDSCHRIFT. Das Altsystem gibt jeder Seite eine
+   * Textschrift mit, die jedes Element ohne eigene Angabe erbt. Im Export
+   * steht sie nirgends: sie ist Anlagenkonfiguration, und die Datei liegt dem
+   * Paket nicht bei. Legt der Betreiber sie selbst hinein, erkennen wir sie
+   * daran, dass sie in der Schriftauswahl des Exports NICHT vorkommt — dort
+   * stehen nur die Schriften, die ein Element einzeln waehlen kann.
+   */
+  beilagen?: readonly string[];
 }
 
 export interface VisuKonvertierErgebnis {
@@ -230,7 +241,7 @@ export function konvertiereVisu(
   gaKey: GaAufloesung,
   opt: VisuAufloesung = {},
 ): VisuKonvertierErgebnis {
-  const { nameKey, typVon } = opt;
+  const { nameKey, typVon, beilagen } = opt;
   const nichtAbgebildet = new Map<string, number>();
   const controltypVerteilung = new Map<number, number>();
   const hinweise: string[] = [];
@@ -285,6 +296,30 @@ export function konvertiereVisu(
     const name = str(f, "name");
     if (name !== "") schriftName.set(num(f, "id"), name);
   }
+
+  // Grundschrift: eine beigelegte Schrift, die NICHT aus dem Export stammt.
+  //
+  // Das Altsystem gibt jeder Seite eine Textschrift mit, die jedes Element
+  // ohne eigene Angabe erbt. Im Export steht sie nirgends, und die Datei liegt
+  // nicht bei — sie ist Anlagenkonfiguration. Legt der Betreiber sie selbst
+  // ins Paket, ist sie sicher zu erkennen: die Schriften des Exports heissen
+  // ausnahmslos `font-<n>` (und werden beim Schreiben in ihren Anzeigenamen
+  // umbenannt). Alles andere hat jemand bewusst dazugelegt.
+  //
+  // Sind es mehrere, wird NICHT geraten: eine falsch gewaehlte Grundschrift
+  // faellt an jedem Element auf, das keine eigene Schrift nennt.
+  const grundschrift = ((): string | undefined => {
+    const kandidaten = (beilagen ?? [])
+      .filter((d) => /\.(ttf|otf|woff2?)$/i.test(d) && !/^font-\d+\./i.test(d))
+      .map((d) => d.replace(/\.[^.]+$/, ""));
+    if (kandidaten.length === 1) return kandidaten[0];
+    if (kandidaten.length > 1) {
+      hinweise.push(
+        `Grundschrift nicht eindeutig — ${kandidaten.join(", ")}; genau EINE Schriftdatei beilegen`,
+      );
+    }
+    return undefined;
+  })();
 
   // Bilder (Slot s10, s46, s47): die Beilage im Paket heisst img-<id>.<suffix>
   // und wird unter diesem Namen ins Gewerk gelegt. Das Design verweist auf den
@@ -821,7 +856,11 @@ export function konvertiereVisu(
     // deshalb hier benannt statt versteckt. Die Schriftfamilie bleibt offen —
     // die Grundschrift des Altsystems liegt dem Export nicht bei, und der
     // Renderer nimmt dann eine neutrale Serifenlose statt unserer eigenen.
-    seite.grundstil = { schriftgroesse: GRUNDSCHRIFTGROESSE, text: GRUNDTEXTFARBE };
+    seite.grundstil = {
+      ...(grundschrift ? { schriftart: grundschrift } : {}),
+      schriftgroesse: GRUNDSCHRIFTGROESSE,
+      text: GRUNDTEXTFARBE,
+    };
     // Seitenhintergrund (B1): bgcolorid ueber die Palette. 0/null = keiner.
     const bg = bgFarbe.get(info.bgcolorid);
     if (bg) seite.hintergrund = bg;
