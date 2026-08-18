@@ -502,6 +502,49 @@ test("controltyp 15 uebernimmt die Farbart aus var1 und schreibt auf KO2", () =>
   expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("var1=7");
 });
 
+test("cmd 6 behaelt sein Ziel-KO, auch beim Schiebeschalter 1004", () => {
+  // Auf dem Bus liegen Stellen und Melden getrennt: cmd 6 schreibt auf das
+  // Stell-KO und liest den Zustand am Melde-KO. Der 1004-Zweig ueberschrieb
+  // das Ziel mit der Statusadresse; brachte der Befehl dann einen Zahlenwert
+  // mit, landete der auf einem bool-Datenpunkt und die Anlage lehnte jede
+  // Bedienung ab.
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push(
+    { id: 200, ga: "1/0/2", name: "Stellen" },
+    { id: 201, ga: "201", name: "Melden" },
+  );
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 26, controltyp: 1004, pageid: 1, gaid: 201, var1: "5", var6: "0", var8: "1",
+    xpos: 0, ypos: 760, xsize: 208, ysize: 104, text: ["", "", "An", "Aus"].join("\n"),
+  });
+  (roh.editVisuCmdList as Array<Record<string, unknown>>).push({
+    targetid: 26, cmd: 6, cmdid1: 200, cmdid2: 201, cmdvalue1: "20",
+  });
+  const { seiten } = konvertiereVisu(roh, gaKey, {
+    nameKey: (n) => (n === "Melden" ? "status.melden" : undefined),
+    typVon: () => "zahl",
+  });
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find(
+    (e) => e.bindungen?.["status"] === "status.melden",
+  )!;
+  expect(el.bindungen?.["set"]).toBe("wohnen.licht");
+  expect(el.aktionen?.["kurz"]).toMatchObject({ art: "umschalten", ein: 20, status: "status.melden" });
+});
+
+test("var9 des Drehreglers ist ein Prozentsatz der Elementkante", () => {
+  // Belegt am Abzug einer echten Anlage: var9=90 in einem 300er Quadrat ergibt
+  // ein Rad von 270 Pixeln. Als Pixelzahl gelesen waere es ein Drittel zu klein.
+  const roh = fixture();
+  (roh.editKo as Array<Record<string, unknown>>).push({ id: 210, ga: "1/0/2" });
+  (roh.editVisuElement as Array<Record<string, unknown>>).push({
+    id: 27, controltyp: 12, pageid: 1, gaid: 210, gaid2: 210, var1: "4", var9: "90", var10: "70",
+    xpos: 0, ypos: 880, xsize: 300, ysize: 300,
+  });
+  const { seiten } = konvertiereVisu(roh, gaKey);
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.widget === "regler")!;
+  expect(el.parameter).toMatchObject({ groesse: 270, knopf_anteil: 70 });
+});
+
 test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
   const roh = fixture();
   (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Schalter" });

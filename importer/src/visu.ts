@@ -720,7 +720,14 @@ export function konvertiereVisu(
         } else {
           delete element.preset;
           element.widget = "regler";
-          const groesse = num(e, "var9");
+          // var9 ist ein PROZENTSATZ der Elementkante, keine Pixelzahl.
+          // Belegt am Abzug einer echten Anlage: var9=90 in einem 300er
+          // Quadrat ergibt dort ein Rad von 270 Pixeln, mittig mit 15 Pixeln
+          // Rand. Als Pixelwert gelesen waere das Rad ein Drittel zu klein —
+          // genau die Beschwerde "fuellt seine Box nicht aus".
+          const anteil = num(e, "var9");
+          const kante = Math.min(num(e, "xsize"), num(e, "ysize"));
+          const groesse = anteil > 0 && kante > 0 ? Math.round((kante * anteil) / 100) : 0;
           const knopf = num(e, "var10");
           element.parameter = {
             art: art.art,
@@ -993,7 +1000,13 @@ function baueElement(
     preset = "schalter";
     if (statusKey) {
       bindungen.status = statusKey;
-      bindungen.set = statusKey; // gaid2 ist bei diesem Element unbenutzt
+      // Nur wenn KEIN Befehl ein Ziel genannt hat. Auf dem Bus liegen Stellen
+      // und Melden getrennt: cmd 6 schreibt auf das Stell-KO und liest den
+      // Zustand am Melde-KO. Wer hier ueberschreibt, laesst den Schalter auf
+      // die Statusadresse schreiben — und wenn der Befehl einen Zahlenwert
+      // mitbringt, auf einen bool-Datenpunkt. Genau so lehnte ein Schalter
+      // einer echten Anlage jede Bedienung ab: "Wert passt nicht zu bool".
+      if (bindungen.set === undefined) bindungen.set = statusKey;
       if (aktionen.kurz === undefined) aktionen.kurz = { art: "umschalten" };
     }
     const sch = schiebeschalter(e, text);
@@ -1321,6 +1334,9 @@ export function verschmelzeSchalterpaare(
     const designFuerWert = (el: VisuElement, wert: unknown): string | undefined =>
       el.design_je_wert?.find((r) => r.wenn === wert)?.design ?? el.design;
     const grundZuschlag = knopfEl.design ? designs[knopfEl.design]?.groessenzuschlag : undefined;
+    // Der Rahmen umschliesst den Knopf jetzt; seine Randstaerke verschiebt den
+    // Bezugspunkt nach innen.
+    const rahmenRand = (rahmenEl.design ? designs[rahmenEl.design]?.rand?.staerke : undefined) ?? 0;
     const knopfDesignFuer = (wert: unknown): string | undefined => {
       const key = designFuerWert(knopfEl, wert);
       const roh = key ? designs[key] : undefined;
@@ -1338,9 +1354,17 @@ export function verschmelzeSchalterpaare(
           h: ih - (grundZuschlag?.h ?? 0) + (zu?.h ?? 0),
         },
         // Der Versatz zaehlt jetzt vom Rahmen aus statt von der eigenen
-        // Platzierung. Sassen beide auf demselben Ursprung, aendert sich nichts.
-        ...(dx !== 0 || dy !== 0 || roh.versatz
-          ? { versatz: { x: dx + (roh.versatz?.x ?? 0), y: dy + (roh.versatz?.y ?? 0) } }
+        // Platzierung. Zusaetzlich haengt der Knopf im Rahmen und wird dort ab
+        // der INNENkante gesetzt, waehrend er als eigenes Element ab der
+        // Aussenkante sass. Um die Rahmenstaerke muss er deshalb zurueck,
+        // sonst sitzt er sichtbar daneben — beim Betreiber um 6 Pixel.
+        ...(dx - rahmenRand !== 0 || dy - rahmenRand !== 0 || roh.versatz
+          ? {
+            versatz: {
+              x: dx - rahmenRand + (roh.versatz?.x ?? 0),
+              y: dy - rahmenRand + (roh.versatz?.y ?? 0),
+            },
+          }
           : {}),
       };
       return merkeDesign(abgeleitet);
