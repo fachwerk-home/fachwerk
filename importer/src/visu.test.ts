@@ -470,7 +470,9 @@ test("var1 nennt die Betriebsart des Drehreglers (geprueft, Interop-Spec 11/12)"
 });
 
 test("Wertebereich des Drehreglers: Typ 12 fest, Typ 11 aus var5-var8", () => {
-  expect(reglerBereich(12, {})).toEqual({ min: 0, max: 255, schritt: 1 });
+  // Voller Kreis: ohne die Winkel rechnet der Renderer mit seiner 300-Grad-
+  // Vorgabe, und eine Drehung um 90 Grad ergaebe 77 statt 64.
+  expect(reglerBereich(12, {})).toEqual({ min: 0, max: 255, schritt: 1, winkel_von: 180, winkel_bis: 540 });
   // Fehlt eine Grenze, gelten 0 bis 100 — nicht die halbe Angabe.
   expect(reglerBereich(11, { var5: "20" })).toMatchObject({ min: 0, max: 100 });
   expect(reglerBereich(11, { var5: "80", var6: "20" })).toMatchObject({ min: 20, max: 80 });

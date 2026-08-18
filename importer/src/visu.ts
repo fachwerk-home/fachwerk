@@ -1205,7 +1205,14 @@ export function reglerBereich(
   controltyp: number,
   e: Record<string, unknown>,
 ): Record<string, number> {
-  if (controltyp === 12) return { min: 0, max: 255, schritt: 1 };
+  // Typ 12 ist ein VOLLER Kreis: 0 bis 360 Grad entsprechen 0 bis 255. Die
+  // Winkel gehoeren deshalb mitgegeben, obwohl es keine Grenzfelder gibt —
+  // sonst rechnet der Renderer mit seiner eigenen 300-Grad-Vorgabe, und eine
+  // Drehung um 90 Grad ergaebe 77 statt 64. Nullpunkt wie bei Typ 11: die
+  // Altanlage zaehlt ab unten Mitte, unser Renderer ab oben.
+  if (controltyp === 12) {
+    return { min: 0, max: 255, schritt: 1, winkel_von: 180, winkel_bis: 540 };
+  }
   const zahl = (feld: string): number | undefined => {
     const roh = str(e, feld).trim();
     if (roh === "") return undefined;
