@@ -9,7 +9,7 @@
  */
 import { expect, test } from "vitest";
 import { validateVisuDesigns, validateVisuSeite } from "@fachwerk/schema";
-import { farbe, konvertiereVisu, type VisuExport } from "./visu.ts";
+import { farbe, konvertiereVisu, reglerArt, reglerBereich, type VisuExport } from "./visu.ts";
 
 function fixture(): VisuExport {
   return {
@@ -450,6 +450,56 @@ test("Elemente ohne gemeinsame Bindung bleiben getrennt", () => {
   expect(elemente.filter((e) => e.bindungen?.["status"] === "status.a")).toHaveLength(2);
 });
 
+test("var1 nennt die Betriebsart des Drehreglers (geprueft, Interop-Spec 11/12)", () => {
+  // Typ 11: vier Eintraege der Auswahlliste.
+  expect(reglerArt(11, "0")).toEqual({ art: "poti_relativ" });
+  expect(reglerArt(11, "2")).toEqual({ art: "poti" });
+  expect(reglerArt(11, "1")).toEqual({ art: "inkrement", schrittWinkel: 5 });
+  expect(reglerArt(11, "9")).toEqual({ art: "inkrement", schrittWinkel: 15 });
+  // Typ 12: leer und 0 sind RASTUNG. Dass ein neu angelegtes Element im Editor
+  // auf 4 steht, gilt nur dort — hier waere es ein stetiger Kreis statt einer
+  // Rastung, und am Bus ein Regler, der springt.
+  expect(reglerArt(12, "")).toEqual({ art: "inkrement", schrittWinkel: 5 });
+  expect(reglerArt(12, "0")).toEqual({ art: "inkrement", schrittWinkel: 5 });
+  expect(reglerArt(12, "4")).toEqual({ art: "poti_relativ" });
+  expect(reglerArt(12, "5")?.farbmodus).toBe("rgb");
+  expect(reglerArt(12, "6")?.farbmodus).toBe("hsv");
+  // Unbekanntes wird NICHT auf die Voreinstellung gezogen.
+  expect(reglerArt(11, "7")).toBeUndefined();
+  expect(reglerArt(12, "3")).toBeUndefined();
+});
+
+test("Wertebereich des Drehreglers: Typ 12 fest, Typ 11 aus var5-var8", () => {
+  expect(reglerBereich(12, {})).toEqual({ min: 0, max: 255, schritt: 1 });
+  // Fehlt eine Grenze, gelten 0 bis 100 — nicht die halbe Angabe.
+  expect(reglerBereich(11, { var5: "20" })).toMatchObject({ min: 0, max: 100 });
+  expect(reglerBereich(11, { var5: "80", var6: "20" })).toMatchObject({ min: 20, max: 80 });
+  // var7 ist die Rastung; fehlt sie, leiten die Nachkommastellen sie ab.
+  expect(reglerBereich(11, { var5: "0", var6: "10", var7: "2" }).schritt).toBe(2);
+  expect(reglerBereich(11, { var5: "0", var6: "10", var8: "2" }).schritt).toBeCloseTo(0.01);
+  // Nullpunkte drehen: Altanlage unten Mitte, Renderer oben.
+  expect(reglerBereich(11, { var5: "0", var6: "10", var12: "0", var13: "360" }))
+    .toMatchObject({ winkel_von: 180, winkel_bis: 540 });
+});
+
+test("controltyp 15 uebernimmt die Farbart aus var1 und schreibt auf KO2", () => {
+  const roh = fixture();
+  (roh.editVisuElement as Array<Record<string, unknown>>).push(
+    { id: 40, controltyp: 15, pageid: 1, gaid2: 100, var1: "2", var5: "90", var6: "5",
+      xpos: 0, ypos: 700, xsize: 300, ysize: 300 },
+    // Unbekannte Zahl: kein geratener Farbmodus, sondern ein Bericht.
+    { id: 41, controltyp: 15, pageid: 1, gaid2: 100, var1: "7",
+      xpos: 0, ypos: 1010, xsize: 300, ysize: 300 },
+  );
+  const { seiten, bericht } = konvertiereVisu(roh, gaKey);
+  const el = Object.values(seiten.get("wohnzimmer")!.elemente);
+  const farb = el.find((x) => x.widget === "farbauswahl")!;
+  expect(farb.parameter).toMatchObject({ modus: "hsv", cursor: 90, cursor_staerke: 5 });
+  expect(farb.bindungen?.["set"]).toBe("wohnen.licht");
+  expect(el.filter((x) => x.widget === "farbauswahl")).toHaveLength(1);
+  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("var1=7");
+});
+
 test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
   const roh = fixture();
   (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Schalter" });
@@ -480,20 +530,19 @@ test("echter Wertebereich (s1 != s2) wird nicht geraten, sondern gemeldet", () =
   expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Wertebereich");
 });
 
-test("Farbauswahl (controltyp 15) wird ein Widget — mit Vermerk zum unklaren Modus", () => {
+test("Farbauswahl (controltyp 15) wird ein Widget; leeres var1 heisst Helligkeit", () => {
   const roh = fixture();
   (roh.editVisuElement as Array<Record<string, unknown>>).push({
     id: 25, controltyp: 15, pageid: 1, gaid: 100, var3: "32", var5: "24",
     xpos: 0, ypos: 620, xsize: 40, ysize: 40, text: "",
   });
-  const { seiten, bericht } = konvertiereVisu(roh, gaKey);
+  const { seiten } = konvertiereVisu(roh, gaKey);
   const el = Object.values(seiten.get("wohnzimmer")!.elemente).find((e) => e.widget === "farbauswahl")!;
   expect(el.preset).toBeUndefined();
-  expect(el.parameter).toMatchObject({ alpha_schwelle: 32, cursor: 24 });
-  // Der Modus steht in var1, dessen Werteliste die Spec NICHT fuehrt. Er wird
-  // deshalb nicht geraten, sondern gemeldet — sonst sieht das Element fertig
-  // aus und schreibt womoeglich den falschen Wertetyp.
-  expect([...bericht.nichtAbgebildet.keys()].join(" | ")).toContain("Farbmodus");
+  // Leer bedeutet zur Laufzeit Helligkeit. Dass ein NEU angelegtes Element im
+  // Editor auf 2 steht, gilt nur dort: als hsv importiert schriebe dieses
+  // Element sechs Hexziffern, wo der Bus eine Zahl 0..255 erwartet.
+  expect(el.parameter).toMatchObject({ modus: "dimmen", alpha_schwelle: 32, cursor: 24 });
 });
 
 test("Schiebeschalter (1004) wird ein Widget mit Aus-, Ein- und Knopf-Design", () => {

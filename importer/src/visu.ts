@@ -707,32 +707,51 @@ export function konvertiereVisu(
           zaehle("Schiebeschalter ohne Aus/Ein-Design — Zustand nicht sichtbar");
         }
       } else if (controltyp === 11 || controltyp === 12) {
-        delete element.preset;
-        element.widget = "regler";
-        // Typ 11: var5-8 Wertebereich, var9 Groesse. Typ 12: var9 Groesse,
-        // var10/11 Knopfgroesse. var1 nennt den Modus, aber die Spec fuehrt
-        // die Werteliste NICHT — deshalb bleibt der Modus offen statt geraten.
-        const groesse = num(e, "var9");
-        const knopf = num(e, controltyp === 12 ? "var10" : "var10");
-        element.parameter = {
-          ...(groesse > 0 ? { groesse } : {}),
-          ...(knopf > 0 ? { knopf_anteil: knopf } : {}),
-        };
-        zaehle(`controltyp ${controltyp}: Reglermodus (var1) nicht in der Spec — Standard angenommen`);
+        const art = reglerArt(controltyp, str(e, "var1"));
+        if (art === undefined) {
+          zaehle(`controltyp ${controltyp}: var1=${str(e, "var1")} ist keine bekannte Betriebsart`);
+          notizen.push(`Reglerbetriebsart var1=${str(e, "var1")} unbekannt — Element bleibt Anzeige`);
+        } else if (art.farbmodus !== undefined) {
+          // Farbe am Drehregler schreibt sechs Hexziffern, keinen Zahlenwert.
+          // Dafuer haben wir noch kein Bedienelement; als Zahlenregler waere es
+          // schlicht falsch bedienbar.
+          zaehle(`controltyp 12 Farbmodus ${art.farbmodus} — Bedienelement fehlt`);
+          notizen.push(`Drehregler schreibt ${art.farbmodus} als Hexwert — Widget fehlt noch`);
+        } else {
+          delete element.preset;
+          element.widget = "regler";
+          const groesse = num(e, "var9");
+          const knopf = num(e, "var10");
+          element.parameter = {
+            art: art.art,
+            ...(art.schrittWinkel ? { schritt_winkel: art.schrittWinkel } : {}),
+            ...reglerBereich(controltyp, e),
+            ...(groesse > 0 ? { groesse } : {}),
+            ...(knopf > 0 ? { knopf_anteil: knopf } : {}),
+          };
+        }
       } else if (controltyp === 15) {
-        delete element.preset;
-        element.widget = "farbauswahl";
         // var3 Alpha-Schwelle, var5 Cursor-Durchmesser, var6 Cursor-Staerke.
-        // var1 nennt den Modus, wieder ohne Werteliste in der Spec.
-        const alpha = num(e, "var3");
-        const cursor = num(e, "var5");
-        const staerke = num(e, "var6");
-        element.parameter = {
-          ...(alpha > 0 ? { alpha_schwelle: alpha } : {}),
-          ...(cursor > 0 ? { cursor } : {}),
-          ...(staerke > 0 ? { cursor_staerke: staerke } : {}),
-        };
-        zaehle("controltyp 15: Farbmodus (var1) nicht in der Spec — Standard angenommen");
+        const modus = ({ "0": "dimmen", "1": "rgb", "2": "hsv" } as const)[str(e, "var1").trim() || "0"];
+        if (modus === undefined) {
+          // Anders als bei 11 und 12 ergibt eine unbekannte Zahl hier gar
+          // keinen Wert. Ein geratener Farbmodus schriebe eine Zahl, wo der
+          // Bus eine Farbe erwartet.
+          zaehle(`controltyp 15: var1=${str(e, "var1")} ist keine bekannte Farbart`);
+          notizen.push(`Farbart var1=${str(e, "var1")} unbekannt — Element bleibt Anzeige`);
+        } else {
+          delete element.preset;
+          element.widget = "farbauswahl";
+          const alpha = num(e, "var3");
+          const cursor = num(e, "var5");
+          const staerke = num(e, "var6");
+          element.parameter = {
+            modus,
+            ...(alpha > 0 ? { alpha_schwelle: alpha } : {}),
+            ...(cursor > 0 ? { cursor } : {}),
+            ...(staerke > 0 ? { cursor_staerke: staerke } : {}),
+          };
+        }
       }
 
       // Element-Schluessel: sprechender Name, sonst Text, sonst element_<id>.
@@ -1005,6 +1024,11 @@ function baueElement(
     // Widget-Zuweisung mangels Daten unterbleibt.
     preset = "label";
     if (statusKey) bindungen.status = statusKey;
+    // KO2 ist das Ziel: beide Typen schreiben ihren Wert dorthin, vollstaendig
+    // und in einem Stueck (geprueft, Interop-Spec zu 11/12/15). Ohne diese
+    // Bindung ist der Regler eine Anzeige — er zeigt den Stand und laesst sich
+    // nicht bedienen. Genau so lag er bis hierher im importierten Gewerk.
+    if (setKey) bindungen.set = setKey;
   } else if (bindungen.set) {
     // Klickbares Element mit KO2 -> Taster (schickt einen festen Wert) bzw.
     // Schalter (kein fester Wert -> umschalten).
@@ -1128,6 +1152,95 @@ function schiebeschalter(
   const anGleichX = var6 === 0 || var6 === 1;
   const onWahr = anGleichX ? xIstEins : !xIstEins;
   return { ...(an ? { an } : {}), ...(aus ? { aus } : {}), ...(deaktiviert ? { deaktiviert } : {}), onWahr };
+}
+
+/**
+ * Betriebsart eines Drehreglers aus var1 (geprueft, Interop-Spec zu den
+ * Elementtypen 11 und 12).
+ *
+ * Die Auswahlliste des Altsystems kennt je Typ nur wenige Zahlen. Steht dort
+ * etwas anderes, wird NICHT auf die Voreinstellung zurueckgefallen: aus einem
+ * absoluten Poti wuerde ein relatives, aus einer Rastung ein stetiger Kreis —
+ * und am echten Bus ein Geraet, das auf jede Beruehrung springt statt zu
+ * regeln. Unbekanntes bleibt Anzeige und landet im Bericht.
+ *
+ * Achtung bei Typ 12: leer und 0 bedeuten zur Laufzeit Rastung. Dass ein NEU
+ * angelegtes Element im Editor auf 4 steht, gilt nur dort und darf hier nicht
+ * als Vorgabe dienen.
+ */
+export function reglerArt(
+  controltyp: number,
+  var1: string,
+): { art: "poti" | "poti_relativ" | "inkrement"; schrittWinkel?: number; farbmodus?: "rgb" | "hsv" } | undefined {
+  const wert = var1.trim() === "" ? "0" : var1.trim();
+  if (controltyp === 11) {
+    if (wert === "0") return { art: "poti_relativ" };
+    if (wert === "2") return { art: "poti" };
+    if (wert === "1") return { art: "inkrement", schrittWinkel: 5 };
+    if (wert === "9") return { art: "inkrement", schrittWinkel: 15 };
+    return undefined;
+  }
+  if (controltyp === 12) {
+    if (wert === "0") return { art: "inkrement", schrittWinkel: 5 };
+    if (wert === "4") return { art: "poti_relativ" };
+    if (wert === "1") return { art: "inkrement", schrittWinkel: 5, farbmodus: "rgb" };
+    if (wert === "5") return { art: "poti_relativ", farbmodus: "rgb" };
+    if (wert === "2") return { art: "inkrement", schrittWinkel: 5, farbmodus: "hsv" };
+    if (wert === "6") return { art: "poti_relativ", farbmodus: "hsv" };
+    return undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Wertebereich, Rastung und Winkel eines Drehreglers.
+ *
+ * Typ 12 kennt keine Grenzfelder: Helligkeit ist fest 0 bis 255, ganzzahlig,
+ * ein Schritt je Rastung. Typ 11 nimmt var5/var6 als Grenzen; fehlt eine,
+ * gelten 0 bis 100. var7 ist die Rastung, sonst leitet var8 (Nachkommastellen)
+ * sie ab. var12/var13 sind die Winkel — aber nur beim Poti, die Rastung laeuft
+ * den vollen Kreis.
+ */
+export function reglerBereich(
+  controltyp: number,
+  e: Record<string, unknown>,
+): Record<string, number> {
+  if (controltyp === 12) return { min: 0, max: 255, schritt: 1 };
+  const zahl = (feld: string): number | undefined => {
+    const roh = str(e, feld).trim();
+    if (roh === "") return undefined;
+    const n = Number(roh);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  let min = zahl("var5");
+  let max = zahl("var6");
+  if (min === undefined || max === undefined) {
+    min = 0;
+    max = 100;
+  } else if (min > max) {
+    [min, max] = [max, min];
+  }
+  const raster = zahl("var7");
+  const stellen = zahl("var8");
+  const schritt =
+    raster !== undefined && raster > 0
+      ? raster
+      : stellen !== undefined && stellen >= 0
+        ? 10 ** -stellen
+        : 1;
+  let von = zahl("var12") ?? 0;
+  let bis = zahl("var13") ?? 360;
+  if (von > bis) [von, bis] = [bis, von];
+  return {
+    min,
+    max,
+    schritt,
+    // Nullpunkte drehen: die Altanlage zaehlt ab UNTEN Mitte, unser Renderer ab
+    // OBEN (er misst mit atan2(x, -y), das ist am Scheitel 0). Beide zaehlen im
+    // Uhrzeigersinn, also genuegt ein halber Umlauf Versatz.
+    winkel_von: von + 180,
+    winkel_bis: bis + 180,
+  };
 }
 
 function seitentyp(pagetyp: number): VisuSeitenTyp {
