@@ -35,4 +35,10 @@ describe("Visu-CSS", () => {
 
     expect(regel).toContain("z-index: 2");
   });
+
+  it("begrenzt Regler auf ihre konfigurierte Größe", () => {
+    const regel = regelFuer(".regler-kreis");
+
+    expect(regel).toContain("var(--regler-groesse, 90px)");
+  });
 });

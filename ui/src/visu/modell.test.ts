@@ -19,6 +19,7 @@ import {
   schiebeschalterZustand,
   reglerKonfiguration,
   reglerSchreibwert,
+  reglerWertFuerGeste,
   reglerWertFuerWinkel,
   seitenSkalierung,
   startSeite,
@@ -315,9 +316,9 @@ describe("Schiebeschalter", () => {
 describe("Farbauswahl", () => {
   it("bildet einen Pixel je Modus auf einen schreibbaren Wert ab", () => {
     const rot = { r: 255, g: 0, b: 0, a: 255 };
-    expect(farbwertFuerPixel(rot, "dimmen", 32)).toBe(255);
-    expect(farbwertFuerPixel(rot, "rgb", 32)).toBe("#ff0000");
-    expect(farbwertFuerPixel(rot, "hsv", 32)).toBe("hsv(0,100%,100%)");
+    expect(farbwertFuerPixel(rot, "dimmen", 32)).toBe(54);
+    expect(farbwertFuerPixel(rot, "rgb", 32)).toBe("ff0000");
+    expect(farbwertFuerPixel({ r: 0, g: 255, b: 255, a: 255 }, "hsv", 32)).toBe("80ffff");
   });
 
   it("ignoriert Pixel unterhalb der Alpha-Schwelle", () => {
@@ -347,12 +348,23 @@ describe("Regler", () => {
     expect(reglerWertFuerWinkel(540, konfiguration)).toBe(100);
   });
 
-  it("schreibt beim inkrementellen Ziehen die Differenz zum Wert beim Aufsetzen", () => {
+  it("schreibt den fortgeschriebenen Absolutwert", () => {
     const startwert = 20;
     const zielwert = reglerWertFuerWinkel(360, konfiguration);
     expect(zielwert).toBe(50);
-    expect(reglerSchreibwert("inkrement", startwert, zielwert)).toBe(30);
+    expect(reglerSchreibwert("inkrement", startwert, zielwert)).toBe(50);
     expect(reglerSchreibwert("poti", startwert, zielwert)).toBe(50);
+  });
+
+  it("deutet relative und inkrementelle Gesten ohne Sprung beim Aufsetzen", () => {
+    const inkrement = reglerKonfiguration({ widget: "regler", parameter: { min: 0, max: 100, schritt: 1, schritt_winkel: 15 } });
+    expect(reglerWertFuerGeste("poti_relativ", 20, 120, 120, konfiguration)).toBe(20);
+    expect(reglerWertFuerGeste("inkrement", 20, 120, 160, inkrement)).toBe(22);
+  });
+
+  it("übernimmt die konfigurierte Reglergröße", () => {
+    expect(reglerKonfiguration({ widget: "regler", parameter: { groesse: 90 } }).groesse).toBe(90);
+    expect(reglerKonfiguration({ widget: "regler", parameter: { groesse: 240 } }).groesse).toBe(240);
   });
 });
 

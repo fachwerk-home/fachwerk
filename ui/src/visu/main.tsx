@@ -30,7 +30,7 @@ import {
   placementFuer,
   reglerKonfiguration,
   reglerSchreibwert,
-  reglerWertFuerWinkel,
+  reglerWertFuerGeste,
   renderElementeFuerSeite,
   schiebeschalterKnopfBeschriftung,
   schiebeschalterZustand,
@@ -213,7 +213,16 @@ function ElementInhalt({
       return Math.atan2(x, -y) * 180 / Math.PI + (Math.atan2(x, -y) < 0 ? 360 : 0);
     };
     const aktualisiere = (event: PointerEvent): number => {
-      const neu = reglerWertFuerWinkel(punkt(event), konfiguration);
+      const feld = event.currentTarget as SVGSVGElement;
+      const startwert = Number(feld.dataset["reglerStartwert"]);
+      const startwinkel = Number(feld.dataset["reglerStartwinkel"]);
+      const neu = reglerWertFuerGeste(
+        element.parameter?.["art"],
+        Number.isFinite(startwert) ? startwert : wert,
+        Number.isFinite(startwinkel) ? startwinkel : punkt(event),
+        punkt(event),
+        konfiguration,
+      );
       if (setKey) bedien.setzeSlider(setKey, neu);
       return neu;
     };
@@ -227,7 +236,8 @@ function ElementInhalt({
           aria-valuemin={konfiguration.min}
           aria-valuemax={konfiguration.max}
           aria-valuenow={wert}
-          onPointerDown={(event) => { if (!deaktiviert) { const feld = event.currentTarget as SVGSVGElement; feld.dataset["reglerStartwert"] = String(wert); feld.setPointerCapture(event.pointerId); aktualisiere(event); } }}
+          style={{ "--regler-groesse": `${konfiguration.groesse}px` }}
+          onPointerDown={(event) => { if (!deaktiviert) { const feld = event.currentTarget as SVGSVGElement; feld.dataset["reglerStartwert"] = String(wert); feld.dataset["reglerStartwinkel"] = String(punkt(event)); feld.setPointerCapture(event.pointerId); if (element.parameter?.["art"] === "poti") aktualisiere(event); } }}
           onPointerMove={(event) => { if (!deaktiviert && (event.currentTarget as SVGSVGElement).hasPointerCapture(event.pointerId)) aktualisiere(event); }}
           onPointerUp={(event) => {
             const feld = event.currentTarget as SVGSVGElement;
@@ -237,6 +247,7 @@ function ElementInhalt({
             bedien.setzeSlider(setKey, null);
             const startwert = Number(feld.dataset["reglerStartwert"]);
             delete feld.dataset["reglerStartwert"];
+            delete feld.dataset["reglerStartwinkel"];
             bedien.bediene(elementKey, element, reglerSchreibwert(element.parameter?.["art"], Number.isFinite(startwert) ? startwert : wert, zielwert));
           }}
         >

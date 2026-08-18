@@ -217,9 +217,11 @@ export interface ReglerKonfiguration {
   min: number;
   max: number;
   schritt: number;
+  schrittWinkel: number;
   winkelVon: number;
   winkelBis: number;
   knopfAnteil: number;
+  groesse: number;
 }
 
 function parameterZahl(parameter: Record<string, unknown> | undefined, key: string, standard: number): number {
@@ -292,14 +294,14 @@ function hsvFuerRgb({ r, g, b }: BildPixel): string {
   const min = Math.min(rot, gruen, blau);
   const delta = max - min;
   const hue = delta === 0 ? 0 : 60 * (max === rot ? ((gruen - blau) / delta % 6) : max === gruen ? (blau - rot) / delta + 2 : (rot - gruen) / delta + 4);
-  return `hsv(${Math.round((hue + 360) % 360)},${Math.round(max === 0 ? 0 : delta / max * 100)}%,${Math.round(max * 100)}%)`;
+  return `${hexTeil(((hue + 360) % 360) / 360 * 255)}${hexTeil(max === 0 ? 0 : delta / max * 255)}${hexTeil(max * 255)}`;
 }
 
 export function farbwertFuerPixel(pixel: BildPixel, modus: unknown, alphaSchwelle: number): string | number | undefined {
   if (pixel.a < alphaSchwelle) return undefined;
-  if (modus === "dimmen") return Math.round(Math.max(pixel.r, pixel.g, pixel.b));
+  if (modus === "dimmen") return Math.round(0.2126 * pixel.r + 0.7152 * pixel.g + 0.0722 * pixel.b);
   if (modus === "hsv") return hsvFuerRgb(pixel);
-  return `#${hexTeil(pixel.r)}${hexTeil(pixel.g)}${hexTeil(pixel.b)}`;
+  return `${hexTeil(pixel.r)}${hexTeil(pixel.g)}${hexTeil(pixel.b)}`;
 }
 
 export function reglerKonfiguration(element: VisuElement): ReglerKonfiguration {
@@ -310,9 +312,11 @@ export function reglerKonfiguration(element: VisuElement): ReglerKonfiguration {
     min,
     max,
     schritt: Math.max(Number.EPSILON, parameterZahl(element.parameter, "schritt", 1)),
+    schrittWinkel: Math.max(Number.EPSILON, parameterZahl(element.parameter, "schritt_winkel", 5)),
     winkelVon: parameterZahl(element.parameter, "winkel_von", 210),
     winkelBis: parameterZahl(element.parameter, "winkel_bis", 510),
     knopfAnteil: Math.min(100, Math.max(0, parameterZahl(element.parameter, "knopf_anteil", 70))),
+    groesse: Math.max(0, parameterZahl(element.parameter, "groesse", 90)),
   };
 }
 
@@ -338,9 +342,41 @@ export function reglerWertFuerWinkel(winkel: number, konfiguration: ReglerKonfig
   return begrenzeReglerWert(Math.round(rohwert / konfiguration.schritt) * konfiguration.schritt, konfiguration);
 }
 
-/** Ein Inkrementalregler schreibt die Bewegung seit dem Aufsetzen, kein Absolutwert. */
+function winkelDifferenz(von: number, bis: number): number {
+  let differenz = bis - von;
+  while (differenz <= -180) differenz += 360;
+  while (differenz > 180) differenz -= 360;
+  return differenz;
+}
+
+function rundeReglerWert(wert: number, konfiguration: ReglerKonfiguration): number {
+  return begrenzeReglerWert(Math.round(wert / konfiguration.schritt) * konfiguration.schritt, konfiguration);
+}
+
+/** Berechnet den Zielwert einer Geste, ohne die Zeigerlage relativ zu deuten. */
+export function reglerWertFuerGeste(
+  art: unknown,
+  startwert: number,
+  startwinkel: number,
+  winkel: number,
+  konfiguration: ReglerKonfiguration,
+): number {
+  if (art === "poti_relativ") {
+    const faktor = (konfiguration.max - konfiguration.min) / (konfiguration.winkelBis - konfiguration.winkelVon);
+    return rundeReglerWert(startwert + winkelDifferenz(startwinkel, winkel) * faktor, konfiguration);
+  }
+  if (art === "inkrement") {
+    const schritte = Math.trunc(winkelDifferenz(startwinkel, winkel) / konfiguration.schrittWinkel);
+    return rundeReglerWert(startwert + schritte * konfiguration.schritt, konfiguration);
+  }
+  return reglerWertFuerWinkel(winkel, konfiguration);
+}
+
+/** Alle Reglerarten schreiben ihren fortgeschriebenen Absolutwert. */
 export function reglerSchreibwert(art: unknown, startwert: number, zielwert: number): number {
-  return art === "inkrement" ? zielwert - startwert : zielwert;
+  void art;
+  void startwert;
+  return zielwert;
 }
 
 export function formatierterWert(
