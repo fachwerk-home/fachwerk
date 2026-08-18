@@ -357,19 +357,24 @@ function rundeReglerWert(wert: number, konfiguration: ReglerKonfiguration): numb
 export function reglerWertFuerGeste(
   art: unknown,
   startwert: number,
-  startwinkel: number,
+  drehung: number,
   winkel: number,
   konfiguration: ReglerKonfiguration,
 ): number {
   if (art === "poti_relativ") {
     const faktor = (konfiguration.max - konfiguration.min) / (konfiguration.winkelBis - konfiguration.winkelVon);
-    return rundeReglerWert(startwert + winkelDifferenz(startwinkel, winkel) * faktor, konfiguration);
+    return rundeReglerWert(startwert + drehung * faktor, konfiguration);
   }
   if (art === "inkrement") {
-    const schritte = Math.trunc(winkelDifferenz(startwinkel, winkel) / konfiguration.schrittWinkel);
+    const schritte = Math.trunc(drehung / konfiguration.schrittWinkel);
     return rundeReglerWert(startwert + schritte * konfiguration.schritt, konfiguration);
   }
   return reglerWertFuerWinkel(winkel, konfiguration);
+}
+
+/** Addiert eine Zeigerbewegung zur Geste und behandelt den Nulldurchgang. */
+export function schreibeReglerDrehungFort(bisherigeDrehung: number, vorherigerWinkel: number, winkel: number): number {
+  return bisherigeDrehung + winkelDifferenz(vorherigerWinkel, winkel);
 }
 
 /** Alle Reglerarten schreiben ihren fortgeschriebenen Absolutwert. */

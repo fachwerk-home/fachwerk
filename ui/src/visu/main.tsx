@@ -31,6 +31,7 @@ import {
   reglerKonfiguration,
   reglerSchreibwert,
   reglerWertFuerGeste,
+  schreibeReglerDrehungFort,
   renderElementeFuerSeite,
   schiebeschalterKnopfBeschriftung,
   schiebeschalterZustand,
@@ -215,12 +216,21 @@ function ElementInhalt({
     const aktualisiere = (event: PointerEvent): number => {
       const feld = event.currentTarget as SVGSVGElement;
       const startwert = Number(feld.dataset["reglerStartwert"]);
-      const startwinkel = Number(feld.dataset["reglerStartwinkel"]);
+      const winkel = punkt(event);
+      const vorherigerWinkel = Number(feld.dataset["reglerVorherigerWinkel"]);
+      const bisherigeDrehung = Number(feld.dataset["reglerDrehung"]);
+      const drehung = schreibeReglerDrehungFort(
+        Number.isFinite(bisherigeDrehung) ? bisherigeDrehung : 0,
+        Number.isFinite(vorherigerWinkel) ? vorherigerWinkel : winkel,
+        winkel,
+      );
+      feld.dataset["reglerVorherigerWinkel"] = String(winkel);
+      feld.dataset["reglerDrehung"] = String(drehung);
       const neu = reglerWertFuerGeste(
         element.parameter?.["art"],
         Number.isFinite(startwert) ? startwert : wert,
-        Number.isFinite(startwinkel) ? startwinkel : punkt(event),
-        punkt(event),
+        drehung,
+        winkel,
         konfiguration,
       );
       if (setKey) bedien.setzeSlider(setKey, neu);
@@ -237,7 +247,7 @@ function ElementInhalt({
           aria-valuemax={konfiguration.max}
           aria-valuenow={wert}
           style={{ "--regler-groesse": `${konfiguration.groesse}px` }}
-          onPointerDown={(event) => { if (!deaktiviert) { const feld = event.currentTarget as SVGSVGElement; feld.dataset["reglerStartwert"] = String(wert); feld.dataset["reglerStartwinkel"] = String(punkt(event)); feld.setPointerCapture(event.pointerId); if (element.parameter?.["art"] === "poti") aktualisiere(event); } }}
+          onPointerDown={(event) => { if (!deaktiviert) { const feld = event.currentTarget as SVGSVGElement; const winkel = punkt(event); feld.dataset["reglerStartwert"] = String(wert); feld.dataset["reglerVorherigerWinkel"] = String(winkel); feld.dataset["reglerDrehung"] = "0"; feld.setPointerCapture(event.pointerId); if (element.parameter?.["art"] === "poti") aktualisiere(event); } }}
           onPointerMove={(event) => { if (!deaktiviert && (event.currentTarget as SVGSVGElement).hasPointerCapture(event.pointerId)) aktualisiere(event); }}
           onPointerUp={(event) => {
             const feld = event.currentTarget as SVGSVGElement;
@@ -247,7 +257,8 @@ function ElementInhalt({
             bedien.setzeSlider(setKey, null);
             const startwert = Number(feld.dataset["reglerStartwert"]);
             delete feld.dataset["reglerStartwert"];
-            delete feld.dataset["reglerStartwinkel"];
+            delete feld.dataset["reglerVorherigerWinkel"];
+            delete feld.dataset["reglerDrehung"];
             bedien.bediene(elementKey, element, reglerSchreibwert(element.parameter?.["art"], Number.isFinite(startwert) ? startwert : wert, zielwert));
           }}
         >

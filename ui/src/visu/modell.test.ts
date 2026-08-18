@@ -20,6 +20,7 @@ import {
   reglerKonfiguration,
   reglerSchreibwert,
   reglerWertFuerGeste,
+  schreibeReglerDrehungFort,
   reglerWertFuerWinkel,
   seitenSkalierung,
   startSeite,
@@ -356,10 +357,34 @@ describe("Regler", () => {
     expect(reglerSchreibwert("poti", startwert, zielwert)).toBe(50);
   });
 
-  it("deutet relative und inkrementelle Gesten ohne Sprung beim Aufsetzen", () => {
+  it("summiert relative Gesten über eine halbe Umdrehung und den Nulldurchgang", () => {
+    const vollerKreis = reglerKonfiguration({ widget: "regler", parameter: { min: 0, max: 255, schritt: 1, winkel_von: 0, winkel_bis: 360 } });
+    let drehung = 0;
+    let vorherigerWinkel = 0;
+    const werte = new Map<number, number>();
+    for (const winkel of [90, 179, 181, 270, 359]) {
+      drehung = schreibeReglerDrehungFort(drehung, vorherigerWinkel, winkel);
+      vorherigerWinkel = winkel;
+      werte.set(winkel, reglerWertFuerGeste("poti_relativ", 0, drehung, winkel, vollerKreis));
+    }
+    expect(werte.get(181)).toBe(128);
+    expect(werte.get(270)).toBe(191);
+    expect(werte.get(359)).toBe(254);
+    expect(schreibeReglerDrehungFort(drehung, 359, 1)).toBe(361);
+    expect(reglerWertFuerGeste("poti_relativ", 0, -10, 350, vollerKreis)).toBe(0);
+  });
+
+  it("zählt inkrementelle Schritte über mehrere Umdrehungen fort", () => {
     const inkrement = reglerKonfiguration({ widget: "regler", parameter: { min: 0, max: 100, schritt: 1, schritt_winkel: 15 } });
-    expect(reglerWertFuerGeste("poti_relativ", 20, 120, 120, konfiguration)).toBe(20);
-    expect(reglerWertFuerGeste("inkrement", 20, 120, 160, inkrement)).toBe(22);
+    let drehung = 0;
+    let vorherigerWinkel = 0;
+    for (const winkel of [40, 140, 240, 340, 40]) {
+      drehung = schreibeReglerDrehungFort(drehung, vorherigerWinkel, winkel);
+      vorherigerWinkel = winkel;
+    }
+    expect(reglerWertFuerGeste("inkrement", 20, 40, 40, inkrement)).toBe(22);
+    expect(reglerWertFuerGeste("inkrement", 20, drehung, 40, inkrement)).toBe(46);
+    expect(reglerWertFuerGeste("poti", 20, drehung, 360, konfiguration)).toBe(50);
   });
 
   it("übernimmt die konfigurierte Reglergröße", () => {
