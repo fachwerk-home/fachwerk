@@ -36,6 +36,13 @@ describe("Visu-CSS", () => {
     expect(regel).toContain("z-index: 2");
   });
 
+  it("legt die Regler-Tasten hinter dem Rad in zwei Hälften", () => {
+    const regel = regelFuer(".regler-taste");
+
+    expect(regel).toContain("width: 50%");
+    expect(regel).toContain("z-index: 0");
+  });
+
   it("begrenzt Regler auf ihre konfigurierte Größe", () => {
     const regel = regelFuer(".regler-kreis");
 

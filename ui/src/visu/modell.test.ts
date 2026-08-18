@@ -16,8 +16,10 @@ import {
   placementFuer,
   renderElementeFuerSeite,
   schiebeschalterKnopfBeschriftung,
+  schiebeschalterPilleGeometrie,
   schiebeschalterZustand,
   reglerKonfiguration,
+  reglerTasten,
   reglerSchreibwert,
   reglerWertFuerGeste,
   schreibeReglerDrehungFort,
@@ -270,20 +272,27 @@ describe("Schiebeschalter", () => {
     });
   });
 
+  it("berechnet Rahmenradius und quadratischen Knopf der Pille aus der Höhe", () => {
+    expect(schiebeschalterPilleGeometrie({ w: 208, h: 104 }, false)).toEqual({
+      rahmenRadius: 52, knopfDurchmesser: 100, knopfVersatzX: 104,
+    });
+    expect(schiebeschalterPilleGeometrie({ w: 208, h: 104 }, true).knopfVersatzX).toBe(0);
+  });
+
   it("zeichnet die Beschriftung des Knopfdesigns im Knopf", () => {
     const knopf = { beschriftung: "ON", text: "black", textausrichtung: "zentriert" as const };
 
     expect(schiebeschalterKnopfBeschriftung(element, knopf)).toBe("ON");
   });
 
-  it("verschiebt mit text_im_knopf die Elementbeschriftung in den Knopf", () => {
+  it("fällt nach der Knopfbeschriftung auf den Elementtext zurück", () => {
     const mitTextImKnopf = { ...element, text: "An", parameter: { ...element.parameter, text_im_knopf: true } };
 
     expect(schiebeschalterKnopfBeschriftung(mitTextImKnopf, {})).toBe("An");
   });
 
-  it("lässt einen Knopf ohne Beschriftung leer", () => {
-    expect(schiebeschalterKnopfBeschriftung(element, {})).toBeUndefined();
+  it("fällt auf den formatierten Wert aus bool_map zurück", () => {
+    expect(schiebeschalterKnopfBeschriftung(element, {}, "Aus")).toBe("Aus");
   });
 
   it("zeichnet ohne beide Knopfdesigns keinen Knopf", () => {
@@ -311,6 +320,14 @@ describe("Schiebeschalter", () => {
       flaeche: designs.ein, knopf: designs.knopfEin, knopfGroesse: { b: 0, h: 0 }, dauerMs: 200,
     });
     expect(schiebeschalterZustand(zustandsElement, designs, "1").flaeche).toEqual(designs.aus);
+  });
+});
+
+describe("Regler-Tasten", () => {
+  it("übernimmt Aus und Ein nur als vollständiges Zahlenpaar", () => {
+    expect(reglerTasten({ widget: "regler", parameter: { tasten: { aus: 0, ein: 255 } } })).toEqual({ aus: 0, ein: 255 });
+    expect(reglerTasten({ widget: "regler", parameter: { tasten: { aus: 0 } } })).toBeUndefined();
+    expect(reglerTasten({ widget: "regler" })).toBeUndefined();
   });
 });
 

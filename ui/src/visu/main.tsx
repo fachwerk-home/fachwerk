@@ -29,11 +29,13 @@ import {
   groesseFuerPlacement,
   placementFuer,
   reglerKonfiguration,
+  reglerTasten,
   reglerSchreibwert,
   reglerWertFuerGeste,
   schreibeReglerDrehungFort,
   renderElementeFuerSeite,
   schiebeschalterKnopfBeschriftung,
+  schiebeschalterPilleGeometrie,
   schiebeschalterZustand,
   schriftartenAusDesigns,
   seitenSkalierung,
@@ -151,6 +153,7 @@ function ElementInhalt({
   elementKey,
   element,
   placement,
+  groesse,
   werte,
   designs,
   design,
@@ -159,6 +162,7 @@ function ElementInhalt({
   elementKey: string;
   element: VisuElement;
   placement: VisuPlacement;
+  groesse: { w: number; h: number };
   werte: ReadonlyMap<string, WertEintrag>;
   designs: VisuDesigns;
   design: VisuDesign;
@@ -170,6 +174,8 @@ function ElementInhalt({
     const statusKey = element.bindungen?.["status"];
     const schalter = schiebeschalterZustand(element, designs, statusKey ? werte.get(statusKey)?.wert : undefined);
     const textImKnopf = element.parameter?.["text_im_knopf"] === true;
+    const pille = element.parameter?.["form"] === "pille";
+    const pilleGeometrie = pille ? schiebeschalterPilleGeometrie(groesse, schalter.knopfLinks) : undefined;
     return (
       <>
         {!textImKnopf && <span class="schiebeschalter-beschriftung">{anzeige.label}</span>}
@@ -177,7 +183,15 @@ function ElementInhalt({
           <span
             class="schiebeschalter-knopf"
             style={{
-              ...(schalter.knopfGroesse
+              ...(pille
+                ? {
+                  top: "2px",
+                  bottom: "auto",
+                  width: `${pilleGeometrie!.knopfDurchmesser}px`,
+                  height: `${pilleGeometrie!.knopfDurchmesser}px`,
+                  transform: `translateX(${pilleGeometrie!.knopfVersatzX}px)`,
+                }
+                : schalter.knopfGroesse
                 ? {
                   width: `${schalter.knopfGroesse.b}px`,
                   height: `${schalter.knopfGroesse.h}px`,
@@ -189,9 +203,10 @@ function ElementInhalt({
                 }),
               transitionDuration: `${schalter.dauerMs}ms`,
               ...designStil(schalter.knopf),
+              ...(pille ? { borderRadius: "50%" } : {}),
             }}
           >
-            {schiebeschalterKnopfBeschriftung(element, schalter.knopf)}
+            {schiebeschalterKnopfBeschriftung(element, schalter.knopf, anzeige.wert)}
           </span>
         )}
       </>
@@ -202,6 +217,7 @@ function ElementInhalt({
   if (element.widget === "regler") {
     const setKey = element.bindungen?.["set"];
     const konfiguration = reglerKonfiguration(element);
+    const tasten = reglerTasten(element);
     const entwurf = setKey ? bedien.slider.get(setKey) : undefined;
     const wert = entwurf ?? (typeof anzeige.rohwert === "number" ? anzeige.rohwert : konfiguration.min);
     const winkel = winkelFuerReglerWert(wert, konfiguration);
@@ -238,6 +254,20 @@ function ElementInhalt({
     };
     return (
       <div class="regler-inhalt">
+        {tasten && <>
+          <button
+            class="regler-taste regler-taste-aus"
+            disabled={deaktiviert}
+            title={!bedien.darfBedienen ? "Scope operate fehlt" : undefined}
+            onClick={() => bedien.bediene(elementKey, element, tasten.aus)}
+          >Aus</button>
+          <button
+            class="regler-taste regler-taste-ein"
+            disabled={deaktiviert}
+            title={!bedien.darfBedienen ? "Scope operate fehlt" : undefined}
+            onClick={() => bedien.bediene(elementKey, element, tasten.ein)}
+          >Ein</button>
+        </>}
         <svg
           class="regler-kreis"
           viewBox="0 0 100 100"
@@ -397,12 +427,16 @@ function VisuElementAnsicht({
     zIndex,
     ...grundstil,
     ...designStil(design),
+    ...(element.widget === "schiebeschalter" && element.parameter?.["form"] === "pille"
+      ? { borderRadius: `${schiebeschalterPilleGeometrie(groesse, false).rahmenRadius}px` }
+      : {}),
   };
   const inhalt = (
     <ElementInhalt
       elementKey={elementKey}
       element={element}
       placement={placement}
+      groesse={groesse}
       werte={werte}
       designs={designs}
       design={design}

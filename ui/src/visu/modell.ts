@@ -206,6 +206,24 @@ export interface SchiebeschalterZustand {
   knopfVersatz?: { x: number; y: number };
 }
 
+export interface SchiebeschalterPilleGeometrie {
+  rahmenRadius: number;
+  knopfDurchmesser: number;
+  knopfVersatzX: number;
+}
+
+/** Eine Pille orientiert Rahmen und Knopf ausschliesslich an ihrer Hoehe. */
+export function schiebeschalterPilleGeometrie(
+  groesse: { w: number; h: number },
+  knopfLinks: boolean,
+): SchiebeschalterPilleGeometrie {
+  return {
+    rahmenRadius: Math.max(0, groesse.h / 2),
+    knopfDurchmesser: Math.max(0, groesse.h - 4),
+    knopfVersatzX: knopfLinks ? 0 : groesse.w - groesse.h,
+  };
+}
+
 /** Alles ausser einem klaren Aus-Wert ist der eingeschaltete Zustand. */
 function schiebeschalterIstAn(wert: unknown): boolean {
   if (wert === false || wert === 0 || wert === "" || wert === null || wert === undefined) return false;
@@ -224,9 +242,27 @@ export interface ReglerKonfiguration {
   groesse: number;
 }
 
+export interface ReglerTasten {
+  aus: number;
+  ein: number;
+}
+
 function parameterZahl(parameter: Record<string, unknown> | undefined, key: string, standard: number): number {
   const wert = parameter?.[key];
   return typeof wert === "number" && Number.isFinite(wert) ? wert : standard;
+}
+
+/** Tasten werden nur bei vollstaendiger, schreibbarer Konfiguration gerendert. */
+export function reglerTasten(element: VisuElement): ReglerTasten | undefined {
+  const tasten = element.parameter?.["tasten"];
+  if (typeof tasten !== "object" || tasten === null || Array.isArray(tasten)) return undefined;
+  const tastenWerte = tasten as Record<string, unknown>;
+  const aus = tastenWerte["aus"];
+  const ein = tastenWerte["ein"];
+  return typeof aus === "number" && Number.isFinite(aus)
+    && typeof ein === "number" && Number.isFinite(ein)
+    ? { aus, ein }
+    : undefined;
 }
 
 /**
@@ -419,9 +455,13 @@ function elementText(element: VisuElement): string | undefined {
   return element.text && element.text.trim().length > 0 ? element.text : undefined;
 }
 
-/** Die Knopfbeschriftung gewinnt; text_im_knopf verschiebt nur den Elementtext. */
-export function schiebeschalterKnopfBeschriftung(element: VisuElement, knopf: VisuDesign): string | undefined {
-  return knopf.beschriftung ?? (element.parameter?.["text_im_knopf"] === true ? elementText(element) : undefined);
+/** Die Knopfbeschriftung gewinnt; zuletzt bleibt der formatierte Status sichtbar. */
+export function schiebeschalterKnopfBeschriftung(
+  element: VisuElement,
+  knopf: VisuDesign,
+  formatierterWert?: string,
+): string | undefined {
+  return knopf.beschriftung ?? elementText(element) ?? formatierterWert;
 }
 
 export function beschriftungFuerElement(element: VisuElement, design?: VisuDesign): string | undefined {
