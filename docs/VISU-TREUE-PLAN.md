@@ -24,10 +24,28 @@ node tools/visu-vergleich.mjs alt.html neu.html [--alle]
 Die Reihenfolge ist der ganze Trick. Eine Abweichung, die 28-mal auftritt, hat
 **eine** Ursache — nicht 28. Man behebt sie einmal und misst nach.
 
-Abzug der Altanlage: Seite im Browser speichern. Abzug aus Fachwerk: Seite
-öffnen, in den Entwicklerwerkzeugen die berechneten Formangaben in die
-Inline-Stile schreiben und `document.querySelector('.canvas').outerHTML`
-sichern.
+Die Abzüge macht `tools/visu-abzug.mjs` (seit 06.10.2026): es steuert einen
+Chromium (Chrome oder Edge) über das DevTools-Protokoll, lädt die Seite,
+schreibt die berechneten Formangaben als Inline-Stile und sichert das
+Dokument. Keine Abhängigkeit — der WebSocket-Client ist in Node 24 eingebaut.
+
+```bash
+# Fachwerk, ein Zustand je Aufruf — Werte werden vorher über die API gesetzt
+FACHWERK_PASSWORT=... node tools/visu-abzug.mjs \
+  "http://localhost:8300/visu.html?seite=licht_eg" abzug/licht_eg_an.html \
+  --nutzer julian --setze licht.eg.status=true
+
+# Altanlage: einmal sichtbar anmelden, danach kopflos mit demselben Profil
+node tools/visu-abzug.mjs "http://altanlage/..." abzug/alt_licht_eg.html \
+  --profil ~/.fachwerk-abzug-profil --sichtbar
+```
+
+Damit ist die Handprobe „reagiert die Anzeige auf den Wert" messbar: zwei
+Abzüge derselben Seite mit verschiedenen Werten, Vergleich dazwischen. Zeigt
+der Vergleich keine Abweichung, hat sich nichts bewegt.
+
+Der Abzug der Altanlage ist gerendertes DOM der eigenen Nutzdaten, kein
+Quelltext. Er gehört nach `_ingest/`, nicht ins Repo.
 
 Beim Vergleich sind Scheinunterschiede der Feind: `border-radius: 0px` gegen
 eine fehlende Angabe ist keine Abweichung, `-webkit-linear-gradient(-90deg,…)`

@@ -154,12 +154,15 @@ function elemente(html) {
     const b = laenge(stil.get("width"));
     const h = laenge(stil.get("height"));
     if (x === undefined || y === undefined || b === undefined || h === undefined) continue;
-    // Text bis zum naechsten oeffnenden Tag gleicher Art (grob, aber es geht
-    // nur um „steht dort dasselbe", nicht um exakte Baumstruktur).
+    // Text bis zum naechsten schliessenden Tag gleicher Art (grob, aber es geht
+    // nur um „steht dort dasselbe", nicht um exakte Baumstruktur). Das Fenster
+    // muss gross genug sein, dass ein Abzug mit berechneten Inline-Stilen
+    // (tools/visu-abzug.mjs: ~500 Zeichen je Kindelement) nicht mitten in
+    // einem Tag abgeschnitten wird — sonst bleibt ein halber Tag als „Text".
     const ab = treffer.index + treffer[0].length;
     gefunden.push({
       x, y, b, h,
-      text: textVon(html.slice(ab, ab + 400).split(/<\/(?:div|button)>/)[0] ?? ""),
+      text: textVon(html.slice(ab, ab + 6000).split(/<\/(?:div|button)>/)[0] ?? ""),
       hintergrund: farbe(stil.get("background") ?? stil.get("background-color")),
       farbe: farbe(stil.get("color")),
       schriftart: schrift(stil.get("font-family")),
