@@ -106,6 +106,8 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-REGLER-UEBER-180.md | Codex | ✅ gemergt (PR #28) |
 | AUFTRAG-SCHALTERFORM-UND-TASTEN.md | Codex | ✅ gemergt (PR #29) |
 | AUFTRAG-VISU-TOKEN-LIVEKANAL.md | Codex (nach Kern-Vertrag durch Spur 1) | offen — Befund vom 06.10.2026 |
+| AUFTRAG-VISU-KACHEL.md | Codex | offen, sofort startbar (Schema + Importer auf main) — 36 von 67 Abweichungen |
+| AUFTRAG-REGLER-FORM.md | Codex | offen, sofort startbar — Rad verzerrt, Tasten im Grid |
 
 Stand 06.10.2026: alle Auftraege gemergt bis auf WETTER (Gemini, startbar)
 und B7-ANIMATION (nice-to-have). Offen aus Integrationswuenschen: CLI schreibt
