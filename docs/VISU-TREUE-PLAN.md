@@ -137,3 +137,47 @@ API setzen und nachsehen, ob sich die Darstellung ändert.
 Und es vergleicht eine Seite. Zehn Seiten heißen zehn Abzüge; die Ursachen
 wiederholen sich aber, deshalb lohnt sich der Aufwand meist nur für eine
 repräsentative Seite pro Bauart.
+
+## Messung 06.10.2026 (frischer Import, Stand main 8bbf921)
+
+Aufbau: Dump + Visu-Paket neu importiert, Fachwerk lokal im Beobachtungsmodus
+ohne Bus (also OHNE Werte), Abzug mit `tools/visu-abzug.mjs` bei 430×932,
+Vergleich mit `--schriften "font1=knx uf,font2=flaticon,lucida grande=arial"`
+(die Hausschrift-Differenz ist hingenommen, siehe oben).
+
+| Seite | zugeordnet | Abweichungen | davon ohne Werte erklärbar |
+|---|---:|---:|---:|
+| Lichtsteuerung EG 1 (aus) | 30 von 32 | 24 | 6 Text („—" statt Zahl, „" statt „Aus") |
+| Jalousie-Steuerung Seite 1 | 52 von 53 | 43 | 7 Text |
+
+Zum Vergleich: im August standen für Licht EG 1 noch 44 (inkl. 18 Schriftart).
+
+**Ursachen, nach Gewicht:**
+
+1. **Standard-Kachel auf Elementen ohne eigene Fläche** — 31 von 43 auf der
+   Jalousie-Seite (Hintergrund, Rahmen 1 px, Eckenradius 12, Schatten), 5 auf
+   Licht. `fachwerkKachelFuer` in `ui/src/visu/modell.ts` gibt jedem Element,
+   dessen Design keine Fläche definiert, die Fachwerk-Kachel. Im Original ist
+   ein Element ohne Fläche einfach Text auf der Seite. Vorschlag: Kachel nur
+   für Elemente OHNE Design (Fachwerk-eigene Seiten); importierte Elemente
+   tragen immer ein Design und bekommen keine. Eine Ursache, 36 Treffer.
+2. **Drehregler-Rad falsch dimensioniert.** Original: Rad 270×270 mit 15 px
+   Rand im 300er-Feld. Fachwerk: `regler-inhalt` 290×290 ohne Rand, und das
+   SVG `regler-kreis` misst 261×240,75 — nicht quadratisch, der Kreis ist also
+   verzerrt. Dazu zwei 100×100-Flächen (Tasten) als Extra-Elemente.
+3. **Schiebeschalter zeigt „OFF" doppelt** (Spur und Knopf), das Original
+   einmal; die „ON"-Beschriftung des Originals (74/1173) fehlt in Fachwerk.
+   Hängt mit der Rückfallreihenfolge aus SCHALTERFORM-UND-TASTEN zusammen;
+   am laufenden System prüfen, was das Original im Zustand aus zeigt.
+4. **Schriftfarbe:** zwei Beschriftungen auf der Jalousie-Seite (0/64, 0/154)
+   hell statt schwarz; ein Element auf Licht (63/386) mit 5 px Rahmen, das im
+   Original keinen hat.
+5. **Werkzeug-Artefakte, jetzt behoben:** Farbnamen (`white`) werden
+   normalisiert; Textfenster vergrößert. Noch offen: die Zuordnung der
+   Leinwand-Wurzel (0/0) erzeugt je Seite 3–4 Scheintreffer (Schriftgröße 10,
+   Hintergrund der Fläche, Breite/Höhe 0). Das Werkzeug sollte das Element
+   mit Fläche = Seitengröße ausklammern.
+
+**Nächste Messung** mit gesetzten Werten (`--setze` für die Status-Datenpunkte
+der Seite), damit die Text-Spalte Aussagekraft bekommt; und mit Zustand an,
+gegen `iPhone_Visu_LichtEG1_on.html`.

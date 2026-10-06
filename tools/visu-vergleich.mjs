@@ -53,6 +53,12 @@ function laenge(wert) {
  * Browser laesst sie in der berechneten Form weg. Ohne das meldet der
  * Vergleich Dutzende Unterschiede, die keine sind.
  */
+const FARBNAMEN = new Map([
+  ["white", "rgb(255,255,255)"], ["black", "rgb(0,0,0)"], ["red", "rgb(255,0,0)"],
+  ["green", "rgb(0,128,0)"], ["blue", "rgb(0,0,255)"], ["yellow", "rgb(255,255,0)"],
+  ["gray", "rgb(128,128,128)"], ["grey", "rgb(128,128,128)"], ["orange", "rgb(255,165,0)"],
+]);
+
 function farbe(wert) {
   if (!wert) return undefined;
   let roh = wert.trim();
@@ -60,8 +66,10 @@ function farbe(wert) {
   if (verlauf) return verlaufNormal(verlauf[0]);
   const rgbTeil = /rgba?\([^)]*\)|#[0-9a-f]{3,8}/i.exec(roh);
   if (rgbTeil) roh = rgbTeil[0];
-  const t = roh.toLowerCase().replace(/\s+/g, "");
+  let t = roh.toLowerCase().replace(/\s+/g, "");
   if (t === "transparent" || t === "rgba(0,0,0,0)") return undefined;
+  // Die Altanlage schreibt Farbnamen, der Browser liefert rgb(): dasselbe.
+  t = FARBNAMEN.get(t) ?? t;
   const kurz = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(t);
   if (kurz) return `rgb(${kurz.slice(1).map((h) => parseInt(h + h, 16)).join(",")})`;
   const lang = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/.exec(t);
