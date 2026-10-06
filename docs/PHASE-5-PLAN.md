@@ -241,7 +241,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
 ## Block D — Editoren
 
-### P5-10: Visu-Editor v1 (WYSIWYG)
+### P5-10: Visu-Editor v1 (WYSIWYG) ✅ (gemergt PR #5 + Fix PR #7, Codex; P5-10a Spur 1)
 - **Ziel:** Der Editor, der EDOMI ausgezeichnet hat — modern (R-1/R-2).
 - **Umfang:** Canvas mit Drag&Drop, Raster/Snap, Mehrfachauswahl, Ausrichten;
   Palette = Presets + Widgets (SPEC-003 F-1); Eigenschaften-Panel mit
@@ -256,7 +256,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 - **Akzeptanz:** Eine Seite im Editor bauen → aktivieren → im Client bedienen,
   ohne Container-Restart; Editor-Ausgabe ist kanonisches YAML (git-diff-klein).
 
-### P5-11: Logik-Editor v1
+### P5-11: Logik-Editor v1 ✅ (gemergt PR #6 + Fix PR #8, Codex)
 - **Ziel:** Verdrahten im Browser (aus Phase 4 hierher verschoben).
 - **Umfang:** aufbauend auf P5-5 (Monitor): Knoten aus Palette (Stdlib +
   eigene Bausteine via Manifest, inkl. konfig-variabler Ports ADR-0012 K-1 —
@@ -294,7 +294,7 @@ sekündlicher Uhr-Tick ohne feuernde Bausteine — werden nicht geloggt).
 
 ## Block E — Daten fürs Wohnzimmer
 
-### P5-13: Archive & Diagramme (SPEC-004 minimal) — in drei Teilen (13a ✅ 18.07.2026, Spur 3)
+### P5-13: Archive & Diagramme (SPEC-004 minimal) — in drei Teilen ✅ (13a 18.07.2026 Spur 3; 13b Spur 1; 13c Spur 3)
 - **P5-13a Archiv-Kern (parallelisierbar, Spur 3):** Datenarchiv-Definition im
   Gewerk (`archiv/*.yaml`: Quelle-DP, Aufbewahrung, Raster), Schreiber in core
   (SQLite, ADR-0006), Abfrage-Funktion mit Raster/Aggregation — als

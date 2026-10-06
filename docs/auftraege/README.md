@@ -94,7 +94,22 @@ Phase-5-Abnahme aus dem Plan.
 | AUFTRAG-INTEROP-KATALOG.md | Dirty Room (Cursor) | ✅ alle 4 Teile geliefert (_ingest); Teil 2+4 umgesetzt |
 | AUFTRAG-VISU-DESIGN-VOLL.md | Codex | ✅ gemergt (PR #21) |
 | AUFTRAG-VISU-GRUNDSTIL.md | Codex | ✅ gemergt (PR #22) |
-| AUFTRAG-WIDGET-SCHIEBESCHALTER.md | Codex | offen (kann sofort starten) |
-| AUFTRAG-WIDGET-REGLER.md | Codex | offen (nach Schiebeschalter) |
-| AUFTRAG-WIDGET-FARBAUSWAHL.md | Codex | offen (nach Regler) |
+| AUFTRAG-WIDGET-SCHIEBESCHALTER.md | Codex | ✅ gemergt (PR #23) |
+| AUFTRAG-WIDGET-REGLER.md | Codex | ✅ gemergt (PR #24, mit Nachbesserung) |
+| AUFTRAG-WIDGET-FARBAUSWAHL.md | Codex | ✅ gemergt (PR #25) |
 | AUFTRAG-VISU-UMSCHALTEN.md | Codex | ✅ gemergt (PR #20) |
+| AUFTRAG-VISU-NACHBESSERUNG-1.md | Codex | ✅ gemergt (PR #11 + #12, A1-A4) |
+| AUFTRAG-ZUSTANDSSCHALTER.md | Codex | ✅ gemergt (c2b3537, 16.08.2026) |
+| AUFTRAG-ZUSTANDSSCHALTER-NACHBESSERUNG.md | Codex | ✅ gemergt (c2b3537, fuenf Befunde aus der Messung) |
+| AUFTRAG-KNOPFBESCHRIFTUNG.md | Codex | ✅ gemergt (PR #26) |
+| AUFTRAG-REGLER-UND-FARBE.md | Codex | ✅ gemergt (PR #27) |
+| AUFTRAG-REGLER-UEBER-180.md | Codex | ✅ gemergt (PR #28) |
+| AUFTRAG-SCHALTERFORM-UND-TASTEN.md | Codex | ✅ gemergt (PR #29) |
+| AUFTRAG-VISU-TOKEN-LIVEKANAL.md | Codex (nach Kern-Vertrag durch Spur 1) | offen — Befund vom 06.10.2026 |
+
+Stand 06.10.2026: alle Auftraege gemergt bis auf WETTER (Gemini, startbar)
+und B7-ANIMATION (nice-to-have). Offen aus Integrationswuenschen: CLI schreibt
+MIGRATION.md beim Import (MIGRATIONS-REPORT). Naechster Schritt der
+Visu-Treue-Schleife ist das Nachmessen aller repraesentativen Seiten mit
+`tools/visu-abzug.mjs` + `tools/visu-vergleich.mjs` (siehe
+`docs/VISU-TREUE-PLAN.md`).
