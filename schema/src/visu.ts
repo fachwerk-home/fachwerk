@@ -144,6 +144,14 @@ export interface VisuGrundstil {
   /** Schriftfarbe — heisst wie im Design `text`. */
   text?: string;
   textausrichtung?: "links" | "zentriert" | "rechts" | "blocksatz";
+  /**
+   * Bekommen Elemente OHNE eigene Flaeche (kein Hintergrund, Rand, Schatten,
+   * keine Polsterung im Design) die Standard-Kachel der Fachwerk-Oberflaeche?
+   * Fehlt die Angabe, gilt `true` (bisheriges Verhalten fuer Fachwerk-eigene
+   * Seiten). Importierte Seiten setzen `false`: dort ist ein Element ohne
+   * Flaeche schlicht Text auf der Seite - gemessen 36 von 67 Abweichungen.
+   */
+  kachel?: boolean;
 }
 
 export interface VisuSeite {

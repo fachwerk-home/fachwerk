@@ -563,6 +563,14 @@ test("eine beigelegte Fremdschrift wird zur Grundschrift der Seiten", () => {
   expect(viele.bericht.hinweise.join(" ")).toContain("nicht eindeutig");
 });
 
+test("importierte Seiten schalten die Standard-Kachel ab", () => {
+  // Das Altsystem kennt keine Kachel: ein Element ohne Flaeche ist dort
+  // reiner Text. Die Angabe steht sichtbar im Grundstil jeder Seite, damit
+  // der Renderer nichts raten muss und ein Betreiber sie bewusst aendern kann.
+  const { seiten } = konvertiereVisu(fixture(), gaKey);
+  for (const seite of seiten.values()) expect(seite.grundstil?.kachel).toBe(false);
+});
+
 test("bool-Datenpunkt bekommt true/false statt 1/0 — sonst trifft der Vergleich nie", () => {
   const roh = fixture();
   (roh.editKo as Array<Record<string, unknown>>).push({ id: 371, ga: "371", name: "Schalter" });

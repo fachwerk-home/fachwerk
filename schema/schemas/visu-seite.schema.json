@@ -88,6 +88,9 @@
             "rechts",
             "blocksatz"
           ]
+        },
+        "kachel": {
+          "type": "boolean"
         }
       }
     }

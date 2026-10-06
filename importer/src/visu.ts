@@ -860,6 +860,11 @@ export function konvertiereVisu(
       ...(grundschrift ? { schriftart: grundschrift } : {}),
       schriftgroesse: GRUNDSCHRIFTGROESSE,
       text: GRUNDTEXTFARBE,
+      // Das Altsystem kennt keine Standard-Kachel: ein Element ohne eigene
+      // Flaeche ist dort Text auf der Seite. Ohne diese Angabe zeichnet der
+      // Renderer um jede Wertanzeige Rahmen, Radius und Schatten der
+      // Fachwerk-Oberflaeche - gemessen 36 von 67 Abweichungen (06.10.2026).
+      kachel: false,
     };
     // Seitenhintergrund (B1): bgcolorid ueber die Palette. 0/null = keiner.
     const bg = bgFarbe.get(info.bgcolorid);
